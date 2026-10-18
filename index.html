@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.17.1</title>
+<title>SEN Ballistics V1.17.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-/* ═══════════ SEN PLATFORM V1.17.1 — fix: More button wiring (gotoPage(undefined) TypeError) ═══════════ */
+/* ═══════════ SEN PLATFORM V1.17.2 — new PWA id + repo move to SprukK (no physics change) ═══════════ */
 :root{
   --bg:#0a0b0e;--bg2:#12151b;--bg3:#181c25;--bg4:#20252f;
   --border:rgba(210,192,152,.09);--border2:rgba(210,192,152,.18);
@@ -246,7 +246,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.17.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.17.2 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <!-- Active selections bar — the visible face of Session State -->
@@ -674,7 +674,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.17.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/lnQNtrol/SEN-Balistic-Calcutalor</div>
+  <div class="note">SEN Ballistics Platform V1.17.2 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -2501,7 +2501,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,app:'SEN Ballistics V1.17.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,app:'SEN Ballistics V1.17.2'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -2965,7 +2965,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,exported:new Date().toISOString(),app:'SEN Ballistics V1.17.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,exported:new Date().toISOString(),app:'SEN Ballistics V1.17.2'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
