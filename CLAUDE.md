@@ -19,7 +19,7 @@ SEN-Project/
 │   ├── Calculator/      ← Track B docs, session references, architecture plans
 │   ├── Ammunition/      ← Track A docs, slug/pellet design references
 │   └── Session-Notes/   ← Per-session notes
-└── App/                 ← THIS git repo (github.com/lnQNtrol/SEN-Balistic-Calcutalor)
+└── App/                 ← THIS git repo (github.com/SprukK/SEN-Balistic-Calculator)
     ├── CLAUDE.md        ← This file
     ├── manifest.json
     ├── sw.js
@@ -152,8 +152,10 @@ and show the user what has changed.
 
 - RTI Arms: https://www.rtiarms.eu (only — rtiarms.shop is NOT official)
 - Berger Twist Rate Calculator: https://bergerbullets.com/twist-rate-calculator
-- App repo: https://github.com/lnQNtrol/SEN-Balistic-Calcutalor
-- App deployment: https://lnqntrol.github.io/SEN-Balistic-Calcutalor/
+- App repo: https://github.com/SprukK/SEN-Balistic-Calculator (main app repo)
+- App deployment: https://sprukk.github.io/SEN-Balistic-Calculator/
+- Test repo: https://github.com/SprukK/SEN-Testing (BLE probes, module testers)
+- Legacy repo (archived, history migrated): https://github.com/lnQNtrol/SEN-Balistic-Calcutalor
 
 ---
 
