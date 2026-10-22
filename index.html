@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.18.0</title>
+<title>SEN Ballistics V1.19.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-/* ═══════════ SEN PLATFORM V1.18.0 — storage moves to IndexedDB + schema versions (no physics change) ═══════════ */
+/* ═══════════ SEN PLATFORM V1.19.0 — import review: sanitise, conflict choices, reference remap (no physics change) ═══════════ */
 :root{
   --bg:#0a0b0e;--bg2:#12151b;--bg3:#181c25;--bg4:#20252f;
   --border:rgba(210,192,152,.09);--border2:rgba(210,192,152,.18);
@@ -246,7 +246,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.18.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.19.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <div class="flag warn" id="store-warn" role="alert" style="display:none;margin:8px 12px 0"></div>
@@ -677,7 +677,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.18.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.19.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -2574,7 +2574,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.18.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.19.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3038,40 +3038,138 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.18.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.19.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
   const f=input.files[0];if(!f)return;
   const rd=new FileReader();
-  rd.onload=()=>{try{
-    const d=JSON.parse(rd.result);
-    const newer=schemaNewerThanApp(d);
-    if(newer.length){alert('This file was made by a newer SEN version ('+newer.join(', ')+'). Update the app before importing it, so nothing is misread or lost.');return;}
-    // Referential merge order: reticles → scopes → rifles → projectiles → weathers → dopeCards
-    // (rifles point to scopes, scopes point to reticles — parents must land first).
-    ['reticles','scopes','rifles','projectiles','weathers','dopeCards'].forEach(k=>{
-      (d[k]||[]).forEach(x=>{if(!DB[k].some(y=>y.id===x.id))DB[k].push(x);});
-    });
-    // M4 (V1.13.2): exportDope writes {dopeCard:{…}} — importAll only merged array keys, so a
-    // single-card file "merged" nothing without any error. Accept the single-card shape too.
-    if(d.dopeCard&&d.dopeCard.id&&!DB.dopeCards.some(y=>y.id===d.dopeCard.id))DB.dopeCards.push(d.dopeCard);
-    // Restore display preferences when the export carries them.
-    if(d.units)UNITS={...UNITS,...d.units};
-    if(d.sunits)SUNITS={...SUNITS,...d.sunits};
-    if(d.app2)APP={...APP,...d.app2};
-    // Integrity scan: any rifle whose scopeId resolves to nothing would silently fall back
-    // to a 0.1 mrad click step — wrong dope on MOA scopes. Surface it loudly instead.
-    const dangling=DB.rifles.filter(r=>r.scopeId&&!DB.scopes.some(s=>s.id===r.scopeId));
-    saveDB();renderProfiles();refreshSelects();Bus.notify();
-    if(dangling.length){
-      alert('Import merged, but these rifles reference a scope that is not in the database:\n\n'+dangling.map(r=>'· '+r.name).join('\n')+'\n\nTheir click step will default to 0.1 mrad until you assign a scope. Edit each rifle and select a scope.');
-    }else{
-      alert('Import merged — no overwrites. Scopes and reticles included.');
-    }
-  }catch(e){alert('Import failed: '+e.message);}};
+  rd.onload=()=>{try{importData(JSON.parse(rd.result));}catch(e){alert('Import failed: '+e.message);}};
   rd.readAsText(f);input.value='';
 }
+
+/* ═════════ CORE-03 (V1.19.0) — IMPORT: sanitise → plan → review → apply ═════════
+   One path for every import source (file today; QR/text/link in CORE-02). Nothing is written
+   until the plan is applied. Incoming records keep only whitelisted fields of the right type;
+   records missing essentials are rejected and listed. Collisions (same id with different
+   content, or same name) are never resolved silently: the review sheet offers Overwrite /
+   Save as copy / Skip per item. References inside the import (rifle→scope→reticle, dope
+   card→rifle/projectile/weather) follow whatever was chosen for their target. */
+const IMPORT_ORDER=['reticles','scopes','rifles','projectiles','weathers','dopeCards'];
+const IMPORT_LABEL={reticles:'Reticle',scopes:'Scope',rifles:'Rifle',projectiles:'Projectile',weathers:'Weather',dopeCards:'Dope card'};
+const IMPORT_FIELDS={
+  rifles:{id:'s',name:'s',cal:'s',twist:'n',twistDir:'s',blen:'n',sight:'n',mv:'n',zero:'n',notes:'s',scopeId:'s',railOn:'b',railMrad:'n',railUnit:'s',downClicks:'ns',zwSpd:'n',zwDir:'n',zTemp:'n',zPres:'n',zRH:'n',reg1:'ns',reg2:'ns',ssj:'b',regDelta:'ns',dwell:'ns',fav:'b',mvt:'mvt'},
+  scopes:{id:'s',name:'s',sku:'s',adjUnit:'s',click:'n',elev:'n',wind:'n',cpr:'n',magMin:'n',magMax:'n',reticleId:'s0',source:'s',notes:'s',fav:'b'},
+  reticles:{id:'s',name:'s',fp:'s',renderer:'s',dotMrad:'n',hashStep:'n',hashMark:'n',hashes:'nums',windHashes:'nums',treeRows:'nums',verified:'b',confNote:'s',notes:'s',fav:'b'},
+  projectiles:{id:'s',name:'s',cal:'s',mfg:'s',type:'s',diam:'n',mass:'n',oal:'n',bcg7:'n',bcg1:'n',c:'n',ff:'n',notes:'s',fav:'b'},
+  weathers:{id:'s',name:'s',temp:'n',pres:'n',rh:'n',alt:'n',notes:'s',fav:'b'},
+  dopeCards:{id:'s',name:'s',rifleId:'s0',projId:'s0',cwxId:'s0',mv:'n',zero:'n',notes:'s',stages:'stages',fav:'b'}
+};
+const IMPORT_REQUIRED={scopes:['click'],projectiles:['diam','mass']};
+const isNum=v=>typeof v==='number'&&isFinite(v);
+const isStr=v=>typeof v==='string'&&v.length<=2000;
+const IMPORT_CHECK={
+  s:isStr, n:isNum, b:v=>typeof v==='boolean', ns:v=>isStr(v)||isNum(v), s0:v=>v===null||isStr(v),
+  nums:v=>Array.isArray(v)&&v.every(isNum),
+  mvt:v=>Array.isArray(v)&&v.every(o=>o&&isNum(o.t)&&isNum(o.v)),
+  stages:v=>Array.isArray(v)&&v.every(st=>st&&isStr(st.id)&&isStr(st.name)&&Array.isArray(st.dists)&&st.dists.every(d=>d&&isStr(d.id)&&['range','angle','wind','wdir'].every(k=>isNum(d[k]))))
+};
+function sanitiseRecord(type,raw){
+  if(!raw||typeof raw!=='object')return{reject:'not a record'};
+  const spec=IMPORT_FIELDS[type],rec={};
+  Object.keys(spec).forEach(k=>{if(k in raw&&IMPORT_CHECK[spec[k]](raw[k]))rec[k]=JSON.parse(JSON.stringify(raw[k]));});
+  if(!rec.name||!rec.name.trim())return{reject:'no name'};
+  const missing=(IMPORT_REQUIRED[type]||[]).filter(k=>!(rec[k]>0));
+  if(missing.length)return{reject:'missing '+missing.join(', ')};
+  if(rec.stages)rec.stages=rec.stages.map(st=>({id:st.id,name:st.name,notes:isStr(st.notes)?st.notes:'',dists:st.dists.map(d=>({id:d.id,range:d.range,angle:d.angle,wind:d.wind,wdir:d.wdir}))}));
+  if(!rec.id)rec.id=uid();
+  return{rec};
+}
+function diffKeys(a,b){return[...new Set([...Object.keys(a),...Object.keys(b)])].filter(k=>k!=='id'&&k!=='fav'&&JSON.stringify(a[k])!==JSON.stringify(b[k]));}
+const sameRecord=(a,b)=>diffKeys(a,b).length===0;
+function recordDiff(mine,theirs){
+  const keys=diffKeys(mine,theirs);
+  const show=v=>v==null||v===''?'—':typeof v==='object'?'(changed)':String(v);
+  const txt=keys.slice(0,3).map(k=>k+' '+show(mine[k])+' → '+show(theirs[k])).join(' · ');
+  return keys.length>3?txt+' · +'+(keys.length-3)+' more':txt||'same content, different id';
+}
+function planImport(d){
+  if(d.dopeCard)d={...d,dopeCards:[...(d.dopeCards||[]),d.dopeCard]};
+  const plan={items:[],rejected:[],prefs:null};
+  IMPORT_ORDER.forEach(type=>(Array.isArray(d[type])?d[type]:[]).forEach(raw=>{
+    const r=sanitiseRecord(type,raw);
+    if(r.reject){plan.rejected.push(IMPORT_LABEL[type]+' "'+String(raw&&raw.name||'?').slice(0,60)+'": '+r.reject);return;}
+    const byId=DB[type].find(x=>x.id===r.rec.id);
+    const nm=r.rec.name.trim().toLowerCase();
+    const byName=byId?null:DB[type].find(x=>String(x.name).trim().toLowerCase()===nm);
+    const mine=byId||byName;
+    const kind=!mine?'new':sameRecord(mine,r.rec)?'same':'clash';
+    plan.items.push({type,rec:r.rec,mine,kind,choice:kind==='clash'?'copy':null,diff:kind==='clash'?recordDiff(mine,r.rec):''});
+  }));
+  const incoming={units:d.units,sunits:d.sunits,app2:d.app2};
+  const differs=[['units',UNITS],['sunits',SUNITS],['app2',APP]].some(([k,cur])=>incoming[k]&&typeof incoming[k]==='object'&&Object.keys(incoming[k]).some(x=>JSON.stringify(incoming[k][x])!==JSON.stringify(cur[x])));
+  if(differs)plan.prefs={incoming,choice:'keep'};
+  return plan;
+}
+function remapRefs(type,rec,idMap){
+  const fix=(k,from)=>{if(rec[k]&&idMap[from][rec[k]])rec[k]=idMap[from][rec[k]];};
+  if(type==='scopes')fix('reticleId','reticles');
+  if(type==='rifles')fix('scopeId','scopes');
+  if(type==='dopeCards'){fix('rifleId','rifles');fix('projId','projectiles');fix('cwxId','weathers');}
+}
+function applyImport(plan){
+  const idMap={},n={added:0,overwritten:0,copied:0,skipped:0,same:0};
+  IMPORT_ORDER.forEach(t=>idMap[t]={});
+  plan.items.forEach(it=>{
+    const coll=DB[it.type],rec=it.rec,inId=rec.id;
+    remapRefs(it.type,rec,idMap);
+    if(it.kind==='same'){idMap[it.type][inId]=it.mine.id;n.same++;return;}
+    if(it.kind==='new'){coll.push(rec);n.added++;return;}
+    if(it.choice==='skip'){idMap[it.type][inId]=it.mine.id;n.skipped++;return;}
+    if(it.choice==='overwrite'){rec.id=it.mine.id;coll[coll.indexOf(it.mine)]={...rec,fav:it.mine.fav};idMap[it.type][inId]=rec.id;n.overwritten++;return;}
+    rec.id=uid();rec.name=cloneName(rec.name,coll.map(x=>x.name));coll.push(rec);idMap[it.type][inId]=rec.id;n.copied++;
+  });
+  if(plan.prefs&&plan.prefs.choice==='take'){const p=plan.prefs.incoming;if(p.units)UNITS={...UNITS,...p.units};if(p.sunits)SUNITS={...SUNITS,...p.sunits};if(p.app2)APP={...APP,...p.app2};}
+  return n;
+}
+let IMP=null;
+function importData(d){
+  const newer=schemaNewerThanApp(d);
+  if(newer.length){alert('This data was made by a newer SEN version ('+newer.join(', ')+'). Update the app before importing it, so nothing is misread or lost.');return;}
+  const plan=planImport(d);
+  if(plan.items.some(it=>it.kind==='clash')||plan.prefs){IMP=plan;renderImportReview();return;}
+  finishImport(plan);
+}
+function finishImport(plan){
+  const n=applyImport(plan);IMP=null;closeModal();
+  saveDB();renderProfiles();refreshSelects();Bus.notify();
+  const dangling=DB.rifles.filter(r=>r.scopeId&&!DB.scopes.some(s=>s.id===r.scopeId));
+  let msg=`Import done — ${n.added} new · ${n.overwritten} overwritten · ${n.copied} saved as copy · ${n.skipped} skipped · ${n.same} already identical.`;
+  if(plan.rejected.length)msg+='\n\nNot imported (invalid):\n'+plan.rejected.map(x=>'· '+x).join('\n');
+  if(dangling.length)msg+='\n\nThese rifles reference a scope that is not in the database:\n'+dangling.map(r=>'· '+r.name).join('\n')+'\nTheir click step defaults to 0.1 mrad until you assign a scope.';
+  alert(msg);
+}
+const IMP_CHOICES=[['overwrite','Overwrite'],['copy','Save as copy'],['skip','Skip']];
+function renderImportReview(){
+  const seg=(cur,i)=>IMP_CHOICES.map(([k,l])=>`<button class="${cur===k?'on':''}" onclick="impChoose(${i},'${k}')">${l}</button>`).join('');
+  const rows=IMP.items.map((it,i)=>it.kind!=='clash'?'':`<div class="panel" style="padding:10px;margin-bottom:8px">
+    <div style="font-size:13px"><b>${esc(it.rec.name)}</b> <span class="note">${IMPORT_LABEL[it.type]} · matches your “${esc(it.mine.name)}”</span></div>
+    <div class="note" style="margin:4px 0 8px">${esc(it.diff)}</div>
+    <div class="seg">${seg(it.choice,i)}</div></div>`).join('');
+  const newCount=IMP.items.filter(it=>it.kind==='new').length;
+  const prefs=IMP.prefs?`<div class="panel" style="padding:10px;margin-bottom:8px"><div style="font-size:13px"><b>Units &amp; display preferences</b></div>
+    <div class="note" style="margin:4px 0 8px">The file carries different unit and display settings.</div>
+    <div class="seg"><button class="${IMP.prefs.choice==='keep'?'on':''}" onclick="impPrefs('keep')">Keep mine</button><button class="${IMP.prefs.choice==='take'?'on':''}" onclick="impPrefs('take')">Take theirs</button></div></div>`:'';
+  const rej=IMP.rejected.length?`<div class="flag warn">Not importable (invalid): ${IMP.rejected.map(esc).join(' · ')}</div>`:'';
+  openModal(`<h3>Review import</h3>
+    <div class="note" style="margin-bottom:10px">${newCount} new item(s) will be added. These already exist — choose for each:</div>
+    <div class="seg" style="margin-bottom:12px">${IMP_CHOICES.map(([k,l])=>`<button onclick="impChooseAll('${k}')">All: ${l}</button>`).join('')}</div>
+    ${rows}${prefs}${rej}
+    <div class="btnrow"><button class="btn" onclick="IMP=null;closeModal()">Cancel</button><button class="btn" style="border-color:var(--accent)" onclick="finishImport(IMP)">Import</button></div>`);
+}
+function impChoose(i,ch){IMP.items[i].choice=ch;renderImportReview();}
+function impChooseAll(ch){IMP.items.forEach(it=>{if(it.kind==='clash')it.choice=ch;});renderImportReview();}
+function impPrefs(ch){IMP.prefs.choice=ch;renderImportReview();}
 
 /* ═════════ D5 — SENSOR SERVICE · Calypso Mini AB (proven ASCII handshake, Handoff V3) ═════════
    The device streams ASCII sentences on FFF2, but only after a 6-command handshake on FFF1

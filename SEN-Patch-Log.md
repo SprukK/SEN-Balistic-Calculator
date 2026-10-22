@@ -7,6 +7,25 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.19.0 — minor — Import review: sanitise, conflict choices, reference remap (CORE-03)
+
+**Why.** Import merged blindly: unknown and wrongly-typed fields came in as-is (short of V7 §21.3's schema-whitelist rule), an incoming item with the same id was silently ignored even when its content differed, an item with the same name was added as a duplicate, and the file's units and display settings silently replaced yours. CORE-02 (QR/text/link sharing) will feed friends' profiles into this same path, so it had to become safe first.
+
+**What changed.** File import now runs `importData()`, the single entry point CORE-02 will reuse:
+1. **Schema guard** (from V1.18.0) — data from a newer app version is refused.
+2. **Sanitise** — each record keeps only whitelisted fields of the right type (`IMPORT_FIELDS`); dope-card stages and distances are rebuilt field by field. Records without a name, scopes without a click value, and projectiles without diameter or mass are rejected and listed, never half-imported. Records without an id get one.
+3. **Plan** — each incoming record is matched to yours by id, else by name (case-insensitive). Identical content (ignoring id and favourite, field order irrelevant) counts as *already present* — so another install's catalog, whose seeded items carry different ids, imports silently instead of flooding the review.
+4. **Review sheet** — only when something collides or preferences differ. Each collision shows its type, which of your items it matches and what differs (e.g. `mv 289 → 291`), with **Overwrite · Save as copy · Skip** (default *Save as copy*), plus *All: …* buttons, Cancel and Import. A file's units/display settings are one row, **Keep mine** (default) / **Take theirs**. Rejects are listed. All names and diffs are escaped.
+5. **Apply** — in referential order (reticles → scopes → rifles → projectiles → weathers → dope cards). *Overwrite* replaces your item in place, keeping its id and favourite flag. *Save as copy* adds it with a new id and the existing clone naming (`Name - [CLONE]`). *Skip* keeps yours. Incoming references (rifle→scope, scope→reticle, dope card→rifle/projectile/weather) follow the choice: to the copy, to your item, or to the overwritten one.
+6. A summary lists new / overwritten / copied / skipped / identical / rejected, plus the existing dangling-scope warning.
+
+**Not changed.** Export format, storage, physics, navigation. Scope-file import (Profiles → Scopes) keeps its own preview flow.
+
+**Files:** `index.html` — `importAll` reduced to file reading; new `IMPORT_ORDER`/`IMPORT_LABEL`/`IMPORT_FIELDS`/`IMPORT_REQUIRED`/`IMPORT_CHECK`, `sanitiseRecord`, `diffKeys`/`sameRecord`/`recordDiff`, `planImport`, `remapRefs`, `applyImport`, `importData`, `finishImport`, `renderImportReview`, `impChoose`/`impChooseAll`/`impPrefs`; 6 live version strings. `sw.js` CACHE → `sen-ballistics-v1.19.0`. New `tests/importtest.js`; `tests/README.md` updated.
+**Verify:** `node --check` clean · `runtests.js` 20/20 · `domtest.js` 14/14 · `storagetest.js` 22/22 · **`importtest.js` 28/28**: own export round-trips with no review and nothing added; another install's catalog under different ids is recognised as identical; unknown, wrong-type and nested unknown fields dropped; invalid records rejected and listed; a changed record opens the review with its diff and *Save as copy* preselected; Overwrite updates in place and keeps the favourite; Save as copy gets a clone name and new id while the original stays untouched, and an incoming rifle follows the copy; *All: Skip* leaves no extra scope and the incoming rifle follows your scope; preferences default to keep and *Take theirs* applies them; Cancel changes nothing; newer-schema data refused; single dope-card file imports; a script-like name injects nothing; zero uncaught errors. The first run caught a real bug (field order made identical records look different, flooding the review) — fixed before release · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.19.0.html`.
+
+---
+
 ## V1.18.0 — minor — Storage moves to IndexedDB · schema versions (CORE-10 + CORE-01)
 
 **Why.** All data lived in one localStorage entry: about 5 MB, shared with the Lab app because both run on `sprukk.github.io`, written in full on every save, and a failed write was swallowed silently (`catch(e){}`) — data could quietly stop saving. Chrono sessions, shot logs and sync (CORE-08) all need more room and need failures to be visible, so storage moves before those features are built on top of it.

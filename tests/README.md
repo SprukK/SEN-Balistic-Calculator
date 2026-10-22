@@ -1,14 +1,15 @@
 # SEN regression tests
 
-Run all three before every release. All must be fully green.
+Run all four before every release. All must be fully green.
 
-| File | What it checks | Expected on V1.18.0 |
+| File | What it checks | Expected on V1.19.0 |
 |---|---|---|
 | `runtests.js` (+ `harness.js`) | 20 numeric physics anchors: air density, speed of sound, SD, Berger Sg (Queen, King, LRAI-35), unit conversions, RK4 trajectory, firing solution | PASS 20 / FAIL 0 |
 | `domtest.js` | Real-DOM (jsdom) click test: bottom nav, More sheet, act-bar pickers, Home disclosures, zero uncaught errors | PASS 14 / FAIL 0 |
 | `storagetest.js` | IndexedDB storage (V1.18.0): migration of real previous-release data from localStorage, rollback safety, reload, fallback, schema guard, save-failure warning, factory reset, iOS install hint | PASS 22 / FAIL 0 |
+| `importtest.js` | Import (V1.19.0): own export round-trip, same content under other ids, field whitelist, rejects, review sheet with Overwrite / Save as copy / Skip / apply-to-all / Cancel, reference remap, preferences row, schema guard, single dope card, escaping | PASS 28 / FAIL 0 |
 
-`domtest.js` is mandatory for any change to navigation, sheets or event wiring (V7 §21.4). `storagetest.js` is mandatory for any change to loading, saving, import/export or the data schema. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
+`domtest.js` is mandatory for any change to navigation, sheets or event wiring (V7 §21.4). `storagetest.js` and `importtest.js` are mandatory for any change to loading, saving, import/export or the data schema. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
 
 ## How to run
 
@@ -26,6 +27,9 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 
 # 3. storage test: new build vs the previous release (its real localStorage data is migrated)
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node storagetest.js ../index.html ../RTI-SEN-Ballistic-Calculator-V1.17.2.html)
+
+# 4. import test
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node importtest.js ../index.html)
 ```
 
 ## Provenance
