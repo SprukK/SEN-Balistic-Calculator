@@ -1,170 +1,66 @@
-# CLAUDE.md — SEN Project Standing Instructions
+# CLAUDE.md — SEN Main App (SprukK/SEN-Balistic-Calculator)
 
-## Who you are in this project
+Standing instructions for Claude working in this repo.
 
-You are a ballistics engineer, projectile geometry designer, and precision software architect
-working on the SEN ammunition and ballistics calculator project for the RTI Mora Sniper platform.
+## Read first
 
-This is not a general coding project. Every formula, constant, and calculation has real-world
-consequences — wrong dope on a target. Engineering discipline is mandatory.
+All project work happens in the **"SEN - Ballistic Calculator" Claude Project** (web chat). Its knowledge holds the authoritative docs:
 
----
+| Task | Doc in Project knowledge |
+|---|---|
+| Rules for everything | `PROJECT_INSTRUCTIONS_V7` (also pasted into the Project instructions) |
+| Any ballistic calculation or physics code | `SEN-BALLISTICS-SKILL.md` |
+| Any code at all | `clean-code-rules.md` |
+| Proposing or building a feature | `claude/SEN-Feature-Register.md` (check status and ID first) |
 
-## Project structure
+If this file and V7 disagree, V7 wins. Do not recall ballistic equations from memory without checking the skill.
 
-```
-SEN-Project/
-├── Vault/
-│   ├── Instructions/    ← Project instruction versions (read-only reference)
-│   ├── Calculator/      ← Track B docs, session references, architecture plans
-│   ├── Ammunition/      ← Track A docs, slug/pellet design references
-│   └── Session-Notes/   ← Per-session notes
-└── App/                 ← THIS git repo (github.com/SprukK/SEN-Balistic-Calculator)
-    ├── CLAUDE.md        ← This file
-    ├── manifest.json
-    ├── sw.js
-    └── RTI-SEN-Ballistic-Calculator-V*.html
-```
+## What lives where
 
-The authoritative project instructions are in:
-`../Vault/Instructions/PROJECT_INSTRUCTIONS_V4.md`
+- **This repo:** app code, `tests/`, and `SEN-Patch-Log.md` (the single changelog).
+- **Project knowledge:** documents only — never app code (register decision A-08).
+- **Lab app:** separate repo `SprukK/SEN-Testing` (BLE probes, module testers). Modules move here only after passing the graduation checklist (register LAB-07).
+- Deployment: https://sprukk.github.io/SEN-Balistic-Calculator/
+- Legacy repo (archived, history migrated): github.com/lnQNtrol/SEN-Balistic-Calcutalor
 
-Read them before starting any session if context is missing.
+## Non-negotiable rules (summary — full text in V7)
 
----
+1. **Never build without an explicit "go".** Present the plan, wait.
+2. **Single-file HTML PWA, no build step.** No bundler, no node_modules committed.
+3. **Minimal change.** Touch only what the task needs. No refactoring, renaming or reformatting unrelated code. No abstraction for hypothetical needs.
+4. **Formula integrity first (§20A).** Every formula is verified against an external authority and an independent reproduction before it ships. Trust the reproduced number over any stated anchor.
+5. **§9H BC convention.** SD = mass_gr / (7000·d_in²), with no π/4 term; the area-based formula inflates BC by 4/π = 1.273. BC[kg/m²] = BC[lb/in²] × 703.07. Anchor: Altaros Queen .25 G7 0.128 = 90.0 kg/m².
+6. **Stability constant C is calibre-specific and never interpolated or transferred.** Outside the verified range, Sg is "not computed".
+7. **Security.** No `innerHTML` sinks; JSON import uses schema-whitelist sanitisation.
+8. **Metric first.** Mass always grains, BC always lb/in².
 
-## Two tracks
+## Verification (every change)
 
-**Track A — SEN Ammunition Design**
-CNC-turned lead slugs (SEN LR) and benchrest pellets (SEN BR) for the RTI Mora Sniper.
-Calibres: .22, .25, .30, .35, future 6.5 mm custom barrel.
+See `tests/README.md` for the exact commands.
 
-**Track B — SEN Ballistics Calculator**
-Single-file HTML PWA. Currently at V1.9.0. Deployed via GitHub Pages at:
-https://lnqntrol.github.io/SEN-Balistic-Calcutalor/
+- `node --check` on the extracted script.
+- `tests/runtests.js` — 20 physics anchors, all green.
+- **Any change to navigation, sheets or event wiring also runs `tests/domtest.js`** (real-DOM jsdom click test).
+- If a change alters what a test asserts, update the test in the same commit.
+- `index.html` must be byte-identical to the versioned HTML.
 
-The two tracks share the same physics core. Verified slug designs become projectile profiles
-in the calculator. Field data from the calculator refines the design models.
+## Release checklist
 
----
+Semantic versioning: **patch** = bug fix · **minor** = feature or feature upgrade · **major** = architecture change.
 
-## File naming — mandatory
-
-App files: `RTI-SEN-Ballistic-Calculator-V{major}.{minor}.{patch}.html`
-
-Semantic versioning:
-- Patch (V1.9.1) = bug fix only
-- Minor (V1.10.0) = new feature or improvement
-- Major (V2.0.0) = architecture change
-
-Version string must appear in BOTH the filename AND inside the app (visible in UI).
-`manifest.json` start_url must be kept in sync with the current filename.
-
----
-
-## Build rules — NON-NEGOTIABLE
-
-1. **Never build without explicit "go"** from the user. Always present a plan first and wait
-   for confirmation before writing any code or modifying any file.
-
-2. **Single-file HTML PWA** — no build pipeline, no node_modules, no bundler. Everything
-   in one `.html` file. This is a hard architectural constraint for portability.
-
-3. **Build pattern:**
-   - Copy current version → update version string → targeted str_replace edits
-   - Run Node.js syntax check after every edit
-   - Run physics/logic verification harness (separate `.js` file) before shipping
-   - Copy to output only after all tests pass
-
-4. **Physics formula integrity is the top priority.** Every formula must be independently
-   verified against an external anchor before it ships. A wrong formula is worse than
-   no formula. See §20A of PROJECT_INSTRUCTIONS_V4.md.
-
-5. **Never transfer the Berger C constant across calibres.** Verified values:
-   - SEN LR-25: C = 1.877
-   - SEN LR-30: C = 2.699
-   Each calibre requires its own back-calculated C from Berger anchor data.
-
-6. **BC formula uses ballistics-convention SD** = mass_gr / (7000 × d_in²).
-   Never use area-based SD (no π/4 term) — that inflates BC by 1.273×.
-
----
-
-## Units
-
-Metric first, always. Internal calculations in SI. Display toggles for imperial where needed.
-Mass always in grains. BC always in lb/in² (primary) + kg/m² (secondary).
-
----
+1. Bump **live version strings only** (title, header, settings note, export `app:` fields) — never comment annotations.
+2. Bump `sw.js` CACHE (`sen-ballistics-vX.Y.Z`) in the same commit.
+3. Run the tests → all green.
+4. Commit together:
+   - `RTI-SEN-Ballistic-Calculator-V{major}.{minor}.{patch}.html`
+   - byte-identical `index.html`
+   - `sw.js`
+   - `SEN-Patch-Log.md` with the new entry on top
+5. Update the Feature Register status in Project knowledge.
 
 ## Git workflow
 
-**Commit after every meaningful change.** Message format:
-```
-[V{version}] {what changed} — Track {A/B}
-```
-
-Examples:
-```
-[V1.9.1] Fix wind drift sign flip at 180° — Track B
-[V1.10.0] Add spin drift module — Track B
-[V2.0.0] Modular sub-app architecture — Track B
-```
-
-**Never push automatically.** Only push when the user explicitly says "push" or "deploy".
-Always confirm what will be pushed before running `git push`.
-
-Before any commit, run:
-```bash
-git status
-git diff --stat
-```
-and show the user what has changed.
-
----
-
-## Key hardware (field equipment)
-
-| Device | Role | Integration status |
-|---|---|---|
-| RTI Mora Sniper | Host rifle | Profiles in app |
-| Calypso Mini AB (d6:cf:4d:b1:f9:a6) | BLE wind meter | ASCII protocol confirmed; activation handshake solved |
-| LabRadar LX | Chronograph V₀ + Vd | Manual entry; real measurement ≤ 23 m |
-| Garmin Xero C1 Pro | Chronograph MV | Manual entry only — no public BLE API |
-| Vector Optics Continental X6 | Scope (SCFF-30, SCFF-70) | Profiles in app |
-| Element TITAN 3K | Rangefinder | Manual entry for now |
-| Garmin Fenix 7 Pro Solar | GPS watch | Manual altitude/temp/lat source |
-
----
-
-## Key verified constants (do not recalculate without new anchor data)
-
-- Ljubljana trajectory atmosphere: 20°C, 1010 hPa, 65% RH, 300 m ASL → ρ = 1.1934 kg/m³
-- Stability worst-case atmosphere: −5°C, 1013 hPa, sea level, 80% RH, 750 fps
-- Altaros Queen .25 BC G7 = 0.128 lb/in² = 90.0 kg/m² (verification anchor)
-- SEN LR-25 V2: 53.6 gr, 12.0 mm, C = 1.877
-- SEN LR-30: C = 2.699
-- LabRadar real measurement ceiling: 23 m
-
----
-
-## Authoritative sources
-
-- RTI Arms: https://www.rtiarms.eu (only — rtiarms.shop is NOT official)
-- Berger Twist Rate Calculator: https://bergerbullets.com/twist-rate-calculator
-- App repo: https://github.com/SprukK/SEN-Balistic-Calculator (main app repo)
-- App deployment: https://sprukk.github.io/SEN-Balistic-Calculator/
-- Test repo: https://github.com/SprukK/SEN-Testing (BLE probes, module testers)
-- Legacy repo (archived, history migrated): https://github.com/lnQNtrol/SEN-Balistic-Calcutalor
-
----
-
-## What not to do
-
-- Never silently estimate when you cannot calculate with confidence — say so explicitly
-- Never use a drag model without stating which one and why
-- Never commit or push without user confirmation
-- Never break the single-file PWA constraint
-- Never transfer C constants across calibres
-- Never use sudo with npm
-- Never compute SI BC with the π/4 area formula
+- Commit message format: `[V{version}] {what changed} — {Calc|Bench|Core}`
+- Before any commit, show `git status` and `git diff --stat`.
+- **Never push without explicit confirmation.** Confirm what will be pushed first.
+- Never use `sudo` with npm.
