@@ -7,6 +7,27 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.21.0 — minor — Wind as a compass vector · target bearing service (CORE-13 + CORE-14)
+
+**Why.** Session wind was stored only as an angle relative to the line of fire, and the Calypso's reading was used directly as that angle — correct only while the Calypso points at the target being shot. With targets at different bearings (FT, PRS, ELR) every target change needed the wind re-entered or the Calypso re-pointed. The target bearing also existed twice: Home's compass panel and the Solver's Coriolis azimuth (not saved), which could disagree.
+
+**What changed.**
+- **One session target bearing** (`S.tgtBrg`, saved). Home's *Target bearing* (now its own row above the manual-wind panel, never locked by live wind) and the Solver's *Azimuth* are the same value — edit either, both follow. Sources: typed, or **📍 Phone compass** (phone flat, top edge toward the target; 1 s of readings averaged as a circular mean so readings around north don't average to south). Android uses absolute orientation (heading = 360° − alpha); iPhone asks for compass permission and uses its compass heading. The source is shown ("phone compass ±5–15°, worse near steel").
+- **Wind keeps its compass direction.** `S.wind` gains `from` (where it blows FROM, compass) whenever the target bearing is known. Changing the target bearing re-derives the angle to the new target from the same wind — the multi-target groundwork for CALC-13. The solver still receives exactly the relative angle (`S.wind.dir`, 0 = head, 90 = from the right) it always did.
+- **Calypso orientation** (Sensors): **"points at the target"** — default, identical to before — or **"a fixed bearing"** of its mark (typed or captured by laying the phone on it): wind FROM = reading + mark bearing, angle to each target = FROM − target bearing. In fixed mode without a target bearing the app pushes no wind and says why. All five Calypso entry points now go through one function (`calypsoToSession`).
+- Home shows the wind as "90° rel · from 270°" when the compass direction is known.
+
+**Magnetic vs true north — deliberately not corrected.** Phone and Calypso bearings are magnetic; for wind the offset cancels because all bearings share the reference. Only Coriolis wants true north: Ljubljana's ~5° declination changes its vertical term by under 2 mm at 300 m. Noted, not built.
+
+**Physics:** none changed — no function in the solver or integrator touched. The only arithmetic is the V1.15.0-verified conversion (angle = FROM − bearing) plus FROM = reading + mark bearing, both modulo 360°.
+
+**To check on the device:** the app has always assumed the Calypso reports the direction the wind blows FROM, clockwise from its mark (90° = from the right when its mark points at the target). The June 2026 test proved readings change with the vane, not which side is which. Point it at a target, fan from the right, confirm "from the RIGHT". The phone-compass capture also needs a real-device check.
+
+**Files:** `index.html` — `S.tgtBrg`, `S.wind.from`; `Bus.setWind` (stores FROM), new `Bus.setWindFrom`, `Bus.windChanged`; new `norm360`, `BRG_SRC`, `setTargetBearing`, `syncBearingFields`, `calypsoToSession`, `calNote`, `setCalMount`, `renderCalMount`, `compassHeading`, `circularMean`, `readCompass`, `captureTargetBearing`, `captureCalMount`; five Calypso call sites routed through `calypsoToSession`; Home target-bearing row (moved out of the manual-wind panel, removed from its lock list); Home wind-direction text; Solver azimuth input; Sensors "Calypso points at" control; boot restore; 6 live version strings. `sw.js` CACHE → `sen-ballistics-v1.21.0`. New `tests/windtest.js`; `tests/README.md` updated.
+**Verify:** `node --check` clean · `runtests.js` 20/20 (physics untouched) · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · **`windtest.js` 22/22**: default Calypso mode gives exactly the previous angle; fixed mark north + wind from south facing east → 90° from the right; same wind facing south → 0° head, north → 180° tail, west → 270° from the left; wrap 350° + 20° → 10°, target 340° → 30°; fixed mode without a bearing pushes nothing and explains; Home compass entry reproduces the V1.15.0 anchor (facing 180°, wind from 270° → 90°) and stores FROM; Home ↔ Solver bearing shared both ways and the angle re-derived (270 − 45 = 225°); bearing never locked by live wind; bearing and mark bearing survive a restart; Android capture alpha ≈330 → 30°; averaging 359°/1° → 0°; iPhone permission granted → 45°, refused → kept with reason; no compass → message; mark bearing capture switches to fixed mode; zero uncaught errors · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.21.0.html`.
+
+---
+
 ## V1.20.0 — minor — Share profiles by QR, text or link (CORE-02)
 
 **What.** Every profile in Profiles (rifle, scope, reticle, projectile, weather) gets a **Share** button. The share sheet shows a **QR code**, the **share text**, and buttons to **Copy text**, **Copy link** and **Send…** (the phone's share menu, where available). Next to *Import JSON* there's **Paste / scan share**: paste the text or link from WhatsApp/Viber, or **Scan QR** with the camera. Opening a share link launches SEN and starts the import.

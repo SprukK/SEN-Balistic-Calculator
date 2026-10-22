@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.20.0</title>
+<title>SEN Ballistics V1.21.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-/* ═══════════ SEN PLATFORM V1.20.0 — share profiles by QR, text or link (no physics change) ═══════════ */
+/* ═══════════ SEN PLATFORM V1.21.0 — wind as a compass vector + target bearing service (no physics change) ═══════════ */
 :root{
   --bg:#0a0b0e;--bg2:#12151b;--bg3:#181c25;--bg4:#20252f;
   --border:rgba(210,192,152,.09);--border2:rgba(210,192,152,.18);
@@ -246,7 +246,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.20.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.21.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <div class="flag warn" id="store-warn" role="alert" style="display:none;margin:8px 12px 0"></div>
@@ -329,15 +329,19 @@ details.disc .dbody{padding:0 14px 14px}
       <button class="btn-xs" id="home-live-btn" onclick="toggleHomeLive()">Enable live stream</button>
     </span>
   </div>
+  <div class="fgrid3" id="home-tgt" style="margin-bottom:10px;align-items:end">
+    <div class="fld"><label>Target bearing ° compass</label><input type="number" id="hm-tbrg" step="1" oninput="setTargetBearing(this.value===''?null:+this.value,'manual');homeManWind()"></div>
+    <div class="fld"><button class="btn-xs" onclick="captureTargetBearing()">📍 Phone compass</button></div>
+    <div class="note" id="tb-src" style="margin:0"></div>
+  </div>
   <details class="disc" id="home-manwind" style="margin-bottom:10px">
     <summary>Manual wind · compass<span class="dsum" id="hm-sum">—</span></summary>
     <div class="dbody">
     <div class="fgrid3">
       <div class="fld"><label>Wind speed m/s</label><input type="number" id="hm-wspd" step="0.1" min="0" oninput="homeManWind()"></div>
       <div class="fld"><label>Wind from ° compass</label><input type="number" id="hm-wbrg" step="5" oninput="homeManWind()"></div>
-      <div class="fld"><label>Target bearing °</label><input type="number" id="hm-tbrg" step="5" oninput="homeManWind()"></div>
     </div>
-    <div class="note" id="hm-wnote">Fallback when the Calypso isn't available. Both bearings are compass 0–360°; wind direction = where it blows FROM. The app derives the relative angle and sets the session wind used everywhere.</div>
+    <div class="note" id="hm-wnote">Fallback when the Calypso isn't available. Uses the target bearing above; both are compass 0–360°, wind direction = where it blows FROM. The app derives the relative angle and sets the session wind used everywhere.</div>
     </div>
   </details>
   <div class="cond" id="home-cond">
@@ -564,7 +568,7 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="fgrid3">
       <div class="fld"><label>Coriolis (exact)</label><div class="seg"><button id="sv-co-off" onclick="svSetCor(false)">Off</button><button id="sv-co-on" onclick="svSetCor(true)">On</button></div></div>
       <div class="fld"><label>Latitude ° (N+, S−)</label><input type="number" id="sv-lat" step="0.01" value="46.05" oninput="APP.lat=+this.value;saveDB();solve()"></div>
-      <div class="fld"><label>Azimuth ° (0=N · 90=E)</label><input type="number" id="sv-az" step="5" value="0" oninput="solve()"></div>
+      <div class="fld"><label>Azimuth ° (0=N · 90=E)</label><input type="number" id="sv-az" step="1" value="0" oninput="setTargetBearing(this.value===''?null:+this.value,'manual');solve()"></div>
       <div class="fld"><label>Spin drift (Litz EST ⚠)</label><div class="seg"><button id="sv-sd-off" onclick="svSetSpin(false)">Off</button><button id="sv-sd-on" onclick="svSetSpin(true)">On</button></div></div>
     </div>
     <div class="note">Coriolis is exact physics (integrated over the actual RK4 trajectory) — negligible below ~300 m, grows with TOF. Spin drift uses the Litz empirical fit (1.25·(Sg+1.2)·TOF^1.83) derived from SUPERSONIC rifle bullets — <b>unvalidated for subsonic slugs</b>; treat as an estimate until field-verified. When ON, corrections are included in the dial above and itemised in the flags. n/a for pellets and smooth bores.</div>
@@ -658,6 +662,13 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="btnrow"><button class="btn" onclick="useBLEWind()">Use wind → session</button></div>
       <div class="note" id="ble-service-list"></div><div class="note" id="ble-poll-ctr"></div>
     </div>
+    <div class="fld" style="margin-top:10px"><label>Calypso points at</label>
+      <div class="seg"><button id="cal-m-tgt" onclick="setCalMount(null)">The target</button><button id="cal-m-fix" onclick="setCalMount(APP.calMount??0)">A fixed bearing</button></div></div>
+    <div class="fgrid3" id="cal-m-row" style="align-items:end;margin-top:8px">
+      <div class="fld"><label>Bearing of its mark ° compass</label><input type="number" id="cal-m-brg" step="1" oninput="setCalMount(this.value===''?0:+this.value)"></div>
+      <div class="fld"><button class="btn-xs" onclick="captureCalMount()">📍 Phone compass</button></div>
+    </div>
+    <div class="note" id="cal-mount-note"></div>
     <div class="flag info" style="margin-top:10px">Live wind via the proven activation handshake (Handoff V3). Session uses the rolling <b>average</b>; the instant value is shown above. This device measures wind only — temperature/humidity come from manual entry or an online source, not the Calypso.</div>
   </div>
   <div class="panel">
@@ -677,7 +688,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.20.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.21.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1513,7 +1524,8 @@ const S={
   mv:null,bc:null,sight_mm:null,                 // overridable fields
   ct:null,cp:null,crh:null,                      // current-weather overridables
   zero_m:50,dist_m:100,drag:'g7',
-  wind:{speed:0,dir:90,source:'manual'},
+  tgtBrg:null,                                   // V1.21.0 CORE-14: compass bearing to the target (null = unknown)
+  wind:{speed:0,dir:90,from:null,source:'manual'},
   src:{mv:'profile',bc:'profile',sight:'profile',ct:'profile',cp:'profile',crh:'profile'}
 };
 const subs=[];
@@ -1531,7 +1543,12 @@ const Bus={
   setRifle(id){S.rifleId=id;const r=getRifle();if(r){S.zero_m=r.zero??S.zero_m;}dialedElev=0;dialedWind=0;this.pullFromProfiles(['mv','sight']);this.notify();},
   setProj(id){S.projId=id;const p=getProj();if(p)S.drag=p.type==='pellet'?'g1':'g7';this.pullFromProfiles(['bc']);syncDragUI();this.notify();},
   setWx(which,id){if(which==='zero'){S.zeroWxId=id;}else{S.curWxId=id;this.pullFromProfiles(['ct','cp','crh']);}this.notify();},
-  setWind(speed,dir,source){S.wind={speed,dir,source};if(source==='calypso')this.notifyWind();else this.notify();},
+  /* V1.21.0 CORE-13: `dir` stays the solver's angle relative to the line of fire (0=head, 90=from
+     the RIGHT). When the target bearing is known the wind also keeps `from` (compass, where it
+     blows FROM), so a new target bearing re-derives `dir` from the same physical wind. */
+  setWind(speed,dir,source){S.wind={speed,dir,from:S.tgtBrg!=null?norm360(dir+S.tgtBrg):null,source};this.windChanged(source);},
+  setWindFrom(speed,from,source){S.wind={speed,dir:norm360(from-S.tgtBrg),from:norm360(from),source};this.windChanged(source);},
+  windChanged(source){if(source==='calypso')this.notifyWind();else this.notify();},
   pullFromProfiles(fields){
     const r=getRifle(),p=getProj(),w=getWx(S.curWxId);
     fields.forEach(f=>{
@@ -1720,7 +1737,7 @@ function renderQuick(){
   document.getElementById('home-wind-live').style.display=live?'inline':'none';
   document.getElementById('home-zero').textContent=up('range',S.zero_m);
   document.getElementById('home-windspd').textContent=up('wind',S.wind.speed);
-  document.getElementById('home-winddir').textContent=S.wind.dir+'°';
+  document.getElementById('home-winddir').textContent=Math.round(S.wind.dir)+'° rel'+(S.wind.from!=null?' · from '+Math.round(S.wind.from)+'°':'');
   document.getElementById('home-cross').textContent=fmtv('wind',cross,UNITS.wind)+' '+lab('wind',UNITS.wind);
   const scope=rifleScope(getRifle()),retOwn=scope?getReticle(scope.reticleId):null,
         reticle=retOwn||getReticle('milgrid')||RETICLE_LIB[0];  // M1: explicit generic fallback, labeled below
@@ -1939,7 +1956,7 @@ function setHomeWindSrc(src){
   document.getElementById('home-src-avg').classList.toggle('on',src==='avg');
   document.getElementById('home-src-inst').classList.toggle('on',src==='inst');
   const connected=bleDevice&&bleDevice.gatt&&bleDevice.gatt.connected;
-  if((homeLive||windMode==='live')&&connected&&bleLastWu)Bus.setWind(bleWindVal(),bleLastDir,'calypso');
+  if((homeLive||windMode==='live')&&connected&&bleLastWu)calypsoToSession(bleWindVal());
   renderQuick();
 }
 function toggleHomeLive(){
@@ -1950,7 +1967,7 @@ function toggleHomeLive(){
   if(homeLive){
     btn.textContent='Disable live stream';
     st.textContent=connected?'Wind: LIVE from Calypso ⊙ ('+homeWindSrc+')':'Wind: live ON — connect Calypso (Sensors tab)';
-    if(connected&&bleLastWu){Bus.setWind(bleWindVal(),bleLastDir,'calypso');}
+    if(connected&&bleLastWu){calypsoToSession(bleWindVal());}
   }else{
     btn.textContent='Enable live stream';st.textContent='Wind: manual / session';
   }
@@ -1981,7 +1998,7 @@ function homeManWindLock(){
   // V1.17.0: a locked panel earns no screen space — collapse it while live wind owns the session
   const pan=document.getElementById('home-manwind');
   if(pan&&lock)pan.open=false;
-  ['hm-wspd','hm-wbrg','hm-tbrg'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=lock;});
+  ['hm-wspd','hm-wbrg'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=lock;});
   const p=document.getElementById('home-manwind');if(p)p.classList.toggle('lock',lock);
   if(lock){const nt=document.getElementById('hm-wnote');if(nt)nt.textContent='Live wind active — compass entry disabled until the live stream is off.';}
 }
@@ -2336,7 +2353,8 @@ function setWindMode(m){
 function onWindInput(){renderWind();dbnc('wind-in',()=>pushWindToSession());}
 function pushWindToSession(){
   const spd=+document.getElementById('wd-spd').value,dir=+document.getElementById('wd-dir').value;
-  Bus.setWind(spd,dir,windMode==='live'?'calypso':'manual');
+  if(windMode!=='live'){Bus.setWind(spd,dir,'manual');return;}
+  calypsoToSession(spd);document.getElementById('wd-dir').value=S.wind.dir;
 }
 function syncClock(){
   const dir=+document.getElementById('wd-dir').value;
@@ -2574,7 +2592,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.20.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.21.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3039,7 +3057,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.20.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.21.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3271,12 +3289,12 @@ function updateBleDisplay(){
   if(ctr){const age=(Date.now()-bleLastWu)/1000;ctr.textContent=bleLastWu?(age<3?'live · avg '+bleLastAvg.toFixed(1)+' m/s':'signal lost ('+age.toFixed(0)+'s)'):'awaiting wind…';}
   // Live mode → push avg wind into the session (avg is stable; instant shown above)
   if(windMode==='live'||homeLive){
-    if(windMode==='live'){const sp=document.getElementById('wd-spd'),di=document.getElementById('wd-dir');if(sp)sp.value=bleLastAvg.toFixed(1);if(di)di.value=bleLastDir;}
     // home-live uses the chosen source (avg/instant); wind-tab live uses avg
-    Bus.setWind(homeLive&&windMode!=='live'?bleWindVal():bleLastAvg,bleLastDir,'calypso');
+    calypsoToSession(homeLive&&windMode!=='live'?bleWindVal():bleLastAvg);
+    if(windMode==='live'){const sp=document.getElementById('wd-spd'),di=document.getElementById('wd-dir');if(sp)sp.value=bleLastAvg.toFixed(1);if(di)di.value=S.wind.dir;}
   }
 }
-function useBLEWind(){Bus.setWind(bleLastAvg,bleLastDir,'calypso');}
+function useBLEWind(){calypsoToSession(bleLastAvg);}
 function useChronoMV(){
   const mv=+document.getElementById('ch-mv').value;
   if(!mv){alert('Enter MV first.');return;}
@@ -3291,6 +3309,74 @@ function useChronoMV(){
   Bus.notify();
 }
 
+
+/* ═════════ CORE-13 + CORE-14 (V1.21.0) — WIND VECTOR · HEADING SERVICE ═════════
+   One session target bearing (Home "Target bearing" = Solver "Azimuth"), typed or captured from
+   the phone compass. Calypso orientation: "the target" (default — its reading IS the angle to the
+   line of fire, exactly as before) or "a fixed bearing" (wind FROM = reading + mark bearing;
+   each target's angle = FROM − target bearing). Bearings are magnetic; for wind the offset
+   cancels because every bearing shares the same reference. Only Coriolis wants true north: a
+   ~5° declination changes its vertical term by under 2 mm at 300 m — not corrected. */
+const norm360=a=>((a%360)+360)%360;
+const BRG_SRC={manual:'typed',compass:'phone compass ±5–15° (worse near steel)'};
+function setTargetBearing(b,src){
+  S.tgtBrg=(b==null||isNaN(b))?null:norm360(b);
+  APP.hmTgtBrg=S.tgtBrg;APP.tgtBrgSrc=src;saveDBSoon();
+  syncBearingFields();
+  if(S.wind.from!=null&&S.tgtBrg!=null){S.wind.dir=norm360(S.wind.from-S.tgtBrg);Bus.notify();}
+}
+function syncBearingFields(){
+  const v=S.tgtBrg==null?'':String(S.tgtBrg);
+  ['hm-tbrg','sv-az'].forEach(id=>{const e=document.getElementById(id);if(e&&document.activeElement!==e)e.value=id==='sv-az'&&v===''?0:v;});
+  const n=document.getElementById('tb-src');
+  if(n)n.textContent=S.tgtBrg==null?'not set':'source: '+(BRG_SRC[APP.tgtBrgSrc]||'typed');
+}
+function calypsoToSession(speed){
+  if(APP.calMount==null){Bus.setWind(speed,bleLastDir,'calypso');return;}
+  if(S.tgtBrg==null){calNote('Set the target bearing on Home — the Calypso is on a fixed bearing, so the angle to the target needs it.');return;}
+  Bus.setWindFrom(speed,bleLastDir+APP.calMount,'calypso');
+}
+function calNote(t){const n=document.getElementById('cal-mount-note');if(n)n.textContent=t;}
+function setCalMount(v,src){
+  APP.calMount=v==null?null:norm360(v);APP.calMountSrc=src||'manual';saveDB();renderCalMount();
+}
+function renderCalMount(){
+  const fixed=APP.calMount!=null;
+  const t=document.getElementById('cal-m-tgt'),f=document.getElementById('cal-m-fix'),row=document.getElementById('cal-m-row'),inp=document.getElementById('cal-m-brg');
+  if(!t)return;
+  t.classList.toggle('on',!fixed);f.classList.toggle('on',fixed);row.style.display=fixed?'':'none';
+  if(fixed&&document.activeElement!==inp)inp.value=APP.calMount;
+  calNote(fixed?'Wind FROM = Calypso reading + '+APP.calMount+'° ('+(BRG_SRC[APP.calMountSrc]||'typed')+'). Each target gets its own crosswind from the target bearing on Home. Phone compass: lay the phone flat on the Calypso, top edge along its mark.'
+               :'Point the Calypso\'s mark at the target you are shooting; its reading is the wind angle to that target. Re-point it when you change targets, or switch to a fixed bearing for multiple targets.');
+}
+function compassHeading(e){
+  if(e.webkitCompassHeading!=null)return e.webkitCompassHeading;
+  return e.absolute&&e.alpha!=null?norm360(360-e.alpha):null;
+}
+function circularMean(degs){
+  const r=Math.PI/180,sx=degs.reduce((a,d)=>a+Math.sin(d*r),0),cx=degs.reduce((a,d)=>a+Math.cos(d*r),0);
+  return norm360(Math.atan2(sx,cx)/r);
+}
+async function readCompass(ms=1000){
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    if(await DeviceOrientationEvent.requestPermission()!=='granted')throw new Error('Compass permission was refused.');
+  }
+  const ev='ondeviceorientationabsolute' in window?'deviceorientationabsolute':'deviceorientation';
+  const samples=[],h=e=>{const v=compassHeading(e);if(v!=null)samples.push(v);};
+  window.addEventListener(ev,h);
+  await new Promise(r=>setTimeout(r,ms));
+  window.removeEventListener(ev,h);
+  if(!samples.length)throw new Error('No compass reading — this phone or browser gives no heading. Type the bearing instead.');
+  return Math.round(circularMean(samples));
+}
+async function captureTargetBearing(){
+  const n=document.getElementById('tb-src');if(n)n.textContent='Hold the phone flat, top edge pointing at the target…';
+  try{setTargetBearing(await readCompass(),'compass');homeManWind();}catch(e){if(n)n.textContent=e.message;}
+}
+async function captureCalMount(){
+  calNote('Lay the phone flat on the Calypso, top edge along its mark…');
+  try{setCalMount(await readCompass(),'compass');}catch(e){calNote(e.message);}
+}
 
 /* ═════════ CORE-02 (V1.20.0) — SHARE: one payload, three carriers (QR · text · link) ═════════
    Code = "SEN1:" + CRC-32 of the JSON (8 hex) + "." + base64url(deflate-raw(JSON)).
@@ -3424,6 +3510,7 @@ homeWindSrc=APP.homeWindSrc||'avg';{const a=document.getElementById('home-src-av
 const _rsl=document.getElementById('ret-size-lbl');if(_rsl)_rsl.textContent=(activeScopeMag().mag)+'×';
 refreshSelects();renderActBar();syncTrajInputs();syncDragUI();renderQuick();
 runTraj(true);  // V1.16.0: a restored session has a solution before the first tab is opened
+S.tgtBrg=APP.hmTgtBrg??null;syncBearingFields();renderCalMount();
 renderStoreWarn();renderIosHint();requestPersist();
 importFromLink();
 }

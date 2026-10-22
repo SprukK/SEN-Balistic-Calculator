@@ -1,16 +1,17 @@
 # SEN regression tests
 
-Run all five before every release. All must be fully green.
+Run all six before every release. All must be fully green.
 
-| File | What it checks | Expected on V1.20.0 |
+| File | What it checks | Expected on V1.21.0 |
 |---|---|---|
 | `runtests.js` (+ `harness.js`) | 20 numeric physics anchors: air density, speed of sound, SD, Berger Sg (Queen, King, LRAI-35), unit conversions, RK4 trajectory, firing solution | PASS 20 / FAIL 0 |
 | `domtest.js` | Real-DOM (jsdom) click test: bottom nav, More sheet, act-bar pickers, Home disclosures, zero uncaught errors | PASS 14 / FAIL 0 |
 | `storagetest.js` | IndexedDB storage (V1.18.0): migration of real previous-release data from localStorage, rollback safety, reload, fallback, schema guard, save-failure warning, factory reset, iOS install hint | PASS 22 / FAIL 0 |
 | `importtest.js` | Import (V1.19.0): own export round-trip, same content under other ids, field whitelist, rejects, review sheet with Overwrite / Save as copy / Skip / apply-to-all / Cancel, reference remap, preferences row, schema guard, single dope card, escaping | PASS 28 / FAIL 0 |
 | `sharetest.js` | Sharing (V1.20.0): bundle contents (scope + custom reticle, built-in reticles referenced), SEN1 code round-trip and checksum, codes inside messages/links, damaged codes refused, QR encoder ↔ decoder agreement, receiving into another install with the scope choice, launch-from-link import, escaping | PASS 24 / FAIL 0 |
+| `windtest.js` | Wind & heading (V1.21.0): Calypso "points at the target" unchanged, fixed-bearing mode, wind kept as a compass vector across target changes, wrap through north, no wrong wind without a bearing, V1.15.0 compass anchor, shared Home/Solver bearing, persistence, phone-compass capture (Android, iPhone permission, none) | PASS 22 / FAIL 0 |
 
-`domtest.js` is mandatory for any change to navigation, sheets or event wiring (V7 §21.4). `storagetest.js`, `importtest.js` and `sharetest.js` are mandatory for any change to loading, saving, import/export or the data schema. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
+`domtest.js` is mandatory for any change to navigation, sheets or event wiring (V7 §21.4). `windtest.js` is mandatory for any change to wind, bearings or the Calypso path. `storagetest.js`, `importtest.js` and `sharetest.js` are mandatory for any change to loading, saving, import/export or the data schema. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
 
 ## How to run
 
@@ -34,6 +35,9 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 
 # 5. share test
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node sharetest.js ../index.html)
+
+# 6. wind & heading test
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node windtest.js ../index.html)
 ```
 
 ## Provenance
@@ -45,3 +49,4 @@ Notes:
 - The "V1.16.0 NEW BEHAVIOUR" block only asserts that functions exist; extend it when that code changes.
 - When a change alters what a test asserts (new nav page, new chip), update the test in the same commit and say so in the patch log.
 - `sharetest.js` cannot drive a real camera: in-app QR scanning (BarcodeDetector on Android, jsQR on iOS) must be checked on a phone after release.
+- `windtest.js` simulates compass sensor events; the real phone compass and the Calypso's direction convention (clockwise, wind FROM, relative to its mark) must be checked on the device.
