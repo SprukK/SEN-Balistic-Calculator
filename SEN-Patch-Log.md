@@ -7,6 +7,25 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.20.0 — minor — Share profiles by QR, text or link (CORE-02)
+
+**What.** Every profile in Profiles (rifle, scope, reticle, projectile, weather) gets a **Share** button. The share sheet shows a **QR code**, the **share text**, and buttons to **Copy text**, **Copy link** and **Send…** (the phone's share menu, where available). Next to *Import JSON* there's **Paste / scan share**: paste the text or link from WhatsApp/Viber, or **Scan QR** with the camera. Opening a share link launches SEN and starts the import.
+
+**Payload.** One code for all three carriers: `SEN1:` + CRC-32 of the JSON (8 hex) + `.` + base64url of the deflate-compressed JSON (the browser's built-in `CompressionStream`). The checksum catches text cut off or altered in a messenger — a damaged code is refused with "ask for it again", nothing is imported. The code is found anywhere inside a pasted message or link. A rifle share carries the rifle, its scope, and the scope's reticle unless it's one of the built-in reticles every install has; favourite flags are removed; the schema is stamped. A typical rifle + scope share is ~580 characters. In a link the code sits after `#`, which browsers never send to the server (GitHub never sees it). The link is cleared from the address bar once read.
+
+**Receiving** always goes through `importData()` (V1.19.0): schema guard, field whitelist, review sheet for collisions. **New for rifle shares:** the review offers *Scope for <rifle>* — keep the sender's scope (default) or put the rifle on one of your own; choosing your own leaves the sender's scope and reticle out entirely. A share with nothing to decide (e.g. a new projectile) imports straight away.
+
+**Scanning.** Android uses the browser's built-in `BarcodeDetector`. iOS has none (WebKit doesn't implement it), so the QR decoder jsQR is embedded and used as the fallback. iPhone receivers should paste or scan rather than tap a link: a tapped link opens Safari, whose storage is separate from the installed app.
+
+**Embedded libraries** (minified, unmodified, for offline use): qrcode-generator 2.0.4 (MIT, ~20 KB) and jsQR 1.4.0 (Apache 2.0, ~130 KB). App size 260 KB → 433 KB; it loads from the offline cache, so launch speed is unaffected in practice. Licence texts in `THIRD-PARTY-NOTICES.md`.
+
+**Not in this release.** Dope cards keep their existing JSON export; sharing them by code can follow.
+
+**Files:** `index.html` — Share button in the profile list + binding; *Paste / scan share* button; share block (`SHARE_PREFIX`, `SHARE_RE`, `SHARE_TYPES`, `BUILTIN_RETICLES`, `crc32`, `shareBundle`, `streamBytes`, base64url helpers, `encodeShare`, `decodeShare`, `shareLink`, `openShare`, `copyShare`, `sendShare`, `receiveShare`, `openReceive`, `startScan`, `readQrFrame`, `stopScan`, `importFromLink`); scope choice in `planImport`/`applyImport`/`renderImportReview` + `impScope`; link import at boot and on `hashchange`; embedded libraries; 6 live version strings. `sw.js` CACHE → `sen-ballistics-v1.20.0`. New `THIRD-PARTY-NOTICES.md`, `tests/sharetest.js`; `tests/README.md` updated.
+**Verify:** `node --check` clean · `runtests.js` 20/20 · `domtest.js` 14/14 (new Share button doesn't disturb navigation) · `storagetest.js` 22/22 · `importtest.js` 28/28 · **`sharetest.js` 24/24**: bundle contents incl. custom-vs-built-in reticle and no favourite; exact round-trip; ~580-char rifle share; code found inside a chat message with a link; altered, truncated and code-less text refused; share sheet shows a QR and the code; the embedded encoder's QR decodes with the embedded decoder back to the exact share link; a second install receives the rifle on the sender's scope with the custom reticle; a third install puts it on its own scope and adds neither the sender's scope nor reticle; a new projectile imports without review; launching from a share link opens the review and clears the address bar; a damaged code in the receive sheet is explained and imports nothing; a script-like name injects nothing; zero uncaught errors. **Not machine-testable:** live camera scanning — check on the phone · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.20.0.html`.
+
+---
+
 ## V1.19.0 — minor — Import review: sanitise, conflict choices, reference remap (CORE-03)
 
 **Why.** Import merged blindly: unknown and wrongly-typed fields came in as-is (short of V7 §21.3's schema-whitelist rule), an incoming item with the same id was silently ignored even when its content differed, an item with the same name was added as a duplicate, and the file's units and display settings silently replaced yours. CORE-02 (QR/text/link sharing) will feed friends' profiles into this same path, so it had to become safe first.
