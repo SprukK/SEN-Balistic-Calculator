@@ -1,13 +1,14 @@
 # SEN regression tests
 
-Run both before every release. Both must be fully green.
+Run all three before every release. All must be fully green.
 
-| File | What it checks | Expected on V1.17.2 |
+| File | What it checks | Expected on V1.18.0 |
 |---|---|---|
 | `runtests.js` (+ `harness.js`) | 20 numeric physics anchors: air density, speed of sound, SD, Berger Sg (Queen, King, LRAI-35), unit conversions, RK4 trajectory, firing solution | PASS 20 / FAIL 0 |
 | `domtest.js` | Real-DOM (jsdom) click test: bottom nav, More sheet, act-bar pickers, Home disclosures, zero uncaught errors | PASS 14 / FAIL 0 |
+| `storagetest.js` | IndexedDB storage (V1.18.0): migration of real previous-release data from localStorage, rollback safety, reload, fallback, schema guard, save-failure warning, factory reset, iOS install hint | PASS 22 / FAIL 0 |
 
-`domtest.js` is mandatory for any change to navigation, sheets or event wiring (V7 §21.4). `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
+`domtest.js` is mandatory for any change to navigation, sheets or event wiring (V7 §21.4). `storagetest.js` is mandatory for any change to loading, saving, import/export or the data schema. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
 
 ## How to run
 
@@ -20,8 +21,11 @@ node --check /tmp/app.js
 (cd tests && node runtests.js /tmp/app.js)
 
 # 2. real-DOM click test (needs jsdom; install it OUTSIDE the repo so no node_modules gets committed)
-npm install jsdom --prefix /tmp/jsdom
+npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node domtest.js ../index.html)
+
+# 3. storage test: new build vs the previous release (its real localStorage data is migrated)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node storagetest.js ../index.html ../RTI-SEN-Ballistic-Calculator-V1.17.2.html)
 ```
 
 ## Provenance

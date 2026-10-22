@@ -7,6 +7,30 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.18.0 — minor — Storage moves to IndexedDB · schema versions (CORE-10 + CORE-01)
+
+**Why.** All data lived in one localStorage entry: about 5 MB, shared with the Lab app because both run on `sprukk.github.io`, written in full on every save, and a failed write was swallowed silently (`catch(e){}`) — data could quietly stop saving. Chrono sessions, shot logs and sync (CORE-08) all need more room and need failures to be visible, so storage moves before those features are built on top of it.
+
+**What changed.** The in-memory `DB` and every one of the ~50 `saveDB()` call sites are untouched; only *where* the snapshot is persisted changed.
+- **IndexedDB** (`sen_main` → store `kv` → key `db`) holds the same JSON snapshot localStorage held. Chrome on Android allows a site up to ~60% of disk.
+- **First-run migration:** if IndexedDB is empty and localStorage has data, the snapshot is copied, read back and compared byte-for-byte, then used. If the copy can't be verified the app keeps running on localStorage.
+- **Rollback safety:** after migration the localStorage copy is never written again, so rolling back to V1.17.2 still finds the data as it was at migration time. Changes made *after* the migration live only in IndexedDB; a V1.17.2 rollback won't see them, and anything entered during a rollback won't come back when returning to V1.18. Delete the frozen copy in a later release once V1.18 has proven itself.
+- **Fallback:** if IndexedDB can't be opened (old or locked-down browsers), the app uses localStorage exactly as before.
+- **Boot is now asynchronous:** the whole boot sequence runs after the stored data has loaded (`async boot()`), in the same order as before.
+- **Save failures are visible:** a failed save shows a red banner under the header ("Data NOT saved — reason. Export a backup now…"); the next successful save clears it. A stored snapshot that can't be parsed shows the same banner instead of silently starting empty.
+- **Persistent storage:** the app asks the browser to mark its data persistent (`navigator.storage.persist()`), so it isn't cleared when the device runs low on space.
+- **Settings → Data storage:** engine in use, app data size, persistence status, and the site's total usage/quota.
+- **Factory reset** now clears IndexedDB *and* localStorage — clearing only one would let the migration resurrect the old data on next launch.
+- **iOS install hint:** in iPhone Safari (not installed), a dismissible banner explains Safari deletes data of non-installed sites after 7 days unused and how to add SEN to the Home Screen. Dismissal is remembered.
+- **CORE-01 schema versions:** `SCHEMA` holds one version per record type (all `1` today — the current shapes). Every stored snapshot, full export and single dope-card export carries it. Import refuses a file whose schema is *newer* than the app ("update the app first") instead of misreading it; legacy files without a schema import as before. The existing boot migrations are unchanged.
+
+**Not changed.** No physics, solver, navigation or layout code. Import still merges without overwriting; the per-item overwrite/copy/skip choice is CORE-03. Noted for CORE-03: import does not yet apply the V7 §21.3 schema-whitelist sanitisation of incoming fields — XSS is covered by the V1.13.2 `esc()` sinks, but unknown fields pass through.
+
+**Files:** `index.html` — D1 store block (`snapshotJSON`, `applySnapshot`, `schemaNewerThanApp`, `idbOpen`, `idbRun`, `copyLocalToIdb`, `readStoredJSON`, `loadDB`, `saveDB`, `storeFail`/`storeOk`/`renderStoreWarn`, `requestPersist`, `clearAllData`, `factoryReset`, `iosNeedsInstall`/`renderIosHint`/`dismissIosHint`), two banners under the header, Settings storage panel + `renderStoreQuota`, factory-reset button, schema stamp in both exports, schema check in `importAll`, boot wrapped in `async boot()`, 6 live version strings. `sw.js` CACHE → `sen-ballistics-v1.18.0`. New `tests/storagetest.js`; `tests/README.md` updated.
+**Verify:** `node --check` clean · `runtests.js` 20/20 anchors (physics untouched) · `domtest.js` 14/14, zero uncaught errors (exercises the localStorage fallback, as jsdom has no IndexedDB) · **`storagetest.js` 22/22** against real V1.17.2 data: V1.17.2 writes a snapshot with a test rifle → V1.18.0 migrates it, holds it in IndexedDB with the schema stamp, leaves localStorage byte-identical; later saves reach IndexedDB only and survive a reload; fallback saves land in localStorage; newer-schema files are flagged and schema-less files pass; a forced write failure shows the banner and the next good save clears it; reset clears both stores; the iOS hint shows only in iPhone Safari and dismissal persists; Settings renders the storage panel; zero uncaught errors. The same test crashes against V1.17.2 as the new build, as expected · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.18.0.html`.
+
+---
+
 ## V1.17.2 — patch — New PWA id + repo link for the SprukK move
 
 *Entry reconstructed on 2026-10-22 from the 18 Oct release session and commit `785734e`; no patch-log entry was written at release time.*
@@ -17,7 +41,7 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 **Files:** `index.html` — 6 live version strings and the Settings repo link (the 2 remaining `V1.17.1` hits are historical fix comments, left intentionally). `manifest.json` — `id`. `sw.js` CACHE → `sen-ballistics-v1.17.2`.
 **Verify:** `node --check` on the app script and `sw.js` clean · `manifest.json` parses · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.17.2.html` · live `manifest.json` on `sprukk.github.io` confirmed serving the new id. Regression re-run on 2026-10-22 with the recovered suite: 20/20 anchors, `domtest.js` 14/14.
-**Known issue (device-side, open):** on the owner's phone the install still did not land in the app drawer ("cannot open the app"); diagnosis pointed at Android/launcher link handling, not the web app. "Create shortcut" works as a functional workaround.
+**Known issue (device-side):** on the owner's phone the install did not land in the app drawer at first ("cannot open the app"); diagnosis pointed at Android/launcher link handling, not the web app. **Resolved 2026-10-22:** owner confirms both the main app and the Lab probe now install.
 
 ---
 

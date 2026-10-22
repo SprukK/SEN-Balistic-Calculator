@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.17.2</title>
+<title>SEN Ballistics V1.18.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-/* ═══════════ SEN PLATFORM V1.17.2 — new PWA id + repo move to SprukK (no physics change) ═══════════ */
+/* ═══════════ SEN PLATFORM V1.18.0 — storage moves to IndexedDB + schema versions (no physics change) ═══════════ */
 :root{
   --bg:#0a0b0e;--bg2:#12151b;--bg3:#181c25;--bg4:#20252f;
   --border:rgba(210,192,152,.09);--border2:rgba(210,192,152,.18);
@@ -246,8 +246,11 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.17.2 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.18.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
+
+<div class="flag warn" id="store-warn" role="alert" style="display:none;margin:8px 12px 0"></div>
+<div class="flag warn" id="ios-hint" style="display:none;margin:8px 12px 0">On iPhone, add SEN to your Home Screen (Share → Add to Home Screen). Safari deletes the data of websites that aren't installed after 7 days without use. <button class="btn-xs" onclick="dismissIosHint()">Got it</button></div>
 
 <!-- Active selections bar — the visible face of Session State -->
 <div class="actbar" id="actbar"></div>
@@ -674,7 +677,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.17.2 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.18.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1046,9 +1049,21 @@ function renderSettings(){
   // tools
   html+=`<div class="panel"><h2>Scopes &amp; data</h2><div class="btnrow">
     <button class="btn" onclick="downloadScopePrompt()">Scope research prompt</button>
-    <button class="btn danger" onclick="if(confirm('Reset ALL data to defaults? Profiles will be lost.')){localStorage.removeItem(SK);location.reload();}">Factory reset</button></div>
+    <button class="btn danger" onclick="factoryReset()">Factory reset</button></div>
     <div class="note">The scope research prompt is a file you hand to another chat with a scope SKU; it returns a SEN scope file you import under Profiles → Scopes → Import.</div></div>`;
+  html+=`<div class="panel"><h2>Data storage</h2>
+    <div class="note" id="store-info">Engine: ${_idb?'IndexedDB':'localStorage (fallback — about 5 MB, shared with the Lab app)'} · app data ${(storeBytes/1024).toFixed(0)} KB<br>
+    Protection: ${storePersisted===true?'persistent — the browser will not clear it to free space':storePersisted===false?'not granted — the browser may clear it if the device runs low on space; installing the app usually grants it':'unknown'}<br>
+    <span id="store-quota"></span></div></div>`;
   box.innerHTML=html;
+  renderStoreQuota();
+}
+async function renderStoreQuota(){
+  try{
+    if(!(navigator.storage&&navigator.storage.estimate))return;
+    const q=await navigator.storage.estimate();const el=document.getElementById('store-quota');
+    if(el&&q.quota)el.textContent=`Site total (Main + Lab + offline cache): ${(q.usage/1048576).toFixed(1)} MB of ${(q.quota/1073741824).toFixed(1)} GB available`;
+  }catch(e){}
 }
 function setUnit(k,v){if(QDEF[k].locked)return;UNITS[k]=v;if(SUNITS[k]===v)SUNITS[k]='off';saveDB();renderSettings();rerenderAll();}
 function setSec(k,v){SUNITS[k]=v;saveDB();renderSettings();rerenderAll();}
@@ -1063,11 +1078,69 @@ function downloadScopePrompt(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SEN-Scope-Research-Prompt.md';a.click();
 }
 
-/* ═════════ D1 — PROFILE STORE ═════════ */
+/* ═════════ D1 — PROFILE STORE ═════════
+   V1.18.0 (CORE-10 + CORE-01): the in-memory DB and every saveDB() call site are unchanged; only
+   WHERE the snapshot is persisted moved, from localStorage (~5 MB, shared with the Lab app on
+   this origin) to IndexedDB. First launch copies the localStorage snapshot into IndexedDB,
+   verifies it byte-for-byte, then leaves the localStorage copy untouched so a rollback to
+   V1.17.x still finds its data. If IndexedDB is unavailable the app keeps using localStorage.
+   Every snapshot and export carries SCHEMA (one version per record type); importing a file
+   from a newer schema is refused instead of being silently misread. */
 const SK='sen_platform_v1';
+const IDB_NAME='sen_main',IDB_STORE='kv',IDB_KEY='db';
+const SCHEMA={rifles:1,projectiles:1,weathers:1,scopes:1,reticles:1,dopeCards:1};
 let DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[]};let currentDopeId=null;
-function loadDB(){try{const r=localStorage.getItem(SK);if(r){const d=JSON.parse(r);DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],...d};UNITS={...UNITS,...(d.units||{})};SUNITS={...SUNITS,...(d.sunits||{})};APP={...APP,...(d.app2||{})};if(d.session)Object.assign(S,d.session);}}catch(e){}}
-function saveDB(){try{localStorage.setItem(SK,JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,session:{rifleId:S.rifleId,projId:S.projId,zeroWxId:S.zeroWxId,curWxId:S.curWxId,zero_m:S.zero_m,dist_m:S.dist_m,drag:S.drag}}));}catch(e){}}
+let _idb=null,storeError=null,storeBytes=0,storePersisted=null;
+function snapshotJSON(){return JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,session:{rifleId:S.rifleId,projId:S.projId,zeroWxId:S.zeroWxId,curWxId:S.curWxId,zero_m:S.zero_m,dist_m:S.dist_m,drag:S.drag}});}
+function applySnapshot(d){DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],...d};UNITS={...UNITS,...(d.units||{})};SUNITS={...SUNITS,...(d.sunits||{})};APP={...APP,...(d.app2||{})};if(d.session)Object.assign(S,d.session);}
+function schemaNewerThanApp(d){return Object.keys(SCHEMA).filter(k=>d&&d.schema&&(d.schema[k]||0)>SCHEMA[k]);}
+function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function idbRun(mode,op){return new Promise((res,rej)=>{const tx=_idb.transaction(IDB_STORE,mode);const q=op(tx.objectStore(IDB_STORE));tx.oncomplete=()=>res(q.result);tx.onerror=tx.onabort=()=>rej(tx.error||new Error('transaction aborted'));});}
+async function copyLocalToIdb(raw){
+  await idbRun('readwrite',st=>st.put(raw,IDB_KEY));
+  if(await idbRun('readonly',st=>st.get(IDB_KEY))!==raw)throw new Error('migrated copy did not verify');
+}
+async function readStoredJSON(){
+  try{
+    _idb=await idbOpen();
+    const raw=await idbRun('readonly',st=>st.get(IDB_KEY));
+    if(raw!=null)return raw;
+    const old=localStorage.getItem(SK);
+    if(old!=null)await copyLocalToIdb(old);
+    return old;
+  }catch(e){_idb=null;try{return localStorage.getItem(SK);}catch(e2){return null;}}
+}
+async function loadDB(){
+  const raw=await readStoredJSON();
+  if(!raw)return;
+  storeBytes=raw.length;
+  try{applySnapshot(JSON.parse(raw));}catch(e){storeFail('stored data could not be read ('+e.message+')');}
+}
+function saveDB(){
+  const raw=snapshotJSON();storeBytes=raw.length;
+  if(_idb){idbRun('readwrite',st=>st.put(raw,IDB_KEY)).then(storeOk,e=>storeFail(e.message));return;}
+  try{localStorage.setItem(SK,raw);storeOk();}catch(e){storeFail(e.message);}
+}
+function storeFail(msg){storeError=msg;renderStoreWarn();}
+function storeOk(){if(storeError){storeError=null;renderStoreWarn();}}
+function renderStoreWarn(){
+  const el=document.getElementById('store-warn');if(!el)return;
+  el.textContent=storeError?'⚠ Data NOT saved — '+storeError+'. Export a backup now: More → Profiles → Export JSON.':'';
+  el.style.display=storeError?'':'none';
+}
+async function requestPersist(){try{if(navigator.storage&&navigator.storage.persist)storePersisted=await navigator.storage.persist();}catch(e){}}
+async function clearAllData(){
+  if(_idb)await idbRun('readwrite',st=>st.delete(IDB_KEY));
+  try{localStorage.removeItem(SK);}catch(e){}
+}
+async function factoryReset(){if(!confirm('Reset ALL data to defaults? Profiles will be lost.'))return;await clearAllData();location.reload();}
+function iosNeedsInstall(){
+  const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const standalone=navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  return ios&&!standalone;
+}
+function renderIosHint(){const el=document.getElementById('ios-hint');if(el)el.style.display=(iosNeedsInstall()&&!APP.iosHintOff)?'':'none';}
+function dismissIosHint(){APP.iosHintOff=true;saveDB();renderIosHint();}
 /* FIX-11a — debounced persistence. High-frequency paths (Bus.notify, live wind, keystrokes)
    call saveDBSoon(): one trailing write per ≥5 s window. Explicit user actions (form saves,
    imports, deletes) keep calling saveDB() directly. Pending state is flushed immediately when
@@ -2501,7 +2574,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,app:'SEN Ballistics V1.17.2'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.18.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -2965,7 +3038,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,exported:new Date().toISOString(),app:'SEN Ballistics V1.17.2'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.18.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -2973,6 +3046,8 @@ function importAll(input){
   const rd=new FileReader();
   rd.onload=()=>{try{
     const d=JSON.parse(rd.result);
+    const newer=schemaNewerThanApp(d);
+    if(newer.length){alert('This file was made by a newer SEN version ('+newer.join(', ')+'). Update the app before importing it, so nothing is misread or lost.');return;}
     // Referential merge order: reticles → scopes → rifles → projectiles → weathers → dopeCards
     // (rifles point to scopes, scopes point to reticles — parents must land first).
     ['reticles','scopes','rifles','projectiles','weathers','dopeCards'].forEach(k=>{
@@ -3110,7 +3185,8 @@ function useChronoMV(){
 
 /* ═════════ boot ═════════ */
 Bus.on(()=>{renderActBar();syncTrajInputs();refreshSelects();if(document.getElementById('page-home').classList.contains('active'))renderQuick();autoTraj();});
-loadDB();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();
+async function boot(){
+await loadDB();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();
 DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (V1.13.2): legacy free-text cleanup
 /* V1.12.5 (C3): saveDB persists profile IDs but not the derived overridables (mv/bc/sight/ct/cp/crh)
    — they were left null on relaunch, so Home showed "select rifle…" despite restored chips.
@@ -3129,6 +3205,9 @@ homeWindSrc=APP.homeWindSrc||'avg';{const a=document.getElementById('home-src-av
 const _rsl=document.getElementById('ret-size-lbl');if(_rsl)_rsl.textContent=(activeScopeMag().mag)+'×';
 refreshSelects();renderActBar();syncTrajInputs();syncDragUI();renderQuick();
 runTraj(true);  // V1.16.0: a restored session has a solution before the first tab is opened
+renderStoreWarn();renderIosHint();requestPersist();
+}
+boot().catch(e=>console.error('SEN boot failed:',e));
 window.addEventListener('resize',()=>{if(lastTraj)drawChart();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{});}
