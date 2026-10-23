@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.22.0</title>
+<title>SEN Ballistics V1.23.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-/* ═══════════ SEN PLATFORM V1.22.0 — units everywhere: converted inputs & outputs, dual units on every screen (no physics change) ═══════════ */
+/* ═══════════ SEN PLATFORM V1.23.0 — stage/course model: target details + stage time, dope cards schema v2 (no physics change) ═══════════ */
 :root{
   --bg:#0a0b0e;--bg2:#12151b;--bg3:#181c25;--bg4:#20252f;
   --border:rgba(210,192,152,.09);--border2:rgba(210,192,152,.18);
@@ -176,6 +176,9 @@ tr.zr td{color:var(--gold)}
 .dist-tbl td{padding:3px 4px;border:none}
 .dist-tbl input{background:var(--bg2)}
 .dist-tbl .res{color:var(--accent);text-align:right;font-weight:500}
+.dist-tbl .tl{display:block;font-family:var(--mono);font-size:9px;color:var(--text3);margin-bottom:2px}
+.dist-tbl .ddet td{background:var(--bg3);border-radius:6px;padding:8px}
+.st-time{flex:0 0 78px !important;width:78px}
 /* ══════ V1.17.0 FIELD SHELL ══════
    Primary nav moves to a thumb-reachable fixed bottom bar on phones (5 field tabs + More);
    at >=760px it reverts to the original static top strip, where reach is not a constraint.
@@ -246,7 +249,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.22.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.23.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <div class="flag warn" id="store-warn" role="alert" style="display:none;margin:8px 12px 0"></div>
@@ -688,7 +691,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.22.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.23.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -959,11 +962,12 @@ const QDEF={
   energy:{name:'Energy',canon:'j',opts:{j:'J',ftlb:'ft·lbf'},to:{j:v=>v,ftlb:v=>v/1.3558179483},from:{j:v=>v,ftlb:v=>v*1.3558179483},lab:{j:'J',ftlb:'ft·lbf'},dp:{j:0,ftlb:1}},
   twist:{name:'Twist rate',canon:'mm',opts:{in:'in/turn',mm:'mm/turn'},to:{in:v=>v/25.4,mm:v=>v},from:{in:v=>v*25.4,mm:v=>v},lab:{in:'in',mm:'mm'},dp:{in:2,mm:0},locked:true},
   bullet:{name:'Projectile & barrel size',canon:'mm',opts:{mm:'mm',in:'inches'},to:{mm:v=>v,in:v=>v/25.4},from:{mm:v=>v,in:v=>v*25.4},lab:{mm:'mm',in:'in'},dp:{mm:2,in:3}},
+  tsize:{name:'Target size',canon:'mm',opts:{mm:'mm',cm:'cm',in:'inches'},to:{mm:v=>v,cm:v=>v/10,in:v=>v/25.4},from:{mm:v=>v,cm:v=>v*10,in:v=>v*25.4},lab:{mm:'mm',cm:'cm',in:'in'},dp:{mm:0,cm:1,in:2}},
   alt:{name:'Altitude',canon:'m',opts:{m:'Meters',ft:'Feet'},to:{m:v=>v,ft:v=>v/0.3048},from:{m:v=>v,ft:v=>v*0.3048},lab:{m:'m',ft:'ft'},dp:{m:0,ft:0}},
   regp:{name:'Regulator pressure',canon:'bar',opts:{bar:'Bar',psi:'PSI'},to:{bar:v=>v,psi:v=>v*14.5038},from:{bar:v=>v,psi:v=>v/14.5038},lab:{bar:'bar',psi:'psi'},dp:{bar:0,psi:0}}
 };
-let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',alt:'m',regp:'bar'};
-let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',alt:'off',regp:'off'};
+let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',tsize:'mm',alt:'m',regp:'bar'};
+let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',tsize:'off',alt:'off',regp:'off'};
 let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',turretMode:'match',solverCor:false,solverSpin:false,lat:46.05};
 /* FIX-14b/c — apply display preferences (boot + on change) */
 function applyDisplayPrefs(){
@@ -1107,7 +1111,24 @@ function downloadScopePrompt(){
    from a newer schema is refused instead of being silently misread. */
 const SK='sen_platform_v1';
 const IDB_NAME='sen_main',IDB_STORE='kv',IDB_KEY='db';
-const SCHEMA={rifles:1,projectiles:1,weathers:1,scopes:1,reticles:1,dopeCards:1};
+const SCHEMA={rifles:1,projectiles:1,weathers:1,scopes:1,reticles:1,dopeCards:2};
+/* V1.23.0 CORE-12 — dope cards v2: each target gains label, compass bearing, size (mm), position,
+   shots; each stage an optional time limit (s). v1 cards (stored or imported) are upgraded with
+   defaults. Range/angle/wind/direction — the only inputs to the solution — are untouched. */
+const TARGET_POS={'':'—',prone:'Prone',kneel:'Kneeling',stand:'Standing'};
+function migrateDopeCard(c){
+  (c.stages||[]).forEach(st=>{
+    if(!('time' in st))st.time=null;
+    (st.dists||[]).forEach((d,i)=>{
+      if(typeof d.label!=='string'||!d.label.trim())d.label='T'+(i+1);
+      if(!('brg' in d))d.brg=null;
+      if(!('size' in d))d.size=null;
+      if(!(d.pos in TARGET_POS))d.pos='';
+      if(!(d.shots>=1))d.shots=1;
+    });
+  });
+  return c;
+}
 let DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[]};let currentDopeId=null;
 let _idb=null,storeError=null,storeBytes=0,storePersisted=null;
 function snapshotJSON(){return JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,session:{rifleId:S.rifleId,projId:S.projId,zeroWxId:S.zeroWxId,curWxId:S.curWxId,zero_m:S.zero_m,dist_m:S.dist_m,drag:S.drag}});}
@@ -2467,7 +2488,7 @@ function newDope(){
   const r=getRifle();
   const c={id:uid(),name:'New card',rifleId:S.rifleId,projId:S.projId,cwxId:S.curWxId,mv:S.mv||255,zero:(r&&r.zero!=null?r.zero:S.zero_m),notes:'',
     stages:[{id:uid(),name:'Stage 1',notes:'',dists:[{id:uid(),range:50,angle:0,wind:0,wdir:90},{id:uid(),range:100,angle:0,wind:0,wdir:90},{id:uid(),range:150,angle:0,wind:0,wdir:90}]}]};
-  DB.dopeCards.push(c);currentDopeId=c.id;saveDB();refreshDopeSel();loadDope();
+  migrateDopeCard(c);DB.dopeCards.push(c);currentDopeId=c.id;saveDB();refreshDopeSel();loadDope();
 }
 function loadDope(){
   currentDopeId=document.getElementById('dc-sel').value||null;
@@ -2515,26 +2536,44 @@ function renderStages(){
     `<div class="stage">
       <div class="stage-head"><span class="stage-num">St ${si+1}</span>
         <input type="text" value="${(s.name||'').replace(/"/g,'&quot;')}" onchange="updStage('${s.id}','name',this.value)">
+        <input type="number" class="st-time" data-q="-" min="0" step="5" placeholder="⏱ s" title="Stage time limit (seconds)" value="${s.time??''}" onchange="updStage('${s.id}','time',this.value===''?null:Math.max(0,+this.value)||null)">
         <button class="btn-xs" style="color:var(--warn)" onclick="delStage('${s.id}')">✕</button></div>
       <input type="text" value="${(s.notes||'').replace(/"/g,'&quot;')}" placeholder="terrain / position notes" onchange="updStage('${s.id}','notes',this.value)" style="margin-bottom:8px">
       <table class="dist-tbl"><thead><tr><th style="text-align:left">Range <span data-ul="range"></span></th><th>Ang°</th><th>Wind <span data-ul="wind"></span></th><th>Dir°</th><th>Drop</th><th>Elev</th><th>Wind cl</th><th></th></tr></thead>
       <tbody>${s.dists.map(d=>distRow(s.id,d)).join('')}</tbody></table>
-      <button class="btn-xs" style="margin-top:8px" onclick="addDist('${s.id}')">+ Range</button>
+      <button class="btn-xs" style="margin-top:8px" onclick="addDist('${s.id}')">+ Target</button>
     </div>`).join('')||'<div class="note">No stages yet.</div>';
+}
+const openDist=new Set();
+function toggleDistDetail(did){openDist.has(did)?openDist.delete(did):openDist.add(did);const r=document.getElementById('dd-'+did);if(r)r.style.display=openDist.has(did)?'':'none';}
+function targetInfo(d){return[d.pos?TARGET_POS[d.pos]:'',d.size?ut('tsize',d.size):'',d.shots>1?d.shots+'×':'',d.brg!=null?Math.round(d.brg)+'°':''].filter(Boolean).join(' · ');}
+function distDetail(sid,d){
+  const u=(f,expr)=>`onchange="updDist('${sid}','${d.id}','${f}',${expr})"`;
+  return`<tr id="dd-${d.id}" class="ddet" style="${openDist.has(d.id)?'':'display:none'}"><td colspan="8"><div class="fgrid3">
+    <div class="fld"><label>Label</label><input type="text" maxlength="40" value="${esc(d.label||'')}" ${u('label',"this.value.trim()||'T'")} onblur="renderStages()"></div>
+    <div class="fld"><label>Bearing ° compass</label><div style="display:flex;gap:4px"><input type="number" data-q="-" step="1" value="${d.brg??''}" ${u('brg',"this.value===''?null:norm360(+this.value)")}><button class="btn-xs" onclick="captureDistBearing('${sid}','${d.id}')">📍</button></div></div>
+    <div class="fld"><label>Size mm</label><input type="number" data-q="tsize" step="1" min="0" value="${d.size??''}" ${u('size',"this.value===''?null:Math.max(0,+this.value)||null")}></div>
+    <div class="fld"><label>Position</label><select ${u('pos','this.value')}>${Object.entries(TARGET_POS).map(([k,l])=>`<option value="${k}" ${d.pos===k?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="fld"><label>Shots</label><input type="number" data-q="-" step="1" min="1" value="${d.shots||1}" ${u('shots','Math.max(1,Math.round(+this.value)||1)')}></div>
+  </div></td></tr>`;
+}
+async function captureDistBearing(sid,did){
+  try{const b=await readCompass();updDist(sid,did,'brg',b);openDist.add(did);renderStages();}
+  catch(e){alert(e.message);}
 }
 function distRow(sid,d){
   return`<tr id="dr-${d.id}">
-    <td><input class="di" type="number" data-q="range" value="${d.range}" onchange="updDist('${sid}','${d.id}','range',+this.value)"></td>
+    <td><span class="tl">${esc(d.label||'')}</span><input class="di" type="number" data-q="range" value="${d.range}" onchange="updDist('${sid}','${d.id}','range',+this.value)"></td>
     <td><input class="di" type="number" data-q="-" value="${d.angle||0}" onchange="updDist('${sid}','${d.id}','angle',+this.value)"></td>
     <td><input class="di" type="number" data-q="wind" value="${d.wind||0}" onchange="updDist('${sid}','${d.id}','wind',+this.value)"></td>
-    <td><input class="di" type="number" data-q="-" value="${d.wdir||90}" onchange="updDist('${sid}','${d.id}','wdir',+this.value)"></td>
+    <td><input class="di" type="number" data-q="-" value="${d.wdir??90}" onchange="updDist('${sid}','${d.id}','wdir',+this.value)"></td>
     <td class="res" id="dc-rc-${d.id}">—</td><td class="res" id="dc-re-${d.id}">—</td><td class="res" id="dc-rw-${d.id}">—</td>
-    <td><button class="btn-xs" onclick="delDist('${sid}','${d.id}')">✕</button></td></tr>`;
+    <td style="white-space:nowrap"><button class="btn-xs" title="target details" onclick="toggleDistDetail('${d.id}')">⋯</button><button class="btn-xs" onclick="delDist('${sid}','${d.id}')">✕</button></td></tr>`+distDetail(sid,d);
 }
-function addStage(){const c=getCard();if(!c)return;c.stages.push({id:uid(),name:'Stage '+(c.stages.length+1),notes:'',dists:[{id:uid(),range:100,angle:0,wind:0,wdir:90}]});saveDB();renderStages();}
+function addStage(){const c=getCard();if(!c)return;c.stages.push({id:uid(),name:'Stage '+(c.stages.length+1),notes:'',dists:[{id:uid(),range:100,angle:0,wind:0,wdir:90}]});migrateDopeCard(c);saveDB();renderStages();}
 function delStage(id){const c=getCard();if(!c)return;c.stages=c.stages.filter(s=>s.id!==id);saveDB();renderStages();}
 function updStage(id,f,v){const c=getCard();if(!c)return;const s=c.stages.find(x=>x.id===id);if(s){s[f]=v;saveDB();}}
-function addDist(sid){const c=getCard();if(!c)return;const s=c.stages.find(x=>x.id===sid);if(!s)return;s.dists.push({id:uid(),range:100,angle:0,wind:0,wdir:90});saveDB();renderStages();}
+function addDist(sid){const c=getCard();if(!c)return;const s=c.stages.find(x=>x.id===sid);if(!s)return;s.dists.push({id:uid(),range:100,angle:0,wind:0,wdir:90,label:'T'+(s.dists.length+1)});migrateDopeCard(c);saveDB();renderStages();}
 function delDist(sid,did){const c=getCard();if(!c)return;const s=c.stages.find(x=>x.id===sid);if(s)s.dists=s.dists.filter(d=>d.id!==did);saveDB();renderStages();}
 function updDist(sid,did,f,v){const c=getCard();if(!c)return;const s=c.stages.find(x=>x.id===sid);if(!s)return;const d=s.dists.find(x=>x.id===did);if(d){d[f]=v;saveDB();}}
 function computeCardTraj(c){
@@ -2568,7 +2607,7 @@ function calcDope(){
   if(tr.bcPending){document.getElementById('dc-note').textContent=`${tr.projName} has no BC yet — enter one in its profile or measure it in the Truing tab before generating dope.`;c.stages.forEach(s=>s.dists.forEach(d=>{const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};set('dc-rc-'+d.id,'—');set('dc-re-'+d.id,'no BC');set('dc-rw-'+d.id,'—');}));return;}
   const z=tr.z;
   c.stages.forEach(s=>s.dists.forEach(d=>{
-    const sol=solveShot(tr.pts,nearestPt,z.range,d.range,d.angle||0,d.wind||0,d.wdir||90,c.mv,tr.click,z.wSpd,z.wDir);
+    const sol=solveShot(tr.pts,nearestPt,z.range,d.range,d.angle||0,d.wind||0,d.wdir??90,c.mv,tr.click,z.wSpd,z.wDir);
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
     if(sol){
       set('dc-rc-'+d.id,U.drop(sol.tp.drop));
@@ -2585,10 +2624,10 @@ function printDope(){
   const z=tr.z;
   let h=`<div class="pd"><h1>DOPE — ${esc(c.name||'Unnamed')}</h1><div class="pdm">Rifle: ${tr.r?esc(tr.r.name):'—'} · ${tr.sc?esc(tr.sc.name):""} · Proj: ${esc(tr.p.name)}<br>MV ${ut('vel',c.mv)} · Zero ${ut('zrange',z.range)}${z.wSpd>0?' · zeroed in '+ut('wind',z.wSpd)+' @ '+z.wDir+'°':''} · ${tr.click} mrad/click<br>Zero atmos: ${ut('temp',z.temp)} ${ut('pres',z.pres)} ${z.rh}% · Current: ${esc(tr.cw.name)}${c.notes?'<br>'+esc(c.notes):''}</div>`;
   c.stages.forEach((s,si)=>{
-    h+=`<div class="sh">STAGE ${si+1}: ${esc(s.name||'')}${s.notes?' — '+esc(s.notes):''}</div><table><thead><tr><th>Range</th><th>Angle</th><th>Drop ${U.dropU()}</th><th>Elev clk</th><th>Wind</th><th>Wind clk</th></tr></thead><tbody>`;
+    h+=`<div class="sh">STAGE ${si+1}: ${esc(s.name||'')}${s.time?' · ⏱ '+s.time+' s':''}${s.notes?' — '+esc(s.notes):''}</div><table><thead><tr><th>Target</th><th>Range</th><th>Angle</th><th>Drop ${U.dropU()}</th><th>Elev clk</th><th>Wind</th><th>Wind clk</th><th>Info</th></tr></thead><tbody>`;
     s.dists.forEach(d=>{
-      const sol=solveShot(tr.pts,nearestPt,z.range,d.range,d.angle||0,d.wind||0,d.wdir||90,c.mv,tr.click,z.wSpd,z.wDir);
-      if(sol)h+=`<tr><td>${ut('range',d.range)}</td><td>${d.angle||0}°</td><td>${U.drop(sol.tp.drop)}</td><td>${(sol.clElev>=0?'U':'D')}${Math.abs(sol.clElev).toFixed(0)}</td><td>${ut('wind',d.wind||0)}</td><td>${d.wind?(sol.clWind>=0?'R':'L')+Math.abs(sol.clWind).toFixed(0):'—'}</td></tr>`;
+      const sol=solveShot(tr.pts,nearestPt,z.range,d.range,d.angle||0,d.wind||0,d.wdir??90,c.mv,tr.click,z.wSpd,z.wDir);
+      if(sol)h+=`<tr><td>${esc(d.label||'')}</td><td>${ut('range',d.range)}</td><td>${d.angle||0}°</td><td>${U.drop(sol.tp.drop)}</td><td>${(sol.clElev>=0?'U':'D')}${Math.abs(sol.clElev).toFixed(0)}</td><td>${ut('wind',d.wind||0)}</td><td>${d.wind?(sol.clWind>=0?'R':'L')+Math.abs(sol.clWind).toFixed(0):'—'}</td><td>${esc(targetInfo(d))}</td></tr>`;
     });
     h+='</tbody></table>';
   });
@@ -2598,7 +2637,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.22.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.23.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3064,7 +3103,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.22.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.23.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3107,11 +3146,17 @@ function sanitiseRecord(type,raw){
   if(!rec.name||!rec.name.trim())return{reject:'no name'};
   const missing=(IMPORT_REQUIRED[type]||[]).filter(k=>!(rec[k]>0));
   if(missing.length)return{reject:'missing '+missing.join(', ')};
-  if(rec.stages)rec.stages=rec.stages.map(st=>({id:st.id,name:st.name,notes:isStr(st.notes)?st.notes:'',dists:st.dists.map(d=>({id:d.id,range:d.range,angle:d.angle,wind:d.wind,wdir:d.wdir}))}));
+  if(rec.stages){
+    rec.stages=rec.stages.map(st=>({id:st.id,name:st.name,notes:isStr(st.notes)?st.notes:'',time:isNum(st.time)&&st.time>0?st.time:null,
+      dists:st.dists.map(d=>({id:d.id,range:d.range,angle:d.angle,wind:d.wind,wdir:d.wdir,label:isStr(d.label)?d.label.slice(0,40):'',
+        brg:isNum(d.brg)?norm360(d.brg):null,size:isNum(d.size)&&d.size>0?d.size:null,pos:d.pos in TARGET_POS?d.pos:'',shots:isNum(d.shots)&&d.shots>=1?Math.round(d.shots):1}))}));
+    migrateDopeCard(rec);
+  }
   if(!rec.id)rec.id=uid();
   return{rec};
 }
-function diffKeys(a,b){return[...new Set([...Object.keys(a),...Object.keys(b)])].filter(k=>k!=='id'&&k!=='fav'&&JSON.stringify(a[k])!==JSON.stringify(b[k]));}
+const stableJSON=v=>JSON.stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(n=>[n,x[n]])):x);
+function diffKeys(a,b){return[...new Set([...Object.keys(a),...Object.keys(b)])].filter(k=>k!=='id'&&k!=='fav'&&stableJSON(a[k])!==stableJSON(b[k]));}
 const sameRecord=(a,b)=>diffKeys(a,b).length===0;
 function recordDiff(mine,theirs){
   const keys=diffKeys(mine,theirs);
@@ -3606,6 +3651,7 @@ homeWindSrc=APP.homeWindSrc||'avg';{const a=document.getElementById('home-src-av
 const _rsl=document.getElementById('ret-size-lbl');if(_rsl)_rsl.textContent=(activeScopeMag().mag)+'×';
 refreshSelects();renderActBar();syncTrajInputs();syncDragUI();renderQuick();
 runTraj(true);  // V1.16.0: a restored session has a solution before the first tab is opened
+DB.dopeCards.forEach(migrateDopeCard);
 S.tgtBrg=APP.hmTgtBrg??null;syncBearingFields();renderCalMount();
 refreshUnits();startUnitObserver();
 renderStoreWarn();renderIosHint();requestPersist();

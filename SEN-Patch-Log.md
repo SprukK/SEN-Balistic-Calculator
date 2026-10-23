@@ -7,6 +7,26 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.23.0 — minor — Stage/course model: target details, stage time, dope cards schema v2 (CORE-12) · headwind fix
+
+**Design.** The dope card already was a match structure (card → stages → targets with range, angle, wind, direction), so it is extended rather than duplicated by a second "course" model.
+
+**What's new.**
+- **Per target** (the rows formerly called ranges; "+ Range" → "+ Target"): **label** (default T1, T2…; shown above the range), **compass bearing** (typed, or 📍 phone compass — the same capture as Home), **size** (one number, mm, converted like every other unit — new quantity *Target size* mm/cm/in), **position** (prone / kneeling / standing), **shots** (default 1). They sit in a details row opened with **⋯**, so the editor stays compact.
+- **Per stage:** optional **time limit** in seconds (⏱ field in the stage header).
+- **Printed card:** a Target column, an Info column (e.g. "Standing · 51 mm · 3× · 95°") and the stage time in the stage header.
+
+**Schema v2 (first real CORE-01 migration).** `SCHEMA.dopeCards` 1 → 2. Stored cards are upgraded at boot and v1 files on import (`migrateDopeCard`): labels T1…Tn per stage, no bearing/size/position, 1 shot, no time limit. The import whitelist now carries the new fields with type checks (bearing normalised to 0–360°, size > 0, known positions only, whole shots ≥ 1, label ≤ 40 chars); anything else is dropped.
+
+**Bug fix — 0° headwind became a crosswind.** Target rows used `d.wdir||90`, so a wind direction of **0° (headwind) was silently computed as 90° — full value from the right** (e.g. 5 m/s at 0° gave 8 clicks right windage instead of none), and the editor displayed it as 90°. Now `??`: 0° stays 0°. Affects only dope cards with a 0° entry; every other entry computes bit-identically.
+
+**Also fixed (import).** Record comparison was sensitive to key order inside nested objects, so a v2 dope card re-imported from your own export showed up as changed. Comparison is now key-order independent (`stableJSON`).
+
+**Files:** `index.html` — `SCHEMA.dopeCards: 2`, `TARGET_POS`, `migrateDopeCard` (boot, `newDope`, `addStage`, `addDist`, import); import sanitiser rebuilds stages/targets with the new fields; `stableJSON` in `diffKeys`; `tsize` quantity (+ `UNITS`/`SUNITS`); stage header time field; `distRow` (label tag, ⋯ toggle, details row) with new `openDist`, `toggleDistDetail`, `targetInfo`, `distDetail`, `captureDistBearing`; "+ Target"; `d.wdir??90` in the editor, `calcDope` and `printDope`; print Target/Info columns and stage time; 4 CSS rules; 6 live version strings. `sw.js` CACHE → `sen-ballistics-v1.23.0`. New `tests/coursetest.js`; `tests/README.md` updated.
+**Verify:** `node --check` clean · `runtests.js` 20/20 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 (new detail fields classified; size converts) · **`coursetest.js` 20/20**: a 4-target, 2-stage card built and computed by V1.22.0 is upgraded (T1–T3/T1, 1 shot, empty details, no time) and computes **bit-identical** dope; 5 m/s at 0° now gives no windage (V1.22.0 gave →8) and the editor shows 0°; a v1 file imports upgraded; a v2 file keeps Rabbit/10°(from 370°)/25 mm/kneeling/2 shots/120 s; junk (empty label, bad bearing, negative size, unknown position, −3 shots, unknown keys) is sanitised; own card re-import is "already identical"; details hidden until ⋯; label/bearing/position/shots stored; 2 typed in inches stored as 50.8 mm and the label follows the unit; stage time stored; 📍 captures 60° from alpha 300 and keeps details open; print shows "Steel 1", "Standing · 51 mm · 3× · 95°" and "⏱ 120 s"; everything survives a restart; zero uncaught errors · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.23.0.html`.
+
+---
+
 ## V1.22.0 — minor — Units everywhere: converted inputs and outputs, dual units on every screen (CORE-15)
 
 **Why.** The unit choice in Settings only reached part of the outputs (drop/velocity tables, some cards). About 60 number inputs were fixed metric with hard-coded labels ("Zero range m"), ~60 output strings printed raw metric numbers with fixed units, and the dual-unit setting was wired to almost nothing (`dual()` existed but was never called). Switching to yards left most of the app in metres.
