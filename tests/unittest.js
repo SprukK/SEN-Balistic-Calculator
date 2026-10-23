@@ -27,8 +27,8 @@ const labelOf=(w,id)=>$(w,id).closest('.fld').querySelector('label').textContent
 function visibleText(w){
   const out=[],walk=n=>{if(n.nodeType===3){out.push(n.data);return;}if(n.nodeType!==1||/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(n.tagName)||n.id==='st-twist-tbl')return;n.childNodes.forEach(walk);};
   walk(w.document.body);
-  // profile names are the user's own text (e.g. "Everyday Default (20°C)") — not unit output
-  let t=out.join(' ');const names=JSON.parse(w.eval('JSON.stringify(["rifles","projectiles","weathers","scopes","reticles","dopeCards"].flatMap(k=>DB[k].map(x=>x.name)))'));
+  // profile and layout names are the user's own text (e.g. "Everyday Default (20°C)", "Benchrest 50 m") — not unit output
+  let t=out.join(' ');const names=JSON.parse(w.eval('JSON.stringify([...["rifles","projectiles","weathers","scopes","reticles","dopeCards"].flatMap(k=>DB[k].map(x=>x.name)),...APP.layouts.map(l=>l.name),...Object.values(LAYOUT_TPL).map(t=>t.name)])'));
   names.sort((a,b)=>b.length-a.length).forEach(n=>{t=t.split(n).join(' ');});return t;
 }
 

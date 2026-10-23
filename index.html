@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.25.1</title>
+<title>SEN Ballistics V1.26.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -220,6 +220,17 @@ html.fold .navbar{position:fixed;left:0;right:0;bottom:0;background:rgba(10,11,1
   border-top:1px solid var(--border2);padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:4px}
 html.fold .navbar button{flex:1 1 0;flex-direction:column;min-height:50px;padding:9px 2px;font-size:10px;background:transparent;border-color:transparent}
 html.fold .navbar button.on{background:var(--bg3);border-color:var(--accent)}
+/* CORE-16 layouts */
+.mod-off{display:none!important}
+#wt-body th{text-transform:none}
+.laybar{display:flex;justify-content:flex-end;margin:-4px 0 8px}
+.lay-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
+.lay-row.lay-on{border-color:var(--accent)}
+.lay-name{font-family:var(--mono);font-size:13px;color:var(--text)}
+.lay-tag{font-size:9px;color:#0a0b0e;background:var(--accent);border-radius:4px;padding:1px 6px;margin-left:8px}
+.lay-acts{display:flex;gap:6px;flex-wrap:wrap}.lay-del{color:var(--warn)}
+.lay-mod{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;margin-bottom:5px}
+.lay-modoff .lay-modname{color:var(--text3)}.lay-modname{flex:1;font-family:var(--mono);font-size:12px}
 /* CORE-06 formula panel */
 .fx-card{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:10px}
 .fx-card.fx-bad{border-color:var(--red)}
@@ -277,7 +288,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.25.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.26.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -299,6 +310,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <!-- ═══════════ HOME — live dashboard ═══════════ -->
 <div class="page active" id="page-home">
+  <div class="laybar" id="home-layout-bar"><button class="btn-xs" id="home-layout-name" onclick="openLayoutSheet()">Default ▾</button></div>
   <div class="panel" id="home-setup" style="display:none">
     <h2>Set up your session</h2>
     <div class="note" style="margin-top:0">Choose these three and every tab starts solving. Change them any time from the chips at the top of the screen.</div>
@@ -384,7 +396,35 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="cond-cell"><div class="cl">Crosswind</div><div class="cv" id="home-cross">—</div></div>
   </div>
 
-  <div class="panel">
+  <div class="panel mod-off" id="home-windoff">
+    <h2>Wind offset now · <span id="wo-dist">—</span></h2>
+    <div class="dsol-v" id="wo-clk" style="color:var(--gold)">—</div><div class="note" id="wo-mm" style="margin-top:2px">—</div>
+  </div>
+  <div class="panel mod-off" id="home-windtable">
+    <h2>Wind offset · full-value crosswind · <span id="wt-dist">—</span></h2>
+    <div class="tablebox" style="margin:0"><table><tbody id="wt-body"></tbody></table></div>
+  </div>
+  <div class="panel mod-off" id="home-chrono">
+    <h2>Chrono string</h2>
+    <div class="cond" style="grid-template-columns:repeat(3,1fr)">
+      <div class="cond-cell"><div class="cl">MV</div><div class="cv" id="cr-mv">—</div></div>
+      <div class="cond-cell"><div class="cl">ES</div><div class="cv" id="cr-es">—</div></div>
+      <div class="cond-cell"><div class="cl">SD</div><div class="cv" id="cr-sd">—</div></div>
+    </div>
+    <div class="note" id="cr-vert">—</div>
+  </div>
+  <div class="panel mod-off" id="home-timer">
+    <h2 id="tm-head">Card</h2>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="dsol-v" id="tm-left" style="min-width:90px">—</div>
+      <div id="tm-shots" style="flex:1;font-family:var(--mono);font-size:13px">—</div>
+      <button class="btn-xs" onclick="timerShot(-1)" aria-label="One shot less">−1</button>
+      <button class="btn-xs" onclick="timerShot(1)">Shot +1</button>
+      <button class="btn-xs" id="tm-start" onclick="timerStart()">Start</button>
+    </div>
+  </div>
+
+  <div class="panel" id="home-inputs">
     <h2>Shot inputs</h2>
     <div class="fgrid3">
       <div class="fld"><label>Distance</label><input type="number" id="home-dist" step="5" oninput="homeInput('dist',+this.value)"></div>
@@ -718,6 +758,17 @@ details.disc .dbody{padding:0 14px 14px}
   </div>
 </div>
 
+<!-- ═══════════ LAYOUTS (CORE-16, V1.26.0) ═══════════ -->
+<div class="page" id="page-layouts">
+  <div class="panel">
+    <div class="ph"><h2>Home layouts</h2><span class="psub">what Home shows, per match type — rename, copy, edit</span></div>
+    <div id="lay-list"></div>
+    <div class="note">New layout from a template:</div>
+    <div class="btnrow"><button class="btn" onclick="newLayout('default')">Default</button><button class="btn" onclick="newLayout('br50')">Benchrest 50 m</button><button class="btn" onclick="newLayout('br100')">Benchrest 100 m</button><button class="btn" onclick="newLayout('blank')">Blank</button></div>
+  </div>
+  <div class="panel" id="lay-edit" style="display:none"></div>
+</div>
+
 <!-- ═══════════ FORMULAS (CORE-06, V1.25.0) ═══════════ -->
 <div class="page" id="page-formulas">
   <div class="panel">
@@ -731,7 +782,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.25.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.26.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1699,7 +1750,7 @@ function renderActBar(){
    one code path into the session state and the V1.16.0 auto-solve fires from all of them. */
 const MORE_PAGES=[['stab','Stability','Berger Sg · twist'],['truing','BC / Truing','BC, SD, MV–temp'],
   ['holds','Holds','reticle holdover'],['profiles','Profiles','rifles, scopes, ammo'],
-  ['sensors','Sensors','Calypso · chrono'],['formulas','Formulas','§20A self-check'],['settings','Settings','units, display, field']];
+  ['sensors','Sensors','Calypso · chrono'],['layouts','Layouts','Home per match type'],['formulas','Formulas','§20A self-check'],['settings','Settings','units, display, field']];
 function openSheet(html){document.getElementById('sbox').innerHTML='<div class="sgrab"></div>'+html;document.getElementById('sheet').classList.add('open');}
 function closeSheet(){document.getElementById('sheet').classList.remove('open');document.getElementById('sbox').innerHTML='';}
 function openMore(){
@@ -1896,6 +1947,7 @@ function renderQuick(){
     }
   }
   document.getElementById('home-status').textContent=statusMsg;
+  renderHomeMods(tr);
   homeShellSync();
   document.getElementById('home-reticle').innerHTML=drawReticle(reticle,elev,wind,scope);
   document.getElementById('home-reticle-cap').innerHTML=reticle?(retOwn?`${esc(reticle.name)} · ${reticle.fp}${reticle.verified?(reticle.confNote?' · <span style="color:var(--gold)">tree holds approximate ⚠</span>':''):' · <span style="color:var(--warn)">est. subtensions ⚠</span>'}`:`${esc(reticle.name)} · <span style="color:var(--warn)">generic grid — scope has no verified reticle ⚠</span>`):'no reticle';
@@ -2170,6 +2222,7 @@ function gotoPage(p){
   if(p==='truing'){tuInit();if(getProj())bcFromProj();else calcBC();mvtRender();}
   if(p==='holds')renderHolds();
   if(p==='formulas')renderFormulas();
+  if(p==='layouts')renderLayouts();
 }
 // V1.17.1: only wire buttons that actually name a page. #nav-more has no data-page and keeps
 // its own inline openMore() handler — the old unconditional wiring overwrote it with
@@ -2710,7 +2763,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.25.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.26.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3176,7 +3229,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.25.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.26.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3425,6 +3478,7 @@ function useChronoMV(){
   if(!mv){alert('Enter MV first.');return;}
   S.mv=mv;S.src.mv='chrono';
   const es=+document.getElementById('ch-es').value,sd=+document.getElementById('ch-sd').value;
+  APP.chrono={mv,es:es>0?es:null,sd:sd>0?sd:null,at:new Date().toISOString().slice(0,10)};saveDB();
   let f='';
   if(es||sd){
     const okES=!es||es<=5, okSD=!sd||sd<=1.5;
@@ -3434,6 +3488,179 @@ function useChronoMV(){
   Bus.notify();
 }
 
+
+/* ═════════ CORE-16 (V1.26.0) — HOME LAYOUTS ═════════
+   A layout is a named, editable list of Home modules (order + on/off) plus a few settings
+   (fixed distance, card timer, shots per card). Modules are the existing Home blocks — moved,
+   never duplicated, ids unchanged, every renderer keeps working — plus four new ones for
+   benchrest. Layouts live in APP.layouts (persisted, exported with the settings). Templates seed
+   new layouts; "Default" reproduces the pre-V1.26 Home exactly. The fold rail (CORE-04) still
+   moves dash/turret/conditions into the rail; ordering then uses its placeholders. All layout UI
+   is built with createElement/textContent — no HTML from user text. */
+const HOME_MODS={
+  solution:{el:'home-dash',name:'Reticle + elevation / windage'},
+  rail:{el:'home-rail-panel',name:'Adjustable rail budget'},
+  turret:{el:'home-turret-panel',name:'Turret dialled'},
+  live:{el:'home-livebar',name:'Calypso live wind'},
+  bearing:{el:'home-tgt',name:'Target bearing'},
+  manwind:{el:'home-manwind',name:'Manual wind (compass)'},
+  cond:{el:'home-cond',name:'Conditions strip'},
+  inputs:{el:'home-inputs',name:'Shot inputs'},
+  windoff:{el:'home-windoff',name:'Wind offset now (mm + clicks)'},
+  windtable:{el:'home-windtable',name:'Wind offset table 1–5'},
+  chrono:{el:'home-chrono',name:'Chrono ES / SD → vertical'},
+  timer:{el:'home-timer',name:'Card timer + shot count'}
+};
+const LAYOUT_TPL={
+  default:{name:'Default',on:['solution','rail','turret','live','bearing','manwind','cond','inputs'],set:{dist:null,timerMin:20,shots:25}},
+  br50:{name:'Benchrest 50 m',on:['solution','windoff','windtable','chrono','timer','live','manwind','cond','inputs'],set:{dist:50,timerMin:20,shots:25}},
+  br100:{name:'Benchrest 100 m',on:['solution','windoff','windtable','chrono','timer','live','manwind','cond','inputs'],set:{dist:100,timerMin:20,shots:25}},
+  blank:{name:'New layout',on:['solution','inputs'],set:{dist:null,timerMin:20,shots:25}}
+};
+function layoutFromTpl(t,name){
+  const T=LAYOUT_TPL[t]||LAYOUT_TPL.default;
+  return{id:uid(),name:name||T.name,tpl:t,mods:[...T.on.map(id=>({id,on:true})),...Object.keys(HOME_MODS).filter(k=>!T.on.includes(k)).map(id=>({id,on:false}))],set:{...T.set}};
+}
+// Keep every stored layout valid: known modules only, each exactly once, new modules appended (off).
+function normLayout(L){
+  const seen=new Set(),mods=[];
+  (Array.isArray(L.mods)?L.mods:[]).forEach(m=>{if(m&&HOME_MODS[m.id]&&!seen.has(m.id)){seen.add(m.id);mods.push({id:m.id,on:!!m.on});}});
+  Object.keys(HOME_MODS).forEach(id=>{if(!seen.has(id))mods.push({id,on:false});});
+  const s=L.set||{};
+  return{id:typeof L.id==='string'&&L.id?L.id:uid(),name:String(L.name||'Layout').slice(0,40),tpl:LAYOUT_TPL[L.tpl]?L.tpl:'blank',mods,
+    set:{dist:s.dist>0?+s.dist:null,timerMin:s.timerMin>0?Math.min(180,+s.timerMin):20,shots:s.shots>0?Math.min(999,Math.round(s.shots)):25}};
+}
+function initLayouts(){
+  if(!Array.isArray(APP.layouts)||!APP.layouts.length)APP.layouts=['default','br50','br100'].map(t=>layoutFromTpl(t));
+  APP.layouts=APP.layouts.map(normLayout);
+  if(!APP.layouts.some(l=>l.id===APP.layoutId))APP.layoutId=APP.layouts[0].id;
+}
+const activeLayout=()=>Array.isArray(APP.layouts)?(APP.layouts.find(l=>l.id===APP.layoutId)||APP.layouts[0]||null):null;
+function applyHomeLayout(){
+  const L=activeLayout(),home=document.getElementById('page-home');if(!L||!home)return;
+  L.mods.forEach(m=>{
+    const el=document.getElementById(HOME_MODS[m.id].el);if(!el)return;
+    el.classList.toggle('mod-off',!m.on);
+    const mark=document.querySelector('[data-rail-home="'+HOME_MODS[m.id].el+'"]');
+    home.appendChild(mark||el);
+  });
+  const b=document.getElementById('home-layout-name');if(b)b.textContent=L.name+' ▾';
+  renderQuick();
+}
+function useLayout(id){
+  if(!APP.layouts.some(l=>l.id===id))return;
+  APP.layoutId=id;const L=activeLayout();
+  if(L.set.dist>0&&Bus&&Bus.set)Bus.set('dist_m',L.set.dist);
+  fxTimerReset();saveDB();applyHomeLayout();
+}
+function openLayoutSheet(){
+  openSheet('<h3>Layout</h3>');
+  const box=document.getElementById('sbox'),list=document.createElement('div');list.className='nav navsheet';
+  APP.layouts.forEach(l=>{const b=document.createElement('button');b.textContent=l.name;if(l.id===APP.layoutId)b.className='on';
+    b.onclick=()=>{closeSheet();useLayout(l.id);};list.appendChild(b);});
+  const m=document.createElement('button');m.textContent='Manage layouts ›';m.onclick=()=>{closeSheet();gotoPage('layouts');};list.appendChild(m);
+  box.appendChild(list);
+}
+
+/* ── benchrest modules ── */
+function renderHomeMods(tr){
+  const L=activeLayout(),on=id=>L&&L.mods.some(m=>m.id===id&&m.on);
+  const ok=tr&&!tr.bcPending&&tr.pts,z=ok?zeroConds():null,scope=rifleScope(getRifle()),click=scope?.clickStepMrad||0.1;
+  const solve=(w,dir)=>ok?solveShot(tr.pts,nearestPt,z.range,S.dist_m,0,w,dir,S.mv,click,z.wSpd,z.wDir):null;
+  const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
+  if(on('windoff')){
+    const s=solve(S.wind.speed,S.wind.dir);
+    set('wo-clk',s?(s.clWind>=0?'→':'←')+Math.abs(s.clWind).toFixed(1):'—');
+    set('wo-mm',s?uq('drop',Math.abs(s.windNetMm))+' '+(s.clWind>=0?'right':'left')+' · '+uq('wind',S.wind.speed)+' from '+Math.round(S.wind.dir)+'° rel'+(S.wind.source==='calypso'?' · Calypso':''):'needs a solution');
+    set('wo-dist',uq('range',S.dist_m));
+  }
+  if(on('windtable')){
+    const tb=document.getElementById('wt-body');
+    if(tb){tb.textContent='';const head=document.createElement('tr'),mm=document.createElement('tr'),ck=document.createElement('tr');
+      const cell=(r,t,h)=>{const c=document.createElement(h?'th':'td');c.textContent=t;r.appendChild(c);};
+      cell(head,'',true);cell(mm,lab('drop',UNITS.drop),false);cell(ck,'clicks',false);
+      [1,2,3,4,5].map(k=>QDEF.wind.from[UNITS.wind](k)).forEach(w=>{const s=solve(w,90);cell(head,ut('wind',w),true);cell(mm,s?un('drop',Math.abs(s.windNetMm)):'—');cell(ck,s?Math.abs(s.clWind).toFixed(1):'—');});
+      tb.append(head,mm,ck);}
+    set('wt-dist',uq('range',S.dist_m));
+  }
+  if(on('chrono')){
+    const c=APP.chrono||{},tp=ok?nearestPt(tr.pts,S.dist_m):null;
+    set('cr-mv',c.mv>0?uq('vel',c.mv):'—');set('cr-es',c.es>0?uq('vel',c.es):'—');set('cr-sd',c.sd>0?uq('vel',c.sd):'—');
+    set('cr-vert',c.es>0&&tp&&S.mv>0?'ES '+uq('vel',c.es)+' ≈ '+uq('drop',mvSpreadVert(tp.tof,c.es,S.mv))+' vertical spread at '+uq('range',S.dist_m):'Enter MV, ES and SD in More › Sensors › Chronograph.');
+  }
+  if(on('timer'))renderTimer();
+}
+/* MV spread → vertical spread at a fixed launch angle: Δy ≈ g·t²·ΔV/V₀ (small ΔV; t = time of
+   flight). EST approximation — reproduced against py-ballisticcalc fixed-angle runs (Queen G7
+   0.128, 255 ± 2.5 m/s): 25 m 1.88 vs 1.87 mm, 50 m 7.63 vs 7.54, 100 m 31.5 vs 30.7 (≤ 2.5 %). */
+function mvSpreadVert(tof,es,mv){return G*tof*tof*es/mv*1000;}
+let fxTimer={start:null,shots:0,iv:null};
+function fxTimerReset(){if(fxTimer.iv)clearInterval(fxTimer.iv);fxTimer={start:null,shots:0,iv:null};renderTimer();}
+function timerStart(){if(fxTimer.start)return fxTimerReset();fxTimer.start=Date.now();fxTimer.iv=setInterval(renderTimer,1000);renderTimer();}
+function timerShot(d){const L=activeLayout();fxTimer.shots=Math.max(0,Math.min(L.set.shots,fxTimer.shots+d));renderTimer();}
+function renderTimer(){
+  const L=activeLayout();if(!L)return;
+  const tot=L.set.timerMin*60,el=fxTimer.start?Math.floor((Date.now()-fxTimer.start)/1000):0,left=Math.max(0,tot-el);
+  const mmss=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  const t=document.getElementById('tm-left'),n=document.getElementById('tm-shots'),b=document.getElementById('tm-start');
+  if(t){t.textContent=mmss(left);t.style.color=fxTimer.start&&left<=60?'var(--warn)':'';}
+  if(n)n.textContent=fxTimer.shots+' of '+L.set.shots;
+  if(b)b.textContent=fxTimer.start?'Reset':'Start';
+  const h=document.getElementById('tm-head');if(h)h.textContent='Card · '+mmss(tot);
+  if(fxTimer.start&&left===0){clearInterval(fxTimer.iv);fxTimer.iv=null;try{navigator.vibrate&&navigator.vibrate([300,150,300]);}catch(e){}}
+}
+
+/* ── Layouts page (More › Layouts) ── */
+let layoutEditId=null;
+function renderLayouts(){
+  const box=document.getElementById('lay-list');if(!box)return;
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const btn=(txt,fn,cls)=>{const b=el('button',cls||'btn-xs',txt);b.onclick=fn;return b;};
+  box.replaceChildren(...APP.layouts.map(l=>{
+    const row=el('div','lay-row'+(l.id===APP.layoutId?' lay-on':''));
+    const nm=el('div','lay-name',l.name);if(l.id===APP.layoutId)nm.appendChild(el('span','lay-tag','in use'));
+    const acts=el('div','lay-acts');
+    if(l.id!==APP.layoutId)acts.appendChild(btn('Use',()=>{useLayout(l.id);renderLayouts();}));
+    acts.append(btn('Edit',()=>{layoutEditId=l.id;renderLayouts();}),btn('Duplicate',()=>dupLayout(l.id)));
+    if(APP.layouts.length>1)acts.appendChild(btn('Delete',()=>delLayout(l.id),'btn-xs lay-del'));
+    row.append(nm,acts);return row;
+  }));
+  renderLayoutEditor();
+}
+function dupLayout(id){const s=APP.layouts.find(l=>l.id===id);if(!s)return;const c=normLayout(JSON.parse(JSON.stringify(s)));c.id=uid();c.name=(s.name+' copy').slice(0,40);
+  APP.layouts.splice(APP.layouts.indexOf(s)+1,0,c);layoutEditId=c.id;saveDB();renderLayouts();}
+function delLayout(id){if(APP.layouts.length<2)return;const l=APP.layouts.find(x=>x.id===id);if(!l||!confirm('Delete layout "'+l.name+'"?'))return;
+  APP.layouts=APP.layouts.filter(x=>x.id!==id);if(APP.layoutId===id)APP.layoutId=APP.layouts[0].id;if(layoutEditId===id)layoutEditId=null;saveDB();applyHomeLayout();renderLayouts();}
+function newLayout(t){const L=layoutFromTpl(t);APP.layouts.push(L);layoutEditId=L.id;saveDB();renderLayouts();}
+function layoutChanged(L){saveDB();if(L.id===APP.layoutId)applyHomeLayout();renderLayouts();}
+function renderLayoutEditor(){
+  const ed=document.getElementById('lay-edit');if(!ed)return;
+  const L=APP.layouts.find(l=>l.id===layoutEditId);ed.style.display=L?'':'none';if(!L){ed.replaceChildren();return;}
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const fld=(label,input)=>{const f=el('div','fld');f.append(el('label',null,label),input);return f;};
+  const name=el('input');name.type='text';name.id='lay-name-in';name.maxLength=40;name.value=L.name;
+  name.oninput=()=>{L.name=name.value.trim().slice(0,40)||'Layout';saveDB();if(L.id===APP.layoutId)document.getElementById('home-layout-name').textContent=L.name+' ▾';
+    const r=[...document.querySelectorAll('#lay-list .lay-name')][APP.layouts.indexOf(L)];if(r&&r.firstChild)r.firstChild.textContent=L.name;};
+  const mods=el('div','lay-mods');
+  L.mods.forEach((m,i)=>{
+    const r=el('div','lay-mod'+(m.on?'':' lay-modoff'));r.dataset.mod=m.id;
+    const up=el('button','btn-xs','▲');up.setAttribute('aria-label','Move '+HOME_MODS[m.id].name+' up');up.disabled=i===0;
+    up.onclick=()=>{[L.mods[i-1],L.mods[i]]=[L.mods[i],L.mods[i-1]];layoutChanged(L);};
+    const dn=el('button','btn-xs','▼');dn.setAttribute('aria-label','Move '+HOME_MODS[m.id].name+' down');dn.disabled=i===L.mods.length-1;
+    dn.onclick=()=>{[L.mods[i+1],L.mods[i]]=[L.mods[i],L.mods[i+1]];layoutChanged(L);};
+    const tg=el('button','btn-xs'+(m.on?' on':''),m.on?'On':'Off');tg.onclick=()=>{m.on=!m.on;layoutChanged(L);};
+    r.append(up,dn,el('span','lay-modname',HOME_MODS[m.id].name),tg);mods.appendChild(r);
+  });
+  const num=(q,v,step,fn)=>{const i=el('input');i.type='number';i.dataset.q=q;i.step=step;i.value=v==null?'':String(v);i.onchange=()=>fn(i.value===''?null:+i.value);return i;};
+  const dist=num('range',L.set.dist,'5',v=>{L.set.dist=v>0?v:null;if(L.id===APP.layoutId&&L.set.dist)Bus.set('dist_m',L.set.dist);layoutChanged(L);});
+  const tmin=num('-',L.set.timerMin,'1',v=>{L.set.timerMin=v>0?Math.min(180,v):20;layoutChanged(L);});
+  const shots=num('-',L.set.shots,'1',v=>{L.set.shots=v>0?Math.min(999,Math.round(v)):25;layoutChanged(L);});
+  const grid=el('div','fgrid3');grid.append(fld('Fixed distance m (empty = free)',dist),fld('Card timer min',tmin),fld('Shots per card',shots));
+  const reset=el('button','btn','Reset to template');reset.onclick=()=>{const t=layoutFromTpl(L.tpl,L.name);L.mods=t.mods;L.set=t.set;layoutChanged(L);};
+  const done=el('button','btn primary','Done');done.onclick=()=>{layoutEditId=null;renderLayouts();};
+  const br=el('div','btnrow');br.append(reset,done);
+  ed.replaceChildren(el('h2',null,'Edit layout'),fld('Name',name),el('div','note','Home, top to bottom. ▲▼ moves a module, On/Off shows or hides it. The fold rail keeps the solution, turret and conditions on the right.'),mods,grid,br);
+}
 
 /* ═════════ CORE-06 (V1.25.0) — FORMULA VERIFICATION PANEL (§20A) ═════════
    Every formula the app uses, its source, its status and its anchors. Each anchor is
@@ -3491,6 +3718,9 @@ const FORMULAS=[
     anchors:[{l:'Queen geometry → 2.283',got:()=>estimateC(6.35,12.9).c,want:2.283,tol:1e-9,u:''},{l:'L/D 1.66 (ZAN .25) → not computed',got:()=>estimateC(6.35,10.58).valid?1:0,want:0,tol:0,u:''}]},
   {name:'G1 ≈ G7 / 0.509',status:'est',eq:'BC_G1 ≈ BC_G7 / 0.509',src:'Litz conversion factor, ±5–8 % — skill §4A',used:'BC / Truing estimate',
     anchors:[{l:'Queen G7 0.128',got:()=>0.128/0.509,want:0.2515,tol:1e-4,u:'lb/in²'}]},
+  {name:'MV spread → vertical spread',status:'est',eq:'Δy ≈ g·t²·ΔV/V₀ (fixed launch angle, small ΔV)',src:'first-order from the point-mass equations; reproduced against py-ballisticcalc fixed-angle runs (V1.26.0) within 2.5 % to 100 m',used:'Home › Chrono module',
+    anchors:[{l:'Queen G7 0.128, 255 m/s, ES 5 m/s — 50 m (pbc 7.54 mm)',got:()=>{const e=FX_ENV();return mvSpreadVert(fxAt(rk4traj(255,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),50).tof,5,255);},want:7.54,tol:0.25,u:'mm'},
+             {l:'… 100 m (pbc 30.74 mm)',got:()=>{const e=FX_ENV();return mvSpreadVert(fxAt(rk4traj(255,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),100).tof,5,255);},want:30.74,tol:1.0,u:'mm'}]},
   {name:'MV–temperature model',status:'est',eq:'v(t) = a + b·t, least squares',src:'regression is exact; linear behaviour is an assumption until chrono data across temperatures exists',used:'Truing → MV–temp',
     anchors:[{l:'270 m/s at 0 °C, 280 at 20 °C → 10 °C',got:()=>mvtFit([{t:0,v:270},{t:20,v:280}]).at(10),want:275,tol:1e-9,u:'m/s'}]}
 ];
@@ -3859,6 +4089,7 @@ runTraj(true);  // V1.16.0: a restored session has a solution before the first t
 DB.dopeCards.forEach(migrateDopeCard);
 S.tgtBrg=APP.hmTgtBrg??null;syncBearingFields();renderCalMount();
 refreshUnits();startUnitObserver();
+initLayouts();applyHomeLayout();
 applyLayout();window.addEventListener('resize',()=>dbnc('layout',applyLayout,120));
 renderStoreWarn();renderIosHint();requestPersist();fxCheck();
 importFromLink();

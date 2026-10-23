@@ -26,7 +26,7 @@ chk('clicking More throws nothing',errs.length===before,errs.slice(before).join(
 const sheetOpen=$('#sheet').classList.contains('open');
 chk('More opens the sheet',sheetOpen);
 const items=$$('#sbox .navsheet button');
-chk('More sheet lists 7 pages',items.length===7,items.map(b=>b.dataset.page).join(','));
+chk('More sheet lists 8 pages',items.length===8,items.map(b=>b.dataset.page).join(','));
 
 // 2. every More item navigates
 let navFails=[];

@@ -60,9 +60,9 @@ chk('turret panel works from the rail',/5/.test(w.document.getElementById('ht-el
 w.eval("turretReset();setTurretMode('match')");
 
 // 5. Every tab still works in two-pane mode.
-let bad=[];for(const p of ['home','traj','solver','wind','dope','stab','truing','holds','profiles','sensors','formulas','settings']){const e0=w.errs.length;w.eval(`gotoPage('${p}')`);if(w.errs.length!==e0||!w.document.getElementById('page-'+p).classList.contains('active'))bad.push(p);}
+let bad=[];for(const p of ['home','traj','solver','wind','dope','stab','truing','holds','profiles','sensors','layouts','formulas','settings']){const e0=w.errs.length;w.eval(`gotoPage('${p}')`);if(w.errs.length!==e0||!w.document.getElementById('page-'+p).classList.contains('active'))bad.push(p);}
 w.eval("openMore()");const more=w.document.querySelectorAll('#sbox .navsheet button').length;w.eval('closeSheet()');
-chk('all 12 tabs and the More sheet work with the rail',bad.length===0&&more===7,bad.join(','));
+chk('all 13 tabs and the More sheet work with the rail',bad.length===0&&more===8,bad.join(','));
 
 // 6. Rotation keeps the layout; folding back restores the exact original order.
 await resize(w,INNER_ROT);
