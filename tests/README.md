@@ -1,8 +1,8 @@
 # SEN regression tests
 
-Run all six before every release. All must be fully green.
+Run all seven before every release. All must be fully green.
 
-| File | What it checks | Expected on V1.21.0 |
+| File | What it checks | Expected on V1.22.0 |
 |---|---|---|
 | `runtests.js` (+ `harness.js`) | 20 numeric physics anchors: air density, speed of sound, SD, Berger Sg (Queen, King, LRAI-35), unit conversions, RK4 trajectory, firing solution | PASS 20 / FAIL 0 |
 | `domtest.js` | Real-DOM (jsdom) click test: bottom nav, More sheet, act-bar pickers, Home disclosures, zero uncaught errors | PASS 14 / FAIL 0 |
@@ -10,8 +10,9 @@ Run all six before every release. All must be fully green.
 | `importtest.js` | Import (V1.19.0): own export round-trip, same content under other ids, field whitelist, rejects, review sheet with Overwrite / Save as copy / Skip / apply-to-all / Cancel, reference remap, preferences row, schema guard, single dope card, escaping | PASS 28 / FAIL 0 |
 | `sharetest.js` | Sharing (V1.20.0): bundle contents (scope + custom reticle, built-in reticles referenced), SEN1 code round-trip and checksum, codes inside messages/links, damaged codes refused, QR encoder ↔ decoder agreement, receiving into another install with the scope choice, launch-from-link import, escaping | PASS 24 / FAIL 0 |
 | `windtest.js` | Wind & heading (V1.21.0): Calypso "points at the target" unchanged, fixed-bearing mode, wind kept as a compass vector across target changes, wrap through north, no wrong wind without a bearing, V1.15.0 compass anchor, shared Home/Solver bearing, persistence, phone-compass capture (Android, iPhone permission, none) | PASS 22 / FAIL 0 |
+| `unittest.js` | Units (V1.22.0): every conversion pair exact, every number input classified (unit or explicit exemption — fails on any new unclassified field), 250 m → 273.4 yd and back to exactly 250, typing in display units stores metric, unedited form saves never drift, session + trajectory bit-identical in metric vs imperial, dual units incl. Home, no metric value left on any page in imperial | PASS 18 / FAIL 0 |
 
-`domtest.js` is mandatory for any change to navigation, sheets or event wiring (V7 §21.4). `windtest.js` is mandatory for any change to wind, bearings or the Calypso path. `storagetest.js`, `importtest.js` and `sharetest.js` are mandatory for any change to loading, saving, import/export or the data schema. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
+`domtest.js` is mandatory for any change to navigation, sheets or event wiring (V7 §21.4). `windtest.js` is mandatory for any change to wind, bearings or the Calypso path. `unittest.js` is mandatory for any change that adds or edits a number field or prints a value with a unit. `storagetest.js`, `importtest.js` and `sharetest.js` are mandatory for any change to loading, saving, import/export or the data schema. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
 
 ## How to run
 
@@ -38,6 +39,9 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 
 # 6. wind & heading test
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node windtest.js ../index.html)
+
+# 7. units test
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node unittest.js ../index.html)
 ```
 
 ## Provenance

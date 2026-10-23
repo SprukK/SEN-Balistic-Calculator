@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.21.0</title>
+<title>SEN Ballistics V1.22.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-/* ═══════════ SEN PLATFORM V1.21.0 — wind as a compass vector + target bearing service (no physics change) ═══════════ */
+/* ═══════════ SEN PLATFORM V1.22.0 — units everywhere: converted inputs & outputs, dual units on every screen (no physics change) ═══════════ */
 :root{
   --bg:#0a0b0e;--bg2:#12151b;--bg3:#181c25;--bg4:#20252f;
   --border:rgba(210,192,152,.09);--border2:rgba(210,192,152,.18);
@@ -246,7 +246,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.21.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.22.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <div class="flag warn" id="store-warn" role="alert" style="display:none;margin:8px 12px 0"></div>
@@ -354,9 +354,9 @@ details.disc .dbody{padding:0 14px 14px}
   <div class="panel">
     <h2>Shot inputs</h2>
     <div class="fgrid3">
-      <div class="fld"><label>Distance</label><input type="number" id="home-dist" step="5" oninput="homeInput('dist',+this.value)"><div class="subnote" id="home-dist-sec"></div></div>
+      <div class="fld"><label>Distance</label><input type="number" id="home-dist" step="5" oninput="homeInput('dist',+this.value)"></div>
       <div class="fld"><label>Angle °</label><input type="number" id="home-angle" step="1" value="0" oninput="homeInput('angle',+this.value)"></div>
-      <div class="fld"><label>Muzzle velocity</label><input type="number" id="home-mv" step="0.1" oninput="homeInput('mv',+this.value)"><div class="subnote" id="home-mv-sec"></div></div>
+      <div class="fld"><label>Muzzle velocity</label><input type="number" id="home-mv" step="0.1" oninput="homeInput('mv',+this.value)"></div>
     </div>
     <div class="note" id="home-status"></div>
   </div>
@@ -413,7 +413,7 @@ details.disc .dbody{padding:0 14px 14px}
   <div class="note">The solution updates automatically whenever the session changes — Recompute is a manual refresh, never a prerequisite. Max range extends itself to cover the target and zero.</div>
 
   <div class="chartbox" style="margin-top:12px"><canvas id="tr-chart"></canvas></div>
-  <div class="tablebox"><div class="ct">Drop table · clicks relative to zero range</div><table><thead><tr><th>Range</th><th>Drop mm</th><th>mrad</th><th>MOA</th><th>Clicks</th><th>V</th><th>Mach</th><th>E</th><th>TOF s</th></tr></thead><tbody id="tr-tbody"></tbody></table><div class="note" id="tr-tnote"></div></div>
+  <div class="tablebox"><div class="ct">Drop table · clicks relative to zero range</div><table><thead><tr><th>Range</th><th>Drop <span data-ul="drop">mm</span></th><th>mrad</th><th>MOA</th><th>Clicks</th><th>V <span data-ul="vel">m/s</span></th><th>Mach</th><th>E <span data-ul="energy">J</span></th><th>TOF s</th></tr></thead><tbody id="tr-tbody"></tbody></table><div class="note" id="tr-tnote"></div></div>
 </div>
 
 <!-- ═══════════ BC TRUING (A6) ═══════════ -->
@@ -430,7 +430,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Pressure hPa</label><input type="number" id="tu-pres" step="1" value="1010"></div>
       <div class="fld"><label>RH %</label><input type="number" id="tu-rh" step="1" value="65"></div>
     </div>
-    <div class="note" style="margin-top:6px">Enter measured velocity at one or more downrange distances. <b>2 points</b> (V₀ + one) → single trued BC. <b>3+ points</b> → velocity-banded BC. Use averaged shot-string values, not single shots. Set the LabRadar to its real-measurement limit (~23 m), never the interpolated zone.</div>
+    <div class="note" style="margin-top:6px">Enter measured velocity at one or more downrange distances. <b>2 points</b> (V₀ + one) → single trued BC. <b>3+ points</b> → velocity-banded BC. Use averaged shot-string values, not single shots. Set the LabRadar to its real-measurement limit (~<span data-uv="range|23">23 m</span>), never the interpolated zone.</div>
     <div id="tu-points" style="margin-top:10px"></div>
     <div class="btnrow"><button class="btn" onclick="tuAddPoint()">+ Add measured point</button><button class="btn primary" onclick="tuSolve()">True BC</button></div>
   </div>
@@ -466,7 +466,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Measured MV m/s</label><input type="number" id="mvt-v" step="0.1"></div>
       <div class="fld"><label>&nbsp;</label><div class="seg"><button onclick="mvtAdd()">Add observation</button></div></div>
     </div>
-    <div class="tablebox" style="margin-top:10px"><table><thead><tr><th>Temp °C</th><th>MV m/s</th><th></th></tr></thead><tbody id="mvt-tbody"></tbody></table></div>
+    <div class="tablebox" style="margin-top:10px"><table><thead><tr><th>Temp <span data-ul="temp">°C</span></th><th>MV <span data-ul="vel">m/s</span></th><th></th></tr></thead><tbody id="mvt-tbody"></tbody></table></div>
     <div class="note" id="mvt-fit"></div>
     <div class="btnrow"><button class="btn primary" id="mvt-apply" onclick="mvtApply()">Set session MV from model</button></div>
   </div>
@@ -482,7 +482,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Step m</label><input type="number" id="hd-step" step="1" value="5" oninput="renderHolds()"></div>
       <div class="fld"><label>Ref crosswind m/s</label><input type="number" id="hd-wind" step="0.5" value="2.5" oninput="renderHolds()"></div>
     </div>
-    <div class="note">Assumes the turret is AT ZERO (no dialing) and full-value crosswind for the wind column. Uses the active session (rifle · projectile · current weather) at 1 m resolution. Reticle marks are measured DOWN from center on the active scope's reticle.</div>
+    <div class="note">Assumes the turret is AT ZERO (no dialing) and full-value crosswind for the wind column. Uses the active session (rifle · projectile · current weather) at <span data-uv="range|1">1 m</span> resolution. Reticle marks are measured DOWN from center on the active scope's reticle.</div>
     <div class="btnrow"><button class="btn primary" onclick="renderHolds()">Compute</button><button class="btn" onclick="printHolds()">Print</button></div>
   </div>
   <div id="hd-flags"></div>
@@ -511,7 +511,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Temp °C</label><input type="number" id="st-temp" step="0.5" value="-5" oninput="calcStab()"></div>
       <div class="fld"><label>Pressure hPa</label><input type="number" id="st-pres" step="1" value="1013" oninput="calcStab()"></div>
     </div>
-    <div class="note">Berger/Miller Sg. C is geometry- &amp; calibre-specific — verify per design against the Berger Twist Rate Calculator; never transfer across calibres. Worst-case column uses −5°C · 1013 hPa · 229 m/s (global barrel spec).</div>
+    <div class="note">Berger/Miller Sg. C is geometry- &amp; calibre-specific — verify per design against the Berger Twist Rate Calculator; never transfer across calibres. Worst-case column uses <span data-uv="temp|-5">−5°C</span> · <span data-uv="pres|1013">1013 hPa</span> · <span data-uv="vel|229">229 m/s</span> (global barrel spec).</div>
   </div>
   <div class="tablebox"><div class="ct">Twist recommender · min twist for Sg target at global worst-case</div><table><thead><tr><th>Sg target</th><th>Min twist (in)</th><th>= mm</th><th>This barrel</th></tr></thead><tbody id="st-twist-tbl"></tbody></table></div>
 </div>
@@ -538,7 +538,7 @@ details.disc .dbody{padding:0 14px 14px}
     </div>
     <div class="note" id="wd-mode-note">Manual: type wind here — it sets the session wind used everywhere (home, solver, dope). Switch to Live to pull from the Calypso meter (connect it on the Sensors tab first).</div>
   </div>
-  <div class="tablebox"><div class="ct">Wind drift vs range · crosswind component</div><table><thead><tr><th>Range</th><th>TOF s</th><th>Lag s</th><th>Drift mm</th><th>mrad</th><th>MOA</th><th>Clicks</th></tr></thead><tbody id="wd-tbody"></tbody></table><div class="note" id="wd-tnote"></div></div>
+  <div class="tablebox"><div class="ct">Wind drift vs range · crosswind component</div><table><thead><tr><th>Range</th><th>TOF s</th><th>Lag s</th><th>Drift <span data-ul="drop">mm</span></th><th>mrad</th><th>MOA</th><th>Clicks</th></tr></thead><tbody id="wd-tbody"></tbody></table><div class="note" id="wd-tnote"></div></div>
 </div>
 
 <!-- ═══════════ BALLISTIC SOLVER (A5) ═══════════ -->
@@ -571,7 +571,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Azimuth ° (0=N · 90=E)</label><input type="number" id="sv-az" step="1" value="0" oninput="setTargetBearing(this.value===''?null:+this.value,'manual');solve()"></div>
       <div class="fld"><label>Spin drift (Litz EST ⚠)</label><div class="seg"><button id="sv-sd-off" onclick="svSetSpin(false)">Off</button><button id="sv-sd-on" onclick="svSetSpin(true)">On</button></div></div>
     </div>
-    <div class="note">Coriolis is exact physics (integrated over the actual RK4 trajectory) — negligible below ~300 m, grows with TOF. Spin drift uses the Litz empirical fit (1.25·(Sg+1.2)·TOF^1.83) derived from SUPERSONIC rifle bullets — <b>unvalidated for subsonic slugs</b>; treat as an estimate until field-verified. When ON, corrections are included in the dial above and itemised in the flags. n/a for pellets and smooth bores.</div>
+    <div class="note">Coriolis is exact physics (integrated over the actual RK4 trajectory) — negligible below ~<span data-uv="range|300">300 m</span>, grows with TOF. Spin drift uses the Litz empirical fit (1.25·(Sg+1.2)·TOF^1.83) derived from SUPERSONIC rifle bullets — <b>unvalidated for subsonic slugs</b>; treat as an estimate until field-verified. When ON, corrections are included in the dial above and itemised in the flags. n/a for pellets and smooth bores.</div>
   </div>
 </div>
 
@@ -655,7 +655,7 @@ details.disc .dbody{padding:0 14px 14px}
     </div>
     <div id="ble-live-wrap" style="display:none">
       <div class="scs">
-        <div class="sc accent"><div class="sl">Speed (instant)</div><div class="sv" id="ble-speed">—</div><div class="su">m/s</div></div>
+        <div class="sc accent"><div class="sl">Speed (instant)</div><div class="sv" id="ble-speed">—</div><div class="su" data-ul="wind">m/s</div></div>
         <div class="sc"><div class="sl">Direction</div><div class="sv" id="ble-dir-val">—</div><div class="su">deg</div></div>
         <div class="sc"><div class="sl">Battery</div><div class="sv" id="ble-batt" style="font-size:16px">—</div><div class="su">%</div></div>
       </div>
@@ -681,14 +681,14 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="fgrid3"><div class="fld"><label>MV m/s</label><input type="number" id="ch-mv" step="0.1"></div><div class="fld"><label>ES m/s</label><input type="number" id="ch-es" step="0.1"></div><div class="fld"><label>SD m/s</label><input type="number" id="ch-sd" step="0.1"></div></div>
     <div class="btnrow"><button class="btn" onclick="useChronoMV()">Use MV → session</button></div>
     <div id="ch-flags"></div>
-    <div class="note">Production target: ES ≤ 5 m/s · SD ≤ 1.5 m/s over 10 shots. LabRadar V₀+V_D BC back-calc lives in the BC / Truing tab.</div>
+    <div class="note">Production target: ES ≤ <span data-uv="vel|5">5 m/s</span> · SD ≤ <span data-uv="vel|1.5">1.5 m/s</span> over 10 shots. LabRadar V₀+V_D BC back-calc lives in the BC / Truing tab.</div>
   </div>
 </div>
 
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.21.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.22.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -947,22 +947,23 @@ function toMrad(mm,m){return m>0?mm/m:0;}
    conv() converts canonical→target; lab() returns the unit label. fmt() formats with the
    right precision. disp() returns "primary" or "primary · secondary" (cards/widget only). */
 const QDEF={
-  range:{name:'Range',canon:'m',opts:{m:'Meters',yd:'Yards',ft:'Feet'},to:{m:v=>v,yd:v=>v*1.09361,ft:v=>v*3.28084},lab:{m:'m',yd:'yd',ft:'ft'},dp:{m:0,yd:0,ft:0}},
-  zrange:{name:'Zeroing range',canon:'m',opts:{m:'Meters',yd:'Yards',ft:'Feet'},to:{m:v=>v,yd:v=>v*1.09361,ft:v=>v*3.28084},lab:{m:'m',yd:'yd',ft:'ft'},dp:{m:0,yd:0,ft:0}},
-  drop:{name:'Drop / elevation',canon:'mm',opts:{mm:'mm',cm:'cm',in:'inches'},to:{mm:v=>v,cm:v=>v/10,in:v=>v/25.4},lab:{mm:'mm',cm:'cm',in:'in'},dp:{mm:1,cm:2,in:2}},
-  ang:{name:'Angular',canon:'mrad',opts:{mrad:'MRAD',moa:'MOA'},to:{mrad:v=>v,moa:v=>v*3.43775},lab:{mrad:'mrad',moa:'MOA'},dp:{mrad:2,moa:2}},
-  sight:{name:'Sight height',canon:'mm',opts:{mm:'mm',cm:'cm',in:'inches'},to:{mm:v=>v,cm:v=>v/10,in:v=>v/25.4},lab:{mm:'mm',cm:'cm',in:'in'},dp:{mm:0,cm:1,in:2}},
-  vel:{name:'Muzzle velocity',canon:'ms',opts:{ms:'m/s',fps:'fps'},to:{ms:v=>v,fps:v=>v/0.3048},lab:{ms:'m/s',fps:'fps'},dp:{ms:1,fps:0}},
-  wind:{name:'Wind speed',canon:'ms',opts:{ms:'m/s',mph:'mph',kn:'knots'},to:{ms:v=>v,mph:v=>v*2.23694,kn:v=>v*1.94384},lab:{ms:'m/s',mph:'mph',kn:'kn'},dp:{ms:1,mph:1,kn:1}},
-  temp:{name:'Temperature',canon:'c',opts:{c:'°C',f:'°F',k:'K'},to:{c:v=>v,f:v=>v*9/5+32,k:v=>v+273.15},lab:{c:'°C',f:'°F',k:'K'},dp:{c:1,f:1,k:1}},
-  pres:{name:'Pressure',canon:'hpa',opts:{hpa:'hPa',mb:'mb',inhg:'inHg'},to:{hpa:v=>v,mb:v=>v,inhg:v=>v/33.8639},lab:{hpa:'hPa',mb:'mb',inhg:'inHg'},dp:{hpa:0,mb:0,inhg:2}},
-  energy:{name:'Energy',canon:'j',opts:{j:'J',ftlb:'ft·lbf'},to:{j:v=>v,ftlb:v=>v*0.737562},lab:{j:'J',ftlb:'ft·lbf'},dp:{j:0,ftlb:1}},
-  twist:{name:'Twist rate',canon:'mm',opts:{in:'in/turn',mm:'mm/turn'},to:{in:v=>v/25.4,mm:v=>v},lab:{in:'in',mm:'mm'},dp:{in:2,mm:0},locked:true},
-  bullet:{name:'Bullet size',canon:'mm',opts:{mm:'mm',in:'inches'},to:{mm:v=>v,in:v=>v/25.4},lab:{mm:'mm',in:'in'},dp:{mm:2,in:3}},
-  regp:{name:'Regulator pressure',canon:'bar',opts:{bar:'Bar',psi:'PSI'},to:{bar:v=>v,psi:v=>v*14.5038},lab:{bar:'bar',psi:'psi'},dp:{bar:0,psi:0}}
+  range:{name:'Range',canon:'m',opts:{m:'Meters',yd:'Yards',ft:'Feet'},to:{m:v=>v,yd:v=>v/0.9144,ft:v=>v/0.3048},from:{m:v=>v,yd:v=>v*0.9144,ft:v=>v*0.3048},lab:{m:'m',yd:'yd',ft:'ft'},dp:{m:0,yd:0,ft:0}},
+  zrange:{name:'Zeroing range',canon:'m',opts:{m:'Meters',yd:'Yards',ft:'Feet'},to:{m:v=>v,yd:v=>v/0.9144,ft:v=>v/0.3048},from:{m:v=>v,yd:v=>v*0.9144,ft:v=>v*0.3048},lab:{m:'m',yd:'yd',ft:'ft'},dp:{m:0,yd:0,ft:0}},
+  drop:{name:'Drop / elevation',canon:'mm',opts:{mm:'mm',cm:'cm',in:'inches'},to:{mm:v=>v,cm:v=>v/10,in:v=>v/25.4},from:{mm:v=>v,cm:v=>v*10,in:v=>v*25.4},lab:{mm:'mm',cm:'cm',in:'in'},dp:{mm:1,cm:2,in:2}},
+  ang:{name:'Angular',canon:'mrad',opts:{mrad:'MRAD',moa:'MOA'},to:{mrad:v=>v,moa:v=>v*3.43775},from:{mrad:v=>v,moa:v=>v/3.43775},lab:{mrad:'mrad',moa:'MOA'},dp:{mrad:2,moa:2}},
+  sight:{name:'Sight height',canon:'mm',opts:{mm:'mm',cm:'cm',in:'inches'},to:{mm:v=>v,cm:v=>v/10,in:v=>v/25.4},from:{mm:v=>v,cm:v=>v*10,in:v=>v*25.4},lab:{mm:'mm',cm:'cm',in:'in'},dp:{mm:0,cm:1,in:2}},
+  vel:{name:'Muzzle velocity',canon:'ms',opts:{ms:'m/s',fps:'fps'},to:{ms:v=>v,fps:v=>v/0.3048},from:{ms:v=>v,fps:v=>v*0.3048},lab:{ms:'m/s',fps:'fps'},dp:{ms:1,fps:0}},
+  wind:{name:'Wind speed',canon:'ms',opts:{ms:'m/s',mph:'mph',kn:'knots'},to:{ms:v=>v,mph:v=>v/0.44704,kn:v=>v*3600/1852},from:{ms:v=>v,mph:v=>v*0.44704,kn:v=>v*1852/3600},lab:{ms:'m/s',mph:'mph',kn:'kn'},dp:{ms:1,mph:1,kn:1}},
+  temp:{name:'Temperature',canon:'c',opts:{c:'°C',f:'°F',k:'K'},to:{c:v=>v,f:v=>v*9/5+32,k:v=>v+273.15},from:{c:v=>v,f:v=>(v-32)*5/9,k:v=>v-273.15},lab:{c:'°C',f:'°F',k:'K'},dp:{c:1,f:1,k:1}},
+  pres:{name:'Pressure',canon:'hpa',opts:{hpa:'hPa',mb:'mb',inhg:'inHg'},to:{hpa:v=>v,mb:v=>v,inhg:v=>v/33.8638866667},from:{hpa:v=>v,mb:v=>v,inhg:v=>v*33.8638866667},lab:{hpa:'hPa',mb:'mb',inhg:'inHg'},dp:{hpa:0,mb:0,inhg:2}},
+  energy:{name:'Energy',canon:'j',opts:{j:'J',ftlb:'ft·lbf'},to:{j:v=>v,ftlb:v=>v/1.3558179483},from:{j:v=>v,ftlb:v=>v*1.3558179483},lab:{j:'J',ftlb:'ft·lbf'},dp:{j:0,ftlb:1}},
+  twist:{name:'Twist rate',canon:'mm',opts:{in:'in/turn',mm:'mm/turn'},to:{in:v=>v/25.4,mm:v=>v},from:{in:v=>v*25.4,mm:v=>v},lab:{in:'in',mm:'mm'},dp:{in:2,mm:0},locked:true},
+  bullet:{name:'Projectile & barrel size',canon:'mm',opts:{mm:'mm',in:'inches'},to:{mm:v=>v,in:v=>v/25.4},from:{mm:v=>v,in:v=>v*25.4},lab:{mm:'mm',in:'in'},dp:{mm:2,in:3}},
+  alt:{name:'Altitude',canon:'m',opts:{m:'Meters',ft:'Feet'},to:{m:v=>v,ft:v=>v/0.3048},from:{m:v=>v,ft:v=>v*0.3048},lab:{m:'m',ft:'ft'},dp:{m:0,ft:0}},
+  regp:{name:'Regulator pressure',canon:'bar',opts:{bar:'Bar',psi:'PSI'},to:{bar:v=>v,psi:v=>v*14.5038},from:{bar:v=>v,psi:v=>v/14.5038},lab:{bar:'bar',psi:'psi'},dp:{bar:0,psi:0}}
 };
-let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',regp:'bar'};
-let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',regp:'off'};
+let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',alt:'m',regp:'bar'};
+let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',alt:'off',regp:'off'};
 let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',turretMode:'match',solverCor:false,solverSpin:false,lat:46.05};
 /* FIX-14b/c — apply display preferences (boot + on change) */
 function applyDisplayPrefs(){
@@ -1017,6 +1018,13 @@ function up(q,v){const u=UNITS[q];return fmtv(q,v,u)+' '+lab(q,u);}
 /* primary + optional secondary (cards/widget). secondary muted via caller styling. */
 function dual(q,v){const u=UNITS[q],s=SUNITS[q];let out=fmtv(q,v,u)+' '+lab(q,u);if(APP.dual&&s&&s!=='off'&&s!==u)out+=' · '+fmtv(q,v,s)+' '+lab(q,s);return out;}
 function secOnly(q,v){const s=SUNITS[q];if(APP.dual&&s&&s!=='off'&&s!==UNITS[q])return fmtv(q,v,s)+' '+lab(q,s);return'';}
+/* V1.22.0 CORE-15 output helpers — values are canonical (metric); null/blank shows "—".
+   uq: primary + dual secondary (prose, cards, Home) · ut: primary with unit (tables, chips)
+   un: primary number only (table cells whose header carries the unit). */
+const isVal=v=>v!=null&&v!==''&&isFinite(+v);
+function uq(q,v){return isVal(v)?dual(q,+v):'—';}
+function ut(q,v){return isVal(v)?up(q,+v):'—';}
+function un(q,v){return isVal(v)?fmtv(q,+v,UNITS[q]):'—';}
 /* Back-compat shims used across modules (tables use primary only). */
 const U={
   vel:v=>up('vel',v),
@@ -1080,7 +1088,7 @@ function setUnit(k,v){if(QDEF[k].locked)return;UNITS[k]=v;if(SUNITS[k]===v)SUNIT
 function setSec(k,v){SUNITS[k]=v;saveDB();renderSettings();rerenderAll();}
 function setApp(k,v){APP[k]=v;saveDB();if(k==='contrast'||k==='fontScale')applyDisplayPrefs();renderSettings();rerenderAll();}
 function setBright(v){APP.bright=+v;document.documentElement.style.setProperty('--bright',v);saveDB();const lbl=document.querySelector('#settings-body label');if(lbl)lbl.textContent=`Main text brightness · ${Math.round(v*100)}%`;}
-function rerenderAll(){if(lastTraj){renderTraj();renderQuick();}renderActBar();syncTrajInputs();}
+function rerenderAll(){refreshUnits();if(lastTraj){renderTraj();renderQuick();}renderActBar();syncTrajInputs();}
 function downloadScopePrompt(){
   const schema=JSON.stringify({senScopeImport:1,scope:{name:"",sku:"",adjUnit:"mil",click:0.1,cpr:100,elev:0,wind:0,source:"",notes:""},reticle:{id:"",name:"",fp:"FFP",dotMrad:0,hashes:[],windHashes:[],verified:false,notes:""}},null,2);
   const md=`# SEN Ballistics — Scope Research & Import File Generator\n\nYou are a precision-optics research assistant. Produce a single JSON file describing one riflescope so it can be imported into the SEN Ballistics app. Accuracy is paramount: a wrong click value or subtension puts wrong dope on a target. Follow these rules exactly.\n\n## What I will give you\nA scope model and/or SKU (e.g. "Vector Optics Continental x6 5-30×56, SCFF-30"). Research it from the manufacturer's official product page and user manual ONLY. Do not use forum guesses.\n\n## Output: one JSON object, this exact schema\n\n\`\`\`json\n${schema}\n\`\`\`\n\n### Field definitions (units are fixed — do not change them)\n- **scope.name**: full model name.\n- **scope.sku**: manufacturer SKU.\n- **scope.click**: turret click value **in the scope's own adjustment unit**. MIL scopes: in mrad (e.g. 0.1). MOA scopes: in MOA (Vector uses ½=0.5, ¼=0.25, ⅛=0.125). Do NOT convert MOA to mrad — set adjUnit and leave click in native units.
@@ -1589,10 +1597,10 @@ function renderActBar(){
   document.getElementById('actbar').innerHTML=
     chip('Rifle',r?esc(r.name):'— select —','rifle')+
     chip('Projectile',p?esc(p.name):'— select —','proj')+
-    chip('MV',S.mv?S.mv.toFixed(0)+' m/s'+(S.src.mv==='manual'?' ✎':S.src.mv==='chrono'?' ⊙':S.src.mv==='mvtemp'?' ƒT':''):'—','mv')+
+    chip('MV',S.mv?ut('vel',S.mv)+(S.src.mv==='manual'?' ✎':S.src.mv==='chrono'?' ⊙':S.src.mv==='mvtemp'?' ƒT':''):'—','mv')+
     chip('Weather',cw?esc(cw.name.replace('Ljubljana ','LJ ')):'— select —','wx')+
-    chip('Wind',S.wind.speed.toFixed(1)+' m/s @ '+S.wind.dir+'°'+(S.wind.source==='calypso'?' ⊙':''),'wind')+
-    chip('Distance',S.dist_m+' m','dist');
+    chip('Wind',ut('wind',S.wind.speed)+' @ '+Math.round(S.wind.dir)+'°'+(S.wind.source==='calypso'?' ⊙':''),'wind')+
+    chip('Distance',ut('range',S.dist_m),'dist');
 }
 /* ═════ V1.17.0 — bottom sheets: More menu + inline session pickers ═════
    Every picker writes through the SAME Bus calls the Trajectory selects use, so there is exactly
@@ -1648,12 +1656,12 @@ function pickSheet(kind){
     projSheetList();
   }else if(kind==='wx'){
     openSheet('<h3>Current weather</h3><div class="slist">'+favSort(DB.weathers).map(w=>sItem('wx',w.id,favMark(w)+esc(w.name),
-      w.temp+'°C · '+w.pres+' hPa · '+w.rh+'%',w.id===S.curWxId)).join('')+'</div>');
+      ut('temp',w.temp)+' · '+ut('pres',w.pres)+' · '+w.rh+'%',w.id===S.curWxId)).join('')+'</div>');
   }else if(kind==='dist'){
-    openSheet('<h3>Target distance</h3><div class="fld"><label>Metres</label><input type="number" id="sh-num" step="5" value="'+S.dist_m+'"></div>'+
+    openSheet('<h3>Target distance</h3><div class="fld"><label>Distance</label><input type="number" id="sh-num" data-q="range" step="5" value="'+S.dist_m+'"></div>'+
       '<div class="btnrow"><button class="btn primary" onclick="sheetSetNum(\'dist\')">Set</button><button class="btn" onclick="closeSheet()">Cancel</button></div>');
   }else if(kind==='mv'){
-    openSheet('<h3>Muzzle velocity</h3><div class="fld"><label>m/s · overrides the rifle profile</label><input type="number" id="sh-num" step="0.1" value="'+(S.mv??'')+'"></div>'+
+    openSheet('<h3>Muzzle velocity</h3><div class="fld"><label>m/s · overrides the rifle profile</label><input type="number" id="sh-num" data-q="vel" step="0.1" value="'+(S.mv??'')+'"></div>'+
       '<div class="btnrow"><button class="btn primary" onclick="sheetSetNum(\'mv\')">Set</button><button class="btn" onclick="Bus.repull(\'mv\');closeSheet()">Back to profile</button></div>');
   }else if(kind==='wind'){closeSheet();gotoPage('wind');}
 }
@@ -1729,16 +1737,14 @@ function renderQuick(){
   const setv=(id,v)=>{const e=document.getElementById(id);if(e&&document.activeElement!==e)e.value=(v==null?'':v);};
   setv('home-dist',S.dist_m);setv('home-mv',S.mv);
   const ang=document.getElementById('home-angle');const angle=ang?+ang.value||0:0;
-  const ds=document.getElementById('home-dist-sec'),ms=document.getElementById('home-mv-sec');
-  if(ds)ds.textContent=secOnly('range',S.dist_m);
-  if(ms)ms.textContent=S.mv!=null?secOnly('vel',S.mv):'';
+  ['home-dist','home-mv'].forEach(id=>{const e=document.getElementById(id);if(e&&e._uq)unitSecNote(e);});
   const cross=S.wind.speed*Math.abs(Math.sin(S.wind.dir*Math.PI/180));
   const live=S.wind.source==='calypso';
   document.getElementById('home-wind-live').style.display=live?'inline':'none';
-  document.getElementById('home-zero').textContent=up('range',S.zero_m);
-  document.getElementById('home-windspd').textContent=up('wind',S.wind.speed);
+  document.getElementById('home-zero').textContent=uq('zrange',S.zero_m);
+  document.getElementById('home-windspd').textContent=uq('wind',S.wind.speed);
   document.getElementById('home-winddir').textContent=Math.round(S.wind.dir)+'° rel'+(S.wind.from!=null?' · from '+Math.round(S.wind.from)+'°':'');
-  document.getElementById('home-cross').textContent=fmtv('wind',cross,UNITS.wind)+' '+lab('wind',UNITS.wind);
+  document.getElementById('home-cross').textContent=uq('wind',cross);
   const scope=rifleScope(getRifle()),retOwn=scope?getReticle(scope.reticleId):null,
         reticle=retOwn||getReticle('milgrid')||RETICLE_LIB[0];  // M1: explicit generic fallback, labeled below
   const au=scope?.adjUnit||'mil', aLbl=angLabel(au);
@@ -1772,7 +1778,7 @@ function renderQuick(){
     if(!sol){
       document.getElementById('home-elev').textContent='OOR';document.getElementById('home-wind').textContent='OOR';
       document.getElementById('home-elev-u').textContent='out of range';document.getElementById('home-wind-u').textContent='—';
-      statusMsg=`Distance ${S.dist_m} m is outside the computed range.`;
+      statusMsg=`Distance ${uq('range',S.dist_m)} is outside the computed range.`;
       updateTurretUI(null);
     }else{
       // rail offset (in rail unit) → mrad already dialed on the mount; V1.13.0: turret state
@@ -1789,7 +1795,7 @@ function renderQuick(){
       document.getElementById('home-elev-u').textContent=angInUnit(Math.abs(sol.mrElev),au).toFixed(2)+' '+aLbl;
       document.getElementById('home-wind').textContent=(sol.clWind>=0?'→':'←')+Math.abs(sol.clWind).toFixed(0);
       document.getElementById('home-wind-u').textContent=angInUnit(Math.abs(sol.mrWind),au).toFixed(2)+' '+aLbl;
-      statusMsg=`${getProj().name} · ${U.velRaw(sol.tp.v)} ${lab('vel',UNITS.vel)} @ ${S.dist_m} m · M ${sol.tp.mach.toFixed(2)}`+(!tr.cValid?` · ⚠ Sg not computed (C unverified)`:(tr.sgP<1?` · Sg ${tr.sg.toFixed(2)} BC×${tr.sgP.toFixed(3)}${tr.cEst?' (C EST)':''}`:(tr.cEst&&tr.sg!=null?` · Sg ${tr.sg.toFixed(2)} (C EST)`:'')));
+      statusMsg=`${getProj().name} · ${U.velRaw(sol.tp.v)} ${lab('vel',UNITS.vel)} @ ${uq('range',S.dist_m)} · M ${sol.tp.mach.toFixed(2)}`+(!tr.cValid?` · ⚠ Sg not computed (C unverified)`:(tr.sgP<1?` · Sg ${tr.sg.toFixed(2)} BC×${tr.sgP.toFixed(3)}${tr.cEst?' (C EST)':''}`:(tr.cEst&&tr.sg!=null?` · Sg ${tr.sg.toFixed(2)} (C EST)`:'')));
       if(scope&&scope.railOn){
         const dialingUp=sol.clElev>=0, avail=dialingUp?scope.upClicks:scope.downClicks;
         document.getElementById('home-rail-note').innerHTML=`Solution needs ${Math.abs(sol.clElev).toFixed(0)} clicks ${dialingUp?'UP':'DOWN'} (avail ${avail}). Rail offset ${homeRailOff} ${angLabel(scope.railUnit)} pre-dialed → reticle shows remaining ${angInUnit(remElevMrad,au).toFixed(2)} ${aLbl} hold.`;
@@ -1861,7 +1867,7 @@ function homeShellSync(){
   if(hs)hs.textContent=((ev?.textContent||'—')+' · '+(wv?.textContent||'—')).replace(/ · auto/,'');
   const ms=document.getElementById('hm-sum');
   if(ms)ms.textContent=(homeLive||windMode==='live')?'live ⊙'
-    :(S.wind.speed?S.wind.speed.toFixed(1)+' m/s @ '+S.wind.dir+'° rel':'not set');
+    :(S.wind.speed?ut('wind',S.wind.speed)+' @ '+Math.round(S.wind.dir)+'° rel':'not set');
   const setup=document.getElementById('home-setup');
   if(setup){
     const need=[['su-rifle',!!S.rifleId],['su-proj',!!S.projId],['su-wx',!!S.curWxId]];
@@ -1919,10 +1925,10 @@ function renderHolds(){
     const p=nearestPt(tr.pts,d);if(!p)continue;
     const hold=-p.drop/d, wmr=Math.abs(windDrift(p.tof,d,S.mv,wref))/d;
     data.push({d,hold,wmr});
-    rows+=`<tr><td>${d} m</td><td>${hold>=0?'↑':'↓'}${angInUnit(Math.abs(hold),au).toFixed(2)} ${aLbl}</td><td>${(hold/clickStep).toFixed(1)}</td><td>${hold<=0?mark(-hold):'above center'}</td><td>±${angInUnit(wmr,au).toFixed(2)} ${aLbl}</td></tr>`;
+    rows+=`<tr><td>${ut('range',d)}</td><td>${hold>=0?'↑':'↓'}${angInUnit(Math.abs(hold),au).toFixed(2)} ${aLbl}</td><td>${(hold/clickStep).toFixed(1)}</td><td>${hold<=0?mark(-hold):'above center'}</td><td>±${angInUnit(wmr,au).toFixed(2)} ${aLbl}</td></tr>`;
   }
   tb.innerHTML=rows||'<tr><td colspan="5">No points in range.</td></tr>';
-  document.getElementById('hd-title').textContent=`Holdover · zero ${zeroConds().range} m · ${getProj()?.name||''} · wind ref ${wref} m/s`;
+  document.getElementById('hd-title').textContent=`Holdover · zero ${uq('zrange',zeroConds().range)} · ${getProj()?.name||''} · wind ref ${uq('wind',wref)}`;
   fb.innerHTML=(ret?'':`<div class="flag info">No reticle on the active scope — holds in ${aLbl} only.</div>`)
     +(tr.sg!=null&&tr.sg<1.5?`<div class="flag warn">Sg ${tr.sg.toFixed(2)} — BC penalty active in these holds.</div>`:'');
   lastHolds={from,to,st,wref,data,aLbl,au,clickStep,ret};
@@ -1930,8 +1936,8 @@ function renderHolds(){
 function printHolds(){
   if(!lastHolds){alert('Compute the table first.');return;}
   const L=lastHolds,z=zeroConds();
-  let h=`<div class="pd"><h1>HOLDS — ${esc(getRifle()?.name||'')} · ${esc(getProj()?.name||'')}</h1><div class="pdm">Turret AT ZERO (${z.range} m) · wind ref ${L.wref} m/s full value · MV ${S.mv} m/s</div><table><thead><tr><th>Range</th><th>Hold ${L.aLbl}</th><th>Reticle</th><th>Wind ±${L.aLbl}</th></tr></thead><tbody>`;
-  L.data.forEach(x=>{h+=`<tr><td>${x.d} m</td><td>${x.hold>=0?'↑':'↓'}${angInUnit(Math.abs(x.hold),L.au).toFixed(2)}</td><td>${x.hold<=0&&L.ret?esc(String((L.ret.hashes.reduce((b,q)=>Math.abs(q+x.hold)<Math.abs(b+x.hold)?q:b)))):'—'}</td><td>${angInUnit(x.wmr,L.au).toFixed(2)}</td></tr>`;});
+  let h=`<div class="pd"><h1>HOLDS — ${esc(getRifle()?.name||'')} · ${esc(getProj()?.name||'')}</h1><div class="pdm">Turret AT ZERO (${ut('zrange',z.range)}) · wind ref ${ut('wind',L.wref)} full value · MV ${ut('vel',S.mv)}</div><table><thead><tr><th>Range</th><th>Hold ${L.aLbl}</th><th>Reticle</th><th>Wind ±${L.aLbl}</th></tr></thead><tbody>`;
+  L.data.forEach(x=>{h+=`<tr><td>${ut('range',x.d)}</td><td>${x.hold>=0?'↑':'↓'}${angInUnit(Math.abs(x.hold),L.au).toFixed(2)}</td><td>${x.hold<=0&&L.ret?esc(String((L.ret.hashes.reduce((b,q)=>Math.abs(q+x.hold)<Math.abs(b+x.hold)?q:b)))):'—'}</td><td>${angInUnit(x.wmr,L.au).toFixed(2)}</td></tr>`;});
   h+='</tbody></table></div>';
   document.getElementById('print-content').innerHTML=h;window.print();
 }
@@ -2030,7 +2036,7 @@ function syncTrajInputs(){
   ['mv','bc','sight','ct','cp','crh'].forEach(markSrc);
   const z=zeroConds();
   const zdisp=document.getElementById('tr-zero-disp');
-  if(zdisp)zdisp.innerHTML=getRifle()?`${z.range} m · ${z.temp}°C · ${z.pres} hPa · ${z.rh}% RH · wind ${z.wSpd} m/s @ ${z.wDir}°`:'— select a rifle —';
+  if(zdisp)zdisp.innerHTML=getRifle()?`${uq('zrange',z.range)} · ${uq('temp',z.temp)} · ${uq('pres',z.pres)} · ${z.rh}% RH · wind ${uq('wind',z.wSpd)} @ ${z.wDir}°`:'— select a rifle —';
   if(S.ct!=null){
     const rz=airDensity(z.temp,z.pres,z.rh),rc=airDensity(S.ct,S.cp,S.crh);
     document.getElementById('tr-atmo-note').textContent=`ρ zero ${rz.toFixed(4)} · ρ current ${rc.toFixed(4)} kg/m³ · zero shift computed by two-pass solve (BC unscaled — §11I)`;
@@ -2180,7 +2186,7 @@ function renderTraj(){
   const click=(rifleScope(getRifle())?.click)||0.1;
   const zp=nearestPt(ptsFine,S.zero_m), tp=nearestPt(ptsFine,S.dist_m);  // H2: solve off 1 m grid
   // output card
-  document.getElementById('tr-out-dist').textContent=S.dist_m+' m';
+  document.getElementById('tr-out-dist').textContent=uq('range',S.dist_m);
   let outs='';
   if(tp&&zp){
     const dd=-tp.drop, mr=toMrad(dd,S.dist_m), cl=mr/click;
@@ -2195,20 +2201,20 @@ function renderTraj(){
   let flags='';
   // FIX-10: with mismatched zero/current atmospheres the two-pass solve leaves drop(zero) ≠ 0 —
   // the physical zero shift. Dope stays relative to zero-range impact; surface the shift explicitly.
-  if(zp&&Math.abs(zp.drop)>2)flags+=`<div class="flag warn">Zero shift ${zp.drop>0?'+':''}${zp.drop.toFixed(1)} mm at ${S.zero_m} m (zero vs current atmosphere delta) — impacts print ${zp.drop>0?'HIGH':'LOW'} at your zero range; dial from your turret zero already INCLUDES this shift (absolute convention).</div>`;
+  if(zp&&Math.abs(zp.drop)>2)flags+=`<div class="flag warn">Zero shift ${zp.drop>0?'+':''}${uq('drop',zp.drop)} at ${uq('zrange',S.zero_m)} (zero vs current atmosphere delta) — impacts print ${zp.drop>0?'HIGH':'LOW'} at your zero range; dial from your turret zero already INCLUDES this shift (absolute convention).</div>`;
   const maxM2=Math.max(...pts.map(q=>q.mach));
   if(maxM2>0.8&&S.drag==='g1')flags+='<div class="flag warn">⚠ Diabolo above Mach 0.80 — G1 fit degrades. BC uncertainty ±30–50% in transonic zone.</div>';
   if(maxM2>=0.8&&maxM2<1.2&&S.drag==='g7')flags+='<div class="flag warn">⚠ Trajectory enters transonic zone (Mach 0.8–1.2) — BC uncertainty increases.</div>';
-  flags+=`<div class="flag info">BC_eff ${bcEff.toFixed(4)} lb/in² (${(bcEff*LB2KGM2).toFixed(1)} kg/m²) · ρ ${rhoC.toFixed(4)} kg/m³ · Vs ${aS.toFixed(1)} m/s${lastTraj_sgNote}</div>`;
+  flags+=`<div class="flag info">BC_eff ${bcEff.toFixed(4)} lb/in² (${(bcEff*LB2KGM2).toFixed(1)} kg/m²) · ρ ${rhoC.toFixed(4)} kg/m³ · Vs ${uq('vel',aS)}${lastTraj_sgNote}</div>`;
   document.getElementById('tr-flags').innerHTML=flags;
   // table
   document.getElementById('tr-tbody').innerHTML=pts.map(q=>{
     const dd=-q.drop, mr=toMrad(dd,q.range), moa=toMOA(dd,q.range), cl=mr/click;
     const isZ=Math.abs(q.range-S.zero_m)<lastTraj.step/2, isT=Math.abs(q.range-S.dist_m)<lastTraj.step/2&&!isZ;
     const clTxt=isZ?'— zero —':(cl>=0?'↑':'↓')+Math.abs(cl).toFixed(0);
-    return`<tr class="${isT?'hl':isZ?'zr':''}"><td>${q.range} m</td><td>${U.drop(q.drop)}</td><td>${mr.toFixed(2)}</td><td>${moa.toFixed(2)}</td><td>${clTxt}</td><td>${U.velRaw(q.v)}</td><td>${q.mach.toFixed(2)}</td><td>${fmtv('energy',q.E,UNITS.energy)}</td><td>${q.tof.toFixed(3)}</td></tr>`;
+    return`<tr class="${isT?'hl':isZ?'zr':''}"><td>${ut('range',q.range)}</td><td>${U.drop(q.drop)}</td><td>${mr.toFixed(2)}</td><td>${moa.toFixed(2)}</td><td>${clTxt}</td><td>${U.velRaw(q.v)}</td><td>${q.mach.toFixed(2)}</td><td>${fmtv('energy',q.E,UNITS.energy)}</td><td>${q.tof.toFixed(3)}</td></tr>`;
   }).join('');
-  document.getElementById('tr-tnote').textContent=`${lastTraj.proj} · MV ${mv.toFixed(1)} m/s · drag ${S.drag.toUpperCase()} · clicks at ${click} mrad/click from turret zero (set at ${S.zero_m} m)`;
+  document.getElementById('tr-tnote').textContent=`${lastTraj.proj} · MV ${uq('vel',mv)} · drag ${S.drag.toUpperCase()} · clicks at ${click} mrad/click from turret zero (set at ${uq('zrange',S.zero_m)})`;
   drawChart();
 }
 function drawChart(){
@@ -2228,7 +2234,7 @@ function drawChart(){
   ctx.strokeStyle='#7eb8c4';ctx.lineWidth=2;ctx.beginPath();
   pts.forEach((q,i)=>{i===0?ctx.moveTo(px(q.range),py(q.drop)):ctx.lineTo(px(q.range),py(q.drop));});ctx.stroke();
   ctx.fillStyle='rgba(86,84,79,.9)';ctx.font='9px IBM Plex Mono';ctx.textAlign='center';
-  for(let r=0;r<=lastTraj.max_m;r+=gs)ctx.fillText(r+'m',px(r),pad.t+ch+15);
+  for(let r=0;r<=lastTraj.max_m;r+=gs)ctx.fillText(fmtv('range',r,UNITS.range)+lab('range',UNITS.range),px(r),pad.t+ch+15);
   ctx.textAlign='right';for(let i=0;i<=4;i++)ctx.fillText((mx-(mx-mn)*i/4).toFixed(0),pad.l-5,pad.t+ch*i/4+3);
 }
 
@@ -2262,8 +2268,8 @@ function calcBC(){
   if(!hasFF)fl+=`<div class="flag info">Form factor not set for this projectile — SD shown; enter a form factor or true the BC in the Truing tab to compute BC.</div>`;
   if(hasFF&&(bcg7<0.05||bcg7>0.4))fl+=`<div class="flag warn">BC G7 ${bcg7.toFixed(3)} lb/in² outside expected airgun range.</div>`;
   if(sd<0.1)fl+=`<div class="flag warn">SD ${sd.toFixed(4)} below 0.100 minimum.</div>`;
-  if(oal>25)fl+=`<div class="flag warn">OAL ${oal} mm exceeds 25 mm single-shot limit.</div>`;
-  else if(oal>22)fl+=`<div class="flag warn">OAL ${oal} mm > 22 mm — single-shot only (over magazine limit).</div>`;
+  if(oal>25)fl+=`<div class="flag warn">OAL ${uq('bullet',oal)} exceeds ${uq('bullet',25)} single-shot limit.</div>`;
+  else if(oal>22)fl+=`<div class="flag warn">OAL ${uq('bullet',oal)} > ${uq('bullet',22)} — single-shot only (over magazine limit).</div>`;
   if(type==='pellet')fl+=`<div class="flag info">Diabolo: use G1/GA, invalid above Mach 0.80. GA drag model planned.</div>`;
   document.getElementById('bc-flags').innerHTML=fl;
   const row=(lbl,thisV,q,pct)=>`<tr><td>${lbl}</td><td>${thisV}</td><td>${q}</td><td style="color:${pct>=0?'var(--green)':'var(--warn)'}">${pct>=0?'+':''}${pct.toFixed(1)}%</td></tr>`;
@@ -2301,7 +2307,7 @@ function calcStab(){
     document.getElementById('st-outs').innerHTML=
       `<div class="sc" style="--c:var(--warn)"><div class="sl">Sg muzzle</div><div class="sv" style="color:var(--warn);font-size:15px">not computed</div><div class="su">C unverified</div></div>`+
       `<div class="sc"><div class="sl">Sg @ M0.80</div><div class="sv" style="font-size:15px">—</div><div class="su">subsonic floor</div></div>`+
-      `<div class="sc"><div class="sl">Sg worst-case</div><div class="sv" style="font-size:15px">—</div><div class="su">−5°C SL 229 m/s</div></div>`+
+      `<div class="sc"><div class="sl">Sg worst-case</div><div class="sv" style="font-size:15px">—</div><div class="su">${ut('temp',-5)} SL ${ut('vel',229)}</div></div>`+
       `<div class="sc gold"><div class="sl">Twist</div><div class="sv">1:${twIn.toFixed(1)}″</div><div class="su">L/D ${ld}</div></div>`;
     document.getElementById('st-sgbar').style.width='0%';
     document.getElementById('st-flags').innerHTML=`<div class="flag warn">⚠ C unverified for this calibre/geometry — Sg not computed. The Berger C constant is calibre-specific and non-interpolable; enter a Berger-verified C for this projectile to compute stability.${(oal/d)<2.0?' (L/D < 2.0 — Berger model not validated below 2.0 either.)':''}</div>`;
@@ -2315,7 +2321,7 @@ function calcStab(){
   document.getElementById('st-outs').innerHTML=
     `<div class="sc" style="--c:${sgCol(sg)}"><div class="sl">Sg muzzle</div><div class="sv" style="color:${sgCol(sg)}">${sg.toFixed(2)}</div><div class="su">${sg>=1.5?'stable ✓':sg>=1.0?'marginal':'tumbles ✗'}</div></div>`+
     `<div class="sc"><div class="sl">Sg @ M0.80</div><div class="sv" style="color:${sgCol(sgM08)}">${sgM08.toFixed(2)}</div><div class="su">subsonic floor</div></div>`+
-    `<div class="sc"><div class="sl">Sg worst-case</div><div class="sv" style="color:${sgCol(sgWC)}">${sgWC.toFixed(2)}</div><div class="su">−5°C SL 229 m/s</div></div>`+
+    `<div class="sc"><div class="sl">Sg worst-case</div><div class="sv" style="color:${sgCol(sgWC)}">${sgWC.toFixed(2)}</div><div class="su">${ut('temp',-5)} SL ${ut('vel',229)}</div></div>`+
     `<div class="sc gold"><div class="sl">Twist</div><div class="sv">1:${twIn.toFixed(1)}″</div><div class="su">L/D ${(oal/d).toFixed(2)}</div></div>`;
   const bar=document.getElementById('st-sgbar');bar.style.width=Math.min(100,sg/3*100)+'%';bar.style.background=sgCol(sg);
   let fl='';
@@ -2376,21 +2382,21 @@ function renderWind(){
   const cross=spd*xf;const _sc=rifleScope(getRifle());const click=_sc?.clickStepMrad||0.1, au=_sc?.adjUnit||'mil', aLbl=angLabel(au);
   const{pts,mv}=lastTraj;
   const tp=nearestPt(lastTraj.ptsFine,S.dist_m);  // H2: card solves off 1 m grid; table below keeps display step
-  document.getElementById('wd-out-dist').textContent=S.dist_m+' m';
+  document.getElementById('wd-out-dist').textContent=uq('range',S.dist_m);
   document.getElementById('wd-clock-lbl').textContent=(xf===0?'headwind/tailwind':xf>=0.99?'full value':'partial')+(sideTxt?' · '+sideTxt:'');
   if(tp){
     const wd=windDrift(tp.tof,S.dist_m,mv,cross),mr=toMrad(wd,S.dist_m),cl=mr/click;
     document.getElementById('wd-outs').innerHTML=
-      `<div class="sc gold"><div class="sl">Drift</div><div class="sv">${U.drop(wd)}</div><div class="su">${U.dropU()} @ ${spd} m/s</div></div>`+
+      `<div class="sc gold"><div class="sl">Drift</div><div class="sv">${U.drop(wd)}</div><div class="su">${U.dropU()} @ ${uq('wind',spd)}</div></div>`+
       `<div class="sc accent"><div class="sl">Hold / clicks</div><div class="sv">${sideArrow}${Math.abs(cl).toFixed(0)}</div><div class="su">${angInUnit(mr,au).toFixed(2)} ${aLbl}${sideTxt?' · '+sideTxt:''}</div></div>`+
-      `<div class="sc"><div class="sl">Crosswind</div><div class="sv">${cross.toFixed(1)}</div><div class="su">m/s component</div></div>`;
+      `<div class="sc"><div class="sl">Crosswind</div><div class="sv">${un('wind',cross)}</div><div class="su">${lab('wind',UNITS.wind)} component</div></div>`;
   }
   document.getElementById('wd-tbody').innerHTML=pts.map(q=>{
     const wd=windDrift(q.tof,q.range,mv,cross),mr=toMrad(wd,q.range),cl=mr/click;
     const isT=Math.abs(q.range-S.dist_m)<lastTraj.step/2;
-    return`<tr class="${isT?'hl':''}"><td>${q.range} m</td><td>${q.tof.toFixed(3)}</td><td>${q.lag.toFixed(3)}</td><td>${U.drop(wd)}</td><td>${mr.toFixed(2)}</td><td>${angInUnit(mr,'moa').toFixed(2)}</td><td>${q.range>0?Math.abs(cl).toFixed(0):'—'}</td></tr>`;
+    return`<tr class="${isT?'hl':''}"><td>${ut('range',q.range)}</td><td>${q.tof.toFixed(3)}</td><td>${q.lag.toFixed(3)}</td><td>${U.drop(wd)}</td><td>${mr.toFixed(2)}</td><td>${angInUnit(mr,'moa').toFixed(2)}</td><td>${q.range>0?Math.abs(cl).toFixed(0):'—'}</td></tr>`;
   }).join('');
-  document.getElementById('wd-tnote').textContent=`${lastTraj.proj} · MV ${mv.toFixed(1)} m/s · crosswind ${cross.toFixed(1)} m/s (${spd}×${xf.toFixed(2)}) · clicks at ${_sc?_sc.click:0.1} ${aLbl}`;
+  document.getElementById('wd-tnote').textContent=`${lastTraj.proj} · MV ${uq('vel',mv)} · crosswind ${uq('wind',cross)} (${un('wind',spd)}×${xf.toFixed(2)}) · clicks at ${_sc?_sc.click:0.1} ${aLbl}`;
 }
 
 /* ═════════ A5 — BALLISTIC SOLVER ═════════ */
@@ -2402,8 +2408,8 @@ function solve(){
   const r=getRifle(),scope=rifleScope(r);
   const clickStep=scope?.clickStepMrad||0.1, au=scope?.adjUnit||'mil', aLbl=angLabel(au);
   const zc=zeroConds();
-  document.getElementById('sv-dist').textContent=tdist+' m';
-  document.getElementById('sv-zero-lbl').textContent='zero '+zc.range+' m'+(zc.wSpd>0?' · in '+zc.wSpd+' m/s wind':'');
+  document.getElementById('sv-dist').textContent=uq('range',tdist);
+  document.getElementById('sv-zero-lbl').textContent='zero '+uq('zrange',zc.range)+(zc.wSpd>0?' · in '+uq('wind',zc.wSpd)+' wind':'');
   // solveShot works in mrad; pass clickStep (mrad) so click counts are unit-correct
   const sol=solveShot(pts,nearestPt,zc.range,tdist,angle,wspd,wdir,mv,clickStep,zc.wSpd,zc.wDir);
   if(!sol){document.getElementById('sv-outs').innerHTML='<div class="sc"><div class="sv" style="font-size:13px;color:var(--warn)">Target or zero outside the computed range.</div></div>';return;}
@@ -2443,9 +2449,9 @@ function solve(){
   }else{document.getElementById('sv-travel-note').textContent='No scope on active rifle — assign one in its profile.';}
   if(au==='moa')fl+=`<div class="flag info">MOA scope: solution shown in MOA &amp; clicks (1 click = ${scope.click} MOA = ${(scope.clickStepMrad).toFixed(4)} mrad).</div>`;
   if(angle!==0)fl+=`<div class="flag info">Angle ${angle}° · Rifleman's Rule cosine ${cosd.toFixed(4)} applied to drop delta.</div>`;
-  if(APP.solverCor)fl+=`<div class="flag info">Coriolis @ lat ${lat}° az ${az}°: impact ${coH>=0?'R':'L'} ${Math.abs(coH).toFixed(1)} mm · ${coV>=0?'HIGH':'LOW'} ${Math.abs(coV).toFixed(1)} mm → dial ${(-coH/tdist).toFixed(3)} / ${(-coV/tdist).toFixed(3)} mrad (included above).</div>`;
+  if(APP.solverCor)fl+=`<div class="flag info">Coriolis @ lat ${lat}° az ${az}°: impact ${coH>=0?'R':'L'} ${uq('drop',Math.abs(coH))} · ${coV>=0?'HIGH':'LOW'} ${uq('drop',Math.abs(coV))} → dial ${(-coH/tdist).toFixed(3)} / ${(-coV/tdist).toFixed(3)} mrad (included above).</div>`;
   if(APP.solverSpin)fl+=sdMm!=null
-    ?`<div class="flag warn">Spin drift (Litz EST ⚠ unvalidated subsonic): Sg ${sgI.sg.toFixed(2)}${sgI.est?' (C EST)':''} → impact ${sdMm>=0?'R':'L'} ${Math.abs(sdMm).toFixed(0)} mm → dial ${(-sdMm/tdist).toFixed(2)} mrad (included above).</div>`
+    ?`<div class="flag warn">Spin drift (Litz EST ⚠ unvalidated subsonic): Sg ${sgI.sg.toFixed(2)}${sgI.est?' (C EST)':''} → impact ${sdMm>=0?'R':'L'} ${uq('drop',Math.abs(sdMm))} → dial ${(-sdMm/tdist).toFixed(2)} mrad (included above).</div>`
     :`<div class="flag info">Spin drift n/a — pellet, smooth bore, or no verified C for this projectile.</div>`;
   if((APP.solverCor||APP.solverSpin)&&tdist<300&&APP.solverCor)fl+=`<div class="flag info">Coriolis below 300 m is sub-click — shown for completeness.</div>`;
   document.getElementById('sv-flags').innerHTML=fl;
@@ -2488,7 +2494,7 @@ function renderDopeZero(){
   const el=document.getElementById('dc-zero-disp');if(!el)return;
   if(!r){el.innerHTML='— select a rifle —';return;}
   const z=zeroConds(r,c.zero);
-  el.innerHTML=`${z.range} m · ${z.temp}°C · ${z.pres} hPa · ${z.rh}% RH · wind ${z.wSpd} m/s @ ${z.wDir}°`+(z.wSpd>0?' <span style="color:var(--gold)">(zeroed in wind)</span>':'');
+  el.innerHTML=`${uq('zrange',z.range)} · ${uq('temp',z.temp)} · ${uq('pres',z.pres)} · ${z.rh}% RH · wind ${uq('wind',z.wSpd)} @ ${z.wDir}°`+(z.wSpd>0?' <span style="color:var(--gold)">(zeroed in wind)</span>':'');
 }
 function dopeFromSession(){
   const c=getCard();if(!c)return;
@@ -2511,17 +2517,17 @@ function renderStages(){
         <input type="text" value="${(s.name||'').replace(/"/g,'&quot;')}" onchange="updStage('${s.id}','name',this.value)">
         <button class="btn-xs" style="color:var(--warn)" onclick="delStage('${s.id}')">✕</button></div>
       <input type="text" value="${(s.notes||'').replace(/"/g,'&quot;')}" placeholder="terrain / position notes" onchange="updStage('${s.id}','notes',this.value)" style="margin-bottom:8px">
-      <table class="dist-tbl"><thead><tr><th style="text-align:left">Range</th><th>Ang°</th><th>Wind</th><th>Dir°</th><th>Drop</th><th>Elev</th><th>Wind cl</th><th></th></tr></thead>
+      <table class="dist-tbl"><thead><tr><th style="text-align:left">Range <span data-ul="range"></span></th><th>Ang°</th><th>Wind <span data-ul="wind"></span></th><th>Dir°</th><th>Drop</th><th>Elev</th><th>Wind cl</th><th></th></tr></thead>
       <tbody>${s.dists.map(d=>distRow(s.id,d)).join('')}</tbody></table>
       <button class="btn-xs" style="margin-top:8px" onclick="addDist('${s.id}')">+ Range</button>
     </div>`).join('')||'<div class="note">No stages yet.</div>';
 }
 function distRow(sid,d){
   return`<tr id="dr-${d.id}">
-    <td><input class="di" type="number" value="${d.range}" onchange="updDist('${sid}','${d.id}','range',+this.value)"></td>
-    <td><input class="di" type="number" value="${d.angle||0}" onchange="updDist('${sid}','${d.id}','angle',+this.value)"></td>
-    <td><input class="di" type="number" value="${d.wind||0}" onchange="updDist('${sid}','${d.id}','wind',+this.value)"></td>
-    <td><input class="di" type="number" value="${d.wdir||90}" onchange="updDist('${sid}','${d.id}','wdir',+this.value)"></td>
+    <td><input class="di" type="number" data-q="range" value="${d.range}" onchange="updDist('${sid}','${d.id}','range',+this.value)"></td>
+    <td><input class="di" type="number" data-q="-" value="${d.angle||0}" onchange="updDist('${sid}','${d.id}','angle',+this.value)"></td>
+    <td><input class="di" type="number" data-q="wind" value="${d.wind||0}" onchange="updDist('${sid}','${d.id}','wind',+this.value)"></td>
+    <td><input class="di" type="number" data-q="-" value="${d.wdir||90}" onchange="updDist('${sid}','${d.id}','wdir',+this.value)"></td>
     <td class="res" id="dc-rc-${d.id}">—</td><td class="res" id="dc-re-${d.id}">—</td><td class="res" id="dc-rw-${d.id}">—</td>
     <td><button class="btn-xs" onclick="delDist('${sid}','${d.id}')">✕</button></td></tr>`;
 }
@@ -2570,19 +2576,19 @@ function calcDope(){
       set('dc-rw-'+d.id,(d.wind?(sol.clWind>=0?'→':'←')+Math.abs(sol.clWind).toFixed(0):'—'));
     }else{set('dc-rc-'+d.id,'OOR');set('dc-re-'+d.id,'—');set('dc-rw-'+d.id,'—');}
   }));
-  document.getElementById('dc-note').textContent=`${tr.p.name} · ${tr.r?tr.r.name:'no rifle'} · MV ${c.mv} m/s · zero ${z.range} m${z.wSpd>0?' (zeroed in '+z.wSpd+' m/s)':''} · ρ ${tr.rhoC.toFixed(4)} · ${tr.sgP<1?'Sg penalty ×'+tr.sgP.toFixed(3):'Sg ≥1.5'}`;
+  document.getElementById('dc-note').textContent=`${tr.p.name} · ${tr.r?tr.r.name:'no rifle'} · MV ${uq('vel',c.mv)} · zero ${uq('zrange',z.range)}${z.wSpd>0?' (zeroed in '+uq('wind',z.wSpd)+')':''} · ρ ${tr.rhoC.toFixed(4)} · ${tr.sgP<1?'Sg penalty ×'+tr.sgP.toFixed(3):'Sg ≥1.5'}`;
 }
 function printDope(){
   const c=getCard();if(!c){alert('Select a card.');return;}
   const tr=computeCardTraj(c);if(!tr){alert('Card needs rifle, projectile, and current weather.');return;}
   if(tr.bcPending){alert(tr.projName+' has no BC yet — enter one in its profile or measure it in the Truing tab before printing dope.');return;}
   const z=tr.z;
-  let h=`<div class="pd"><h1>DOPE — ${esc(c.name||'Unnamed')}</h1><div class="pdm">Rifle: ${tr.r?esc(tr.r.name):'—'} · ${tr.sc?esc(tr.sc.name):""} · Proj: ${esc(tr.p.name)}<br>MV ${c.mv} m/s · Zero ${z.range} m${z.wSpd>0?' · zeroed in '+z.wSpd+' m/s @ '+z.wDir+'°':''} · ${tr.click} mrad/click<br>Zero atmos: ${z.temp}°C ${z.pres} hPa ${z.rh}% · Current: ${esc(tr.cw.name)}${c.notes?'<br>'+esc(c.notes):''}</div>`;
+  let h=`<div class="pd"><h1>DOPE — ${esc(c.name||'Unnamed')}</h1><div class="pdm">Rifle: ${tr.r?esc(tr.r.name):'—'} · ${tr.sc?esc(tr.sc.name):""} · Proj: ${esc(tr.p.name)}<br>MV ${ut('vel',c.mv)} · Zero ${ut('zrange',z.range)}${z.wSpd>0?' · zeroed in '+ut('wind',z.wSpd)+' @ '+z.wDir+'°':''} · ${tr.click} mrad/click<br>Zero atmos: ${ut('temp',z.temp)} ${ut('pres',z.pres)} ${z.rh}% · Current: ${esc(tr.cw.name)}${c.notes?'<br>'+esc(c.notes):''}</div>`;
   c.stages.forEach((s,si)=>{
     h+=`<div class="sh">STAGE ${si+1}: ${esc(s.name||'')}${s.notes?' — '+esc(s.notes):''}</div><table><thead><tr><th>Range</th><th>Angle</th><th>Drop ${U.dropU()}</th><th>Elev clk</th><th>Wind</th><th>Wind clk</th></tr></thead><tbody>`;
     s.dists.forEach(d=>{
       const sol=solveShot(tr.pts,nearestPt,z.range,d.range,d.angle||0,d.wind||0,d.wdir||90,c.mv,tr.click,z.wSpd,z.wDir);
-      if(sol)h+=`<tr><td>${d.range} m</td><td>${d.angle||0}°</td><td>${U.drop(sol.tp.drop)}</td><td>${(sol.clElev>=0?'U':'D')}${Math.abs(sol.clElev).toFixed(0)}</td><td>${d.wind||0} m/s</td><td>${d.wind?(sol.clWind>=0?'R':'L')+Math.abs(sol.clWind).toFixed(0):'—'}</td></tr>`;
+      if(sol)h+=`<tr><td>${ut('range',d.range)}</td><td>${d.angle||0}°</td><td>${U.drop(sol.tp.drop)}</td><td>${(sol.clElev>=0?'U':'D')}${Math.abs(sol.clElev).toFixed(0)}</td><td>${ut('wind',d.wind||0)}</td><td>${d.wind?(sol.clWind>=0?'R':'L')+Math.abs(sol.clWind).toFixed(0):'—'}</td></tr>`;
     });
     h+='</tbody></table>';
   });
@@ -2592,7 +2598,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.21.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.22.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -2624,9 +2630,9 @@ function renderProfiles(){
   const item=pitem;
   document.getElementById('pl-rifles').innerHTML=favSort(DB.rifles).map(r=>{
     const sc=getScope(r.scopeId);
-    return item(r,`${r.cal} · ${r.twistDir==='smooth'?'smooth bore':'1:'+(r.twist/25.4).toFixed(0)+'″ '+(r.twistDir==='left'?'LH':'RH')} · MV ${r.mv} m/s · ${sc?sc.sku||sc.name:'no scope'} · SH ${r.sight}mm${r.railOn?' · rail +'+r.railMrad+'mrad':''}`,'r',r.id===S.rifleId);
+    return item(r,`${r.cal} · ${r.twistDir==='smooth'?'smooth bore':'1:'+(r.twist/25.4).toFixed(0)+'″ '+(r.twistDir==='left'?'LH':'RH')} · MV ${ut('vel',r.mv)} · ${sc?sc.sku||sc.name:'no scope'} · SH ${ut('sight',r.sight)}${r.railOn?' · rail +'+r.railMrad+'mrad':''}`,'r',r.id===S.rifleId);
   }).join('')||'<div class="note">No rifles.</div>';
-  document.getElementById('pl-wx').innerHTML=favSort(DB.weathers).map(w=>item(w,`${w.temp}°C · ${w.pres} hPa · ${w.rh}% · ${w.alt} m`,'w',false)).join('');
+  document.getElementById('pl-wx').innerHTML=favSort(DB.weathers).map(w=>item(w,`${ut('temp',w.temp)} · ${ut('pres',w.pres)} · ${w.rh}% · ${ut('alt',w.alt)}`,'w',false)).join('');
   const scl=document.getElementById('pl-scopes');
   if(scl)scl.innerHTML=favSort(DB.scopes).map(s=>{const ret=getReticle(s.reticleId);return item(s,`${s.sku||'—'} · ${s.click} ${s.adjUnit==='moa'?'MOA':'mrad'}/clk · elev ${s.elev} · ${ret?ret.name:'no reticle'}${ret&&!ret.verified?' ⚠':''}`,'s',false);}).join('')||'<div class="note">No scopes.</div>';
   const rtl=document.getElementById('pl-reticles');
@@ -2674,7 +2680,7 @@ function renderProjList(){
   el.innerHTML=list.map(p=>{
     const offCal=rifleCal&&p.cal&&p.cal!==rifleCal;
     const bc=(p.bcg7>0||p.bcg1>0)?`G7 ${p.bcg7} · G1 ${p.bcg1}`:'BC pending';
-    const meta=`${p.mfg?p.mfg+' · ':''}${p.cal||'?'} · ${p.type} · ${p.mass} gr · ${p.oal>0?p.oal+' mm · ':''}${bc}${offCal?' · ⚠ off-calibre':''}`;
+    const meta=`${p.mfg?p.mfg+' · ':''}${p.cal||'?'} · ${p.type} · ${p.mass} gr · ${p.oal>0?ut('bullet',p.oal)+' · ':''}${bc}${offCal?' · ⚠ off-calibre':''}`;
     return pitem(p,meta,'p',p.id===S.projId,offCal?'<span style="color:var(--warn)">⚑ </span>':'');
   }).join('')||'<div class="note">No projectiles match the current filter.</div>';
   document.getElementById('pj-count').textContent=`${list.length} of ${DB.projectiles.length} shown`;
@@ -2903,15 +2909,16 @@ function mvtRender(){
   if(!r){note.textContent='Select a rifle first (Trajectory tab) — observations are stored per rifle.';tb.innerHTML='';fitEl.textContent='';btn.disabled=true;return;}
   note.innerHTML=`Rifle: <b>${esc(r.name)}</b> · log a Garmin Xero / LabRadar MV together with the session temperature; ≥2 points at different temps give a slope.`;
   const arr=r.mvt||[];
-  tb.innerHTML=arr.map((p,i)=>`<tr><td>${p.t}</td><td>${p.v}</td><td><button class="btn-xs" style="color:var(--warn)" onclick="mvtDel(${i})">✕</button></td></tr>`).join('')||'<tr><td colspan="3">No observations yet.</td></tr>';
+  tb.innerHTML=arr.map((p,i)=>`<tr><td>${un('temp',p.t)}</td><td>${un('vel',p.v)}</td><td><button class="btn-xs" style="color:var(--warn)" onclick="mvtDel(${i})">✕</button></td></tr>`).join('')||'<tr><td colspan="3">No observations yet.</td></tr>';
   const cw=getWx(S.curWxId),ct=S.ct??cw?.temp;
   const tEl=document.getElementById('mvt-t');if(tEl&&tEl.value===''&&ct!=null)tEl.value=ct;
   const vEl=document.getElementById('mvt-v');if(vEl&&vEl.value===''&&S.mv!=null)vEl.value=S.mv;
   const fit=mvtFit(arr);
   if(!fit){fitEl.textContent=arr.length?'Need ≥2 observations at different temperatures for a model.':'';btn.disabled=true;return;}
   const pred=ct!=null?fit.at(ct):null;
-  fitEl.innerHTML=`Model: MV = ${fit.a.toFixed(1)} ${fit.b>=0?'+':'−'} ${Math.abs(fit.b).toFixed(3)}·T m/s · <b>${fit.b>=0?'+':''}${(fit.b).toFixed(2)} m/s per °C</b> · ${fit.n} pts over ${fit.tmin}–${fit.tmax} °C`
-    +(pred!=null?`<br>Predicted MV at current ${ct} °C: <b>${pred.toFixed(1)} m/s</b>${(ct<fit.tmin||ct>fit.tmax)?' <span style="color:var(--warn)">⚠ extrapolated outside observed range</span>':''}`
+  const slope=(cv('vel',fit.b,UNITS.vel)-cv('vel',0,UNITS.vel))/(cv('temp',1,UNITS.temp)-cv('temp',0,UNITS.temp));
+  fitEl.innerHTML=`Model: <b>${slope>=0?'+':''}${slope.toFixed(2)} ${lab('vel',UNITS.vel)} per ${lab('temp',UNITS.temp)}</b> · ${fit.n} pts over ${un('temp',fit.tmin)}–${ut('temp',fit.tmax)}`
+    +(pred!=null?`<br>Predicted MV at current ${ut('temp',ct)}: <b>${uq('vel',pred)}</b>${(ct<fit.tmin||ct>fit.tmax)?' <span style="color:var(--warn)">⚠ extrapolated outside observed range</span>':''}`
     :'<br>No current temperature in session — select weather.');
   btn.disabled=pred==null;
 }
@@ -2926,7 +2933,7 @@ function mvtApply(){
   const r=getRifle(),cw=getWx(S.curWxId),ct=S.ct??cw?.temp;
   const fit=r?mvtFit(r.mvt):null;if(!fit||ct==null)return;
   S.mv=+fit.at(ct).toFixed(1);S.src.mv='mvtemp';saveDB();Bus.notify();mvtRender();
-  alert(`Session MV set to ${S.mv} m/s from the MV–temp model at ${ct} °C.`);
+  alert(`Session MV set to ${ut('vel',S.mv)} from the MV–temp model at ${ut('temp',ct)}.`);
 }
 function tuInit(){
   const sel=document.getElementById('tu-proj');
@@ -2943,7 +2950,7 @@ function tuAddPoint(){tuPoints.push({d:'',v:''});tuRenderPoints();}
 function tuDelPoint(i){tuPoints.splice(i,1);if(!tuPoints.length)tuPoints=[{d:'',v:''}];tuRenderPoints();}
 function tuRenderPoints(){
   document.getElementById('tu-points').innerHTML=tuPoints.map((pt,i)=>
-    `<div class="fgrid" style="margin-bottom:6px"><div class="fld"><label>Distance m ${i+1}</label><input type="number" step="1" value="${pt.d}" oninput="tuPoints[${i}].d=this.value"></div><div class="fld"><label>Measured V (m/s)</label><input type="number" step="0.1" value="${pt.v}" oninput="tuPoints[${i}].v=this.value"></div><div class="fld" style="flex:0 0 auto;justify-content:flex-end"><button class="btn-xs" onclick="tuDelPoint(${i})">remove</button></div></div>`
+    `<div class="fgrid" style="margin-bottom:6px"><div class="fld"><label>Distance m ${i+1}</label><input type="number" data-q="range" step="1" value="${pt.d}" oninput="tuPoints[${i}].d=this.value"></div><div class="fld"><label>Measured V (m/s)</label><input type="number" data-q="vel" step="0.1" value="${pt.v}" oninput="tuPoints[${i}].v=this.value"></div><div class="fld" style="flex:0 0 auto;justify-content:flex-end"><button class="btn-xs" onclick="tuDelPoint(${i})">remove</button></div></div>`
   ).join('');
 }
 function tuSolve(){
@@ -2956,25 +2963,25 @@ function tuSolve(){
   if(bad||mv<=0){alert('Enter a valid muzzle velocity and air conditions.');return;}
   const pts=tuPoints.map(x=>({d:+x.d,v:+x.v})).filter(x=>isFinite(x.d)&&isFinite(x.v)&&x.d>0&&x.v>0);
   if(!pts.length){alert('Enter at least one measured (distance, velocity) point.');return;}
-  for(const pt of pts){if(pt.v>=mv){alert('Measured velocity at '+pt.d+' m ('+pt.v+') is ≥ muzzle velocity — downrange velocity must be lower. Check inputs.');return;}}
+  for(const pt of pts){if(pt.v>=mv){alert('Measured velocity at '+ut('range',pt.d)+' ('+ut('vel',pt.v)+') is ≥ muzzle velocity — downrange velocity must be lower. Check inputs.');return;}}
   const rho=airDensity(tC,hPa,rh), aS=sos(tC);
   let body='', sub='', result=null;
   if(pts.length===1){
     const sol=trueBCsingle(mv,p.mass,pts[0].d,pts[0].v,rho,aS,drag);
     const bcK=sol.bc*LB2KGM2;
     result={mode:'single',drag,bc:sol.bc};
-    sub='single trued BC · '+drag.toUpperCase()+' · '+pts[0].d+' m baseline';
+    sub='single trued BC · '+drag.toUpperCase()+' · '+ut('range',pts[0].d)+' baseline';
     body=`<div class="scs"><div class="sc accent"><div class="sl">Trued BC ${drag.toUpperCase()}</div><div class="sv">${sol.bc.toFixed(4)}</div><div class="su">lb/in² · ${bcK.toFixed(1)} kg/m²</div></div>`+
-      `<div class="sc"><div class="sl">V₀ → V${pts[0].d}m</div><div class="sv" style="font-size:15px">${mv.toFixed(0)}→${pts[0].v.toFixed(0)}</div><div class="su">m/s (Δ ${(mv-pts[0].v).toFixed(1)})</div></div></div>`;
+      `<div class="sc"><div class="sl">V₀ → V @ ${ut('range',pts[0].d)}</div><div class="sv" style="font-size:15px">${un('vel',mv)}→${un('vel',pts[0].v)}</div><div class="su">${lab('vel',UNITS.vel)} (Δ ${un('vel',mv-pts[0].v)})</div></div></div>`;
     if(sol.flag)body+=`<div class="flag warn">${sol.flag}</div>`;
-    body+=`<div class="flag info">Near-field BC from a ${pts[0].d} m baseline (≈Mach ${(mv/aS).toFixed(2)} regime). Valid where the projectile is fast; not yet validated deep subsonic. Add a far point (canopy chrono at 100–150 m) to capture the slow-velocity drag and get a banded BC.</div>`;
+    body+=`<div class="flag info">Near-field BC from a ${ut('range',pts[0].d)} baseline (≈Mach ${(mv/aS).toFixed(2)} regime). Valid where the projectile is fast; not yet validated deep subsonic. Add a far point (canopy chrono at ${ut('range',100)}–${ut('range',150)}) to capture the slow-velocity drag and get a banded BC.</div>`;
   }else{
     const sorted=pts.slice().sort((a,b)=>a.d-b.d);
     const bands=trueBCbanded(mv,p.mass,sorted,rho,aS,drag);
     result={mode:'banded',drag,bands};
     sub='velocity-banded BC · '+drag.toUpperCase()+' · '+pts.length+' points';
-    body='<div class="tablebox"><table><thead><tr><th>Segment</th><th>Velocity band (m/s)</th><th>Distance</th><th>BC '+drag.toUpperCase()+'</th></tr></thead><tbody>'+
-      bands.map((b,i)=>`<tr><td>${i+1}</td><td>${b.vHi.toFixed(0)} → ${b.vLo.toFixed(0)}</td><td>${b.dFrom}–${b.dTo} m</td><td>${b.bc.toFixed(4)}</td></tr>`).join('')+
+    body='<div class="tablebox"><table><thead><tr><th>Segment</th><th>Velocity band ('+lab('vel',UNITS.vel)+')</th><th>Distance</th><th>BC '+drag.toUpperCase()+'</th></tr></thead><tbody>'+
+      bands.map((b,i)=>`<tr><td>${i+1}</td><td>${un('vel',b.vHi)} → ${un('vel',b.vLo)}</td><td>${un('range',b.dFrom)}–${ut('range',b.dTo)}</td><td>${b.bc.toFixed(4)}</td></tr>`).join('')+
       '</tbody></table></div>';
     const spread=Math.max(...bands.map(b=>b.bc))-Math.min(...bands.map(b=>b.bc));
     body+=`<div class="flag ${spread>0.02?'warn':'info'}">BC ${spread>0.02?'changes':'is roughly constant'} across velocity bands (spread ${spread.toFixed(3)}). ${spread>0.02?'This is the signature of a drag curve that bends differently than the '+drag.toUpperCase()+' reference — the banded model captures it; a single BC would not.':'A single BC would model this projectile adequately over the measured range.'}</div>`;
@@ -3057,7 +3064,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.21.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.22.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3282,11 +3289,11 @@ function calypsoParse(s){
 }
 function updateBleDisplay(){
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  set('ble-speed',bleLastSpd.toFixed(1));
+  set('ble-speed',un('wind',bleLastSpd));
   set('ble-dir-val',bleLastDir+'°');
   set('ble-batt',bleLastBatt!=null?bleLastBatt+'%':'—');
   const ctr=document.getElementById('ble-poll-ctr');
-  if(ctr){const age=(Date.now()-bleLastWu)/1000;ctr.textContent=bleLastWu?(age<3?'live · avg '+bleLastAvg.toFixed(1)+' m/s':'signal lost ('+age.toFixed(0)+'s)'):'awaiting wind…';}
+  if(ctr){const age=(Date.now()-bleLastWu)/1000;ctr.textContent=bleLastWu?(age<3?'live · avg '+ut('wind',bleLastAvg):'signal lost ('+age.toFixed(0)+'s)'):'awaiting wind…';}
   // Live mode → push avg wind into the session (avg is stable; instant shown above)
   if(windMode==='live'||homeLive){
     // home-live uses the chosen source (avg/instant); wind-tab live uses avg
@@ -3303,12 +3310,101 @@ function useChronoMV(){
   let f='';
   if(es||sd){
     const okES=!es||es<=5, okSD=!sd||sd<=1.5;
-    f=`<div class="flag ${okES&&okSD?'ok':'warn'}">${okES&&okSD?'✓ Within production target':'⚠ Outside production target'} — ES ${es||'—'} (≤5) · SD ${sd||'—'} (≤1.5) m/s</div>`;
+    f=`<div class="flag ${okES&&okSD?'ok':'warn'}">${okES&&okSD?'✓ Within production target':'⚠ Outside production target'} — ES ${uq('vel',es)} (≤${ut('vel',5)}) · SD ${uq('vel',sd)} (≤${ut('vel',1.5)})</div>`;
   }
   document.getElementById('ch-flags').innerHTML=f;
   Bus.notify();
 }
 
+
+/* ═════════ CORE-15 (V1.22.0) — UNIT-AWARE INPUTS ═════════
+   Every number input resolves a quantity (data-q in the markup, else UNIT_FIELDS by id; '-' =
+   deliberately unitless/exempt). For tagged inputs the element's `value` property is wrapped:
+   code keeps reading and writing CANONICAL metric strings exactly as before, while the field
+   shows the value converted to the unit chosen in Settings. The canonical string is kept
+   verbatim until the user edits the field, so switching units back and forth never drifts a
+   value (250 m → 273.4 yd → 250 m exactly). Labels swap their unit token; dual units add a
+   small secondary line under the field. Exempt by project rule: mass (gr), BC (lb/in²), scope
+   click/travel (scope's own unit), rail/reticle (mrad/MOA by scope), bearings/angles (°), RH (%),
+   twist (shown in inches by design), regulator fields (already converted by their own form). */
+const UNIT_FIELDS={
+  range:['home-dist','tr-dist','tr-max','tr-step','hd-from','hd-to','hd-step','sv-tdist'],
+  zrange:['tr-zero','dc-zero','rf-zero'],
+  vel:['home-mv','tr-mv','tu-mv','mvt-v','st-mv','dc-mv','ch-mv','ch-es','ch-sd','rf-mv'],
+  wind:['hm-wspd','hd-wind','wd-spd','sv-wind','mw-spd','rf-zwspd'],
+  temp:['tr-ct','tu-temp','mvt-t','st-temp','rf-ztemp','wf-temp'],
+  pres:['tr-cp','tu-pres','st-pres','rf-zpres','wf-pres'],
+  sight:['tr-sight','rf-sight'],
+  bullet:['bc-diam','bc-oal','st-diam','st-oal','pf-diam','pf-oal','rf-blen'],
+  alt:['wf-alt'],
+  '-':['home-railoff','hm-tbrg','hm-wbrg','home-angle','tr-bc','tr-crh','tu-rh','bc-mass','bc-ff','bc-g1',
+       'st-mass','st-twist','st-c','wd-dir','wd-xf','sv-angle','sv-wdir','sv-lat','sv-az','cal-m-brg','mw-dir',
+       'rf-downclicks','rf-reg1','rf-reg2','rf-twist','rf-railmrad','rf-zwdir','rf-zrh','rf-dwell',
+       'sc-click','sc-elev','sc-wind','sc-cpr','sc-magmin','sc-magmax','rt-dot',
+       'pf-mass','pf-c','pf-bcg7','pf-bcg1','pf-ff','wf-rh']
+};
+const FIELD_Q=Object.fromEntries(Object.entries(UNIT_FIELDS).flatMap(([q,ids])=>ids.map(id=>[id,q])));
+const NATIVE_VALUE=typeof HTMLInputElement!=='undefined'?Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value'):null;
+const fieldQ=el=>el.dataset.q||FIELD_Q[el.id]||null;
+const isCanonUnit=q=>UNITS[q]===QDEF[q].canon;
+function shownValue(q,canon){
+  const x=parseFloat(canon);
+  if(canon===''||isNaN(x)||isCanonUnit(q))return canon;
+  const u=UNITS[q];return String(+QDEF[q].to[u](x).toFixed(QDEF[q].dp[u]+1));
+}
+function readUnitInput(el){
+  const n=NATIVE_VALUE.get.call(el);
+  if(el._canon!=null&&n===el._shown)return el._canon;
+  const x=parseFloat(n);
+  return n===''||isNaN(x)||isCanonUnit(el._uq)?n:String(+QDEF[el._uq].from[UNITS[el._uq]](x).toPrecision(10));
+}
+function writeUnitInput(el,v){
+  const canon=v==null?'':String(v),shown=shownValue(el._uq,canon);
+  NATIVE_VALUE.set.call(el,shown);el._canon=canon===''?null:canon;el._shown=shown;
+}
+function unitizeInput(el){
+  const q=fieldQ(el);
+  if(el._uq||!NATIVE_VALUE||!q||q==='-'||!QDEF[q])return;
+  el._uq=q;el._attrs={step:el.getAttribute('step'),min:el.getAttribute('min'),max:el.getAttribute('max')};
+  const canon=NATIVE_VALUE.get.call(el);
+  Object.defineProperty(el,'value',{configurable:true,get(){return readUnitInput(this);},set(v){writeUnitInput(this,v);}});
+  el.addEventListener('input',()=>{el._canon=readUnitInput(el);el._shown=NATIVE_VALUE.get.call(el);if(el._canon==='')el._canon=null;unitSecNote(el);});
+  writeUnitInput(el,canon);
+}
+function unitAttrs(el){
+  const q=el._uq,canonUnit=isCanonUnit(q);
+  ['min','max'].forEach(k=>{const a=el._attrs[k];if(a==null)return;el.setAttribute(k,canonUnit?a:shownValue(q,a));});
+  if(el._attrs.step!=null)el.setAttribute('step',canonUnit?el._attrs.step:'any');
+}
+function unitLabel(el){
+  const lbl=el.closest('.fld')&&el.closest('.fld').querySelector('label');if(!lbl)return;
+  if(!lbl._orig)lbl._orig=[...lbl.childNodes].filter(n=>n.nodeType===3).map(n=>[n,n.data]);
+  const q=el._uq,from=QDEF[q].lab[QDEF[q].canon],to=QDEF[q].lab[UNITS[q]];
+  const re=new RegExp('(^|[\\s(])'+from.replace(/[.*+?^${}()|[\]\\/]/g,'\\$&')+'(?=$|[\\s)·,:])');
+  let hit=false;
+  lbl._orig.forEach(([n,t])=>{if(re.test(t)){n.data=t.replace(re,'$1'+to);hit=true;}else n.data=t;});
+  if(!hit&&lbl._orig.length){const [n,t]=lbl._orig[0];n.data=t.replace(/\s*$/,'')+' '+to;}
+}
+function unitSecNote(el){
+  if(el.closest('table'))return;
+  let d=el.nextElementSibling;
+  if(!d||!d.classList.contains('u2')){d=document.createElement('div');d.className='subnote u2';el.insertAdjacentElement('afterend',d);}
+  const v=el.value;d.textContent=v===''?'':secOnly(el._uq,+v);
+}
+function refreshUnits(){
+  document.querySelectorAll('input[type=number]').forEach(el=>{
+    if(!el._uq){unitizeInput(el);if(!el._uq)return;}
+    else el.value=el.value;
+    unitAttrs(el);unitLabel(el);unitSecNote(el);
+  });
+  document.querySelectorAll('[data-ul]').forEach(sp=>{sp.textContent=lab(sp.dataset.ul,UNITS[sp.dataset.ul]);});
+  document.querySelectorAll('[data-uv]').forEach(sp=>{const[q,v]=sp.dataset.uv.split('|');sp.textContent=ut(q,+v);});
+}
+function startUnitObserver(){
+  if(typeof MutationObserver==='undefined')return;
+  const want=n=>n.nodeType===1&&(n.matches('input[type=number],[data-ul],[data-uv]')||n.querySelector('input[type=number],[data-ul],[data-uv]'));
+  new MutationObserver(ms=>{if(ms.some(m=>[...m.addedNodes].some(want)))refreshUnits();}).observe(document.body,{childList:true,subtree:true});
+}
 
 /* ═════════ CORE-13 + CORE-14 (V1.21.0) — WIND VECTOR · HEADING SERVICE ═════════
    One session target bearing (Home "Target bearing" = Solver "Azimuth"), typed or captured from
@@ -3511,6 +3607,7 @@ const _rsl=document.getElementById('ret-size-lbl');if(_rsl)_rsl.textContent=(act
 refreshSelects();renderActBar();syncTrajInputs();syncDragUI();renderQuick();
 runTraj(true);  // V1.16.0: a restored session has a solution before the first tab is opened
 S.tgtBrg=APP.hmTgtBrg??null;syncBearingFields();renderCalMount();
+refreshUnits();startUnitObserver();
 renderStoreWarn();renderIosHint();requestPersist();
 importFromLink();
 }
