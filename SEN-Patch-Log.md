@@ -7,6 +7,25 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.25.0 — minor — Formula verification panel + start-up self-check (CORE-06)
+
+**What.** A new **Formulas** page (More → Formulas) lists every formula the app uses: the equation, its source, where it is used, its status (**✓ Verified** or **EST**) and its anchors. Every anchor is **recomputed live by this build's own functions** each time the page opens and shown as got / want / ✓✗. A "Not modelled" card lists what the app deliberately doesn't do (GA diabolo drag, aero jump, custom Cd–Mach, Sg for L/D < 2.0, transonic BC).
+
+**Self-check at start-up.** The same anchors run at every launch (≈50 ms; the truing round trip, ≈0.5 s, runs only on the page because truing never feeds the dope directly). If any fails, a red line appears on **every** screen: "Formula self-check failed: … — don't trust the dope. See More → Formulas." A wrong formula can no longer reach the field silently.
+
+**Contents — 13 verified, 4 estimates, 34 anchors:**
+- Verified: moist-air density (everyday default 1.1934, ICAO 1.2250) · speed of sound (343.24, ICAO 340.29) · SD §9H (Queen 0.137) · BC lb/in² → kg/m² (Queen 90.0) · Berger Sg (Queen 1:20 1.43 / 1:17 1.98, King 1:20 1.07 / 1:17 1.48 / 1:16 1.67) · under-stabilisation penalty (Queen −2 %, King −13 %) · G7/G1 tables (BRL/McCoy spot values) · RK4 + drag term (py-ballisticcalc Queen G7 and King G1 velocities, Element drop at 1000 m, drop at zero) · wind drift (90°/270° equal and opposite, 0° headwind → none) · angular units · unit conversions · Coriolis (analytic constant-velocity case) · BC truing round trip.
+- EST: spin drift (Litz — formula reproduction only, unvalidated subsonic) · C lookup (`estimateC`; .30 2.699 / .35 3.822 come from theoretical SEN designs; refused below L/D 2.0) · G1 ≈ G7/0.509 (Litz ±5–8 %) · MV–temperature linear fit.
+- **Owner ruling: no theoretical SEN projectile is used as an anchor** (LRAI-35 and LR-25 excluded; Sg anchors are Queen and King only). The LRAI-35 check stays in `runtests.js` purely as a regression value.
+- Values are shown in each formula's own units on purpose: they are reference constants, not field output (exempt from the units layer).
+
+**Security.** The panel is built with `createElement`/`textContent` only — no `innerHTML`.
+
+**Files:** `index.html` — `FORMULAS` registry, `FX_NOT_MODELLED`, `fxRun`, `fxCheck`, `renderFormulas`; `#page-formulas`; `#fx-alarm` banner; panel CSS; `MORE_PAGES` + `gotoPage` hook; boot `fxCheck()`; 5 live version strings. `sw.js` CACHE → `sen-ballistics-v1.25.0`. New `tests/formulatest.js`; `domtest.js` (More lists 7) and `layouttest.js` (12 tabs, More 7) updated for the new page; `rendertest.js` + Formulas page width check; `tests/README.md` (twelve suites).
+**Verify:** `node --check` clean · `runtests.js` 33/33 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · **`formulatest.js` 19/19**: boot check green with no banner, 34/34 anchors live, estimates exactly the four, no SEN anchor, broken air density → banner on every tab + red card, corrupted G7 value caught, restore clears it, no HTML injection. `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.25.0.html`.
+
+---
+
 ## V1.24.2 — patch — Drag engine corrected: standard G1 table, G7 supersonic values, missing π/4 in the drag term · trued BCs migrated
 
 **Found while building CORE-06** (the formula panel needed drag-table anchors). Two independent defects in the one place every trajectory, dope card, hold sheet and truing result comes from (`rk4traj`):

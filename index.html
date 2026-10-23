@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.24.2</title>
+<title>SEN Ballistics V1.25.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -220,6 +220,17 @@ html.fold .navbar{position:fixed;left:0;right:0;bottom:0;background:rgba(10,11,1
   border-top:1px solid var(--border2);padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:4px}
 html.fold .navbar button{flex:1 1 0;flex-direction:column;min-height:50px;padding:9px 2px;font-size:10px;background:transparent;border-color:transparent}
 html.fold .navbar button.on{background:var(--bg3);border-color:var(--accent)}
+/* CORE-06 formula panel */
+.fx-card{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:10px}
+.fx-card.fx-bad{border-color:var(--red)}
+.fx-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.fx-name{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:600}
+.fx-st{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.fx-ok{color:var(--green)}.fx-no{color:var(--red);font-weight:700}
+.fx-st.fx-ok{background:rgba(122,184,122,.1)}.fx-st.fx-est{color:var(--gold);background:rgba(202,168,105,.12)}.fx-st.fx-none{color:var(--text3)}
+.fx-eq{font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:6px;overflow-wrap:anywhere}
+.fx-tab{margin-top:6px}.fx-tab td{white-space:normal}.fx-tab td:first-child{font-weight:400;color:var(--text2)}
+.fx-nm{margin:6px 0 0 18px;font-size:11px;color:var(--text2)}
 /* bottom sheet — used for the More menu and every inline session picker */
 .sheet{position:fixed;inset:0;background:rgba(5,6,8,.72);z-index:60;display:none}
 .sheet.open{display:block}
@@ -266,11 +277,12 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.24.2 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.25.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
 <div class="flag warn" id="store-warn" role="alert" style="display:none;margin:8px 12px 0"></div>
+<div class="flag warn" id="fx-alarm" role="alert" style="display:none;margin:8px 12px 0;color:var(--red);border-color:var(--red)"></div>
 <div class="flag warn" id="ios-hint" style="display:none;margin:8px 12px 0">On iPhone, add SEN to your Home Screen (Share → Add to Home Screen). Safari deletes the data of websites that aren't installed after 7 days without use. <button class="btn-xs" onclick="dismissIosHint()">Got it</button></div>
 
 <!-- Active selections bar — the visible face of Session State -->
@@ -706,10 +718,20 @@ details.disc .dbody{padding:0 14px 14px}
   </div>
 </div>
 
+<!-- ═══════════ FORMULAS (CORE-06, V1.25.0) ═══════════ -->
+<div class="page" id="page-formulas">
+  <div class="panel">
+    <div class="ph"><h2>Formula verification · §20A</h2><span class="psub">every formula, its source and its anchors — recomputed live</span></div>
+    <div class="note" id="fx-sum" style="margin-top:0"></div>
+    <div class="note">Anchors are real projectiles and published references only. Values stay in each formula's own units — they are reference constants, not field output. The same check runs at every start; a failure shows a warning on every screen.</div>
+  </div>
+  <div id="fx-list"></div>
+</div>
+
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.24.2 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.25.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1670,7 +1692,7 @@ function renderActBar(){
    one code path into the session state and the V1.16.0 auto-solve fires from all of them. */
 const MORE_PAGES=[['stab','Stability','Berger Sg · twist'],['truing','BC / Truing','BC, SD, MV–temp'],
   ['holds','Holds','reticle holdover'],['profiles','Profiles','rifles, scopes, ammo'],
-  ['sensors','Sensors','Calypso · chrono'],['settings','Settings','units, display, field']];
+  ['sensors','Sensors','Calypso · chrono'],['formulas','Formulas','§20A self-check'],['settings','Settings','units, display, field']];
 function openSheet(html){document.getElementById('sbox').innerHTML='<div class="sgrab"></div>'+html;document.getElementById('sheet').classList.add('open');}
 function closeSheet(){document.getElementById('sheet').classList.remove('open');document.getElementById('sbox').innerHTML='';}
 function openMore(){
@@ -2140,6 +2162,7 @@ function gotoPage(p){
   if(p==='dope'){refreshDopeSel();loadDope();}
   if(p==='truing'){tuInit();if(getProj())bcFromProj();else calcBC();mvtRender();}
   if(p==='holds')renderHolds();
+  if(p==='formulas')renderFormulas();
 }
 // V1.17.1: only wire buttons that actually name a page. #nav-more has no data-page and keeps
 // its own inline openMore() handler — the old unconditional wiring overwrote it with
@@ -2680,7 +2703,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.24.2'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.25.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3146,7 +3169,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.24.2'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.25.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3404,6 +3427,98 @@ function useChronoMV(){
   Bus.notify();
 }
 
+
+/* ═════════ CORE-06 (V1.25.0) — FORMULA VERIFICATION PANEL (§20A) ═════════
+   Every formula the app uses, its source, its status and its anchors. Each anchor is
+   recomputed LIVE by the app's own functions — on boot (a failure raises a banner on every
+   screen) and whenever the Formulas page opens. Anchors are real projectiles and published
+   references only: no theoretical SEN designs (owner ruling 2026-10-23). Values are shown in
+   each formula's native units on purpose — they are reference constants, not field output. */
+const FX_ENV=()=>({rho:airDensity(20,1010,65),aS:sos(20)});
+const fxAt=(pts,r)=>pts.find(p=>Math.abs(p.range-r)<1e-6);
+const fxBerger=(m,oal,tw,C)=>calcSg(m,6.35,oal,tw*25.4,853*0.3048,C,10,986);
+const FORMULAS=[
+  {name:'Moist-air density (Magnus)',status:'ok',eq:'ρ = (P−e)/(R_d·T) + e/(R_v·T), e = RH·6.1078·10^(7.5t/(237.3+t))',
+    src:'Magnus vapour pressure; R_d 287.058, R_v 461.495 J/(kg·K) — skill §5A; ICAO standard atmosphere',used:'every trajectory, truing',
+    anchors:[{l:'Everyday default 20 °C / 1010 hPa / 65 %',got:()=>airDensity(20,1010,65),want:1.1934,tol:5e-4,u:'kg/m³'},
+             {l:'ICAO 15 °C / 1013.25 hPa / dry',got:()=>airDensity(15,1013.25,0),want:1.2250,tol:5e-4,u:'kg/m³'}]},
+  {name:'Speed of sound',status:'ok',eq:'a = √(γ·R_d·T), γ = 1.4',src:'ideal gas — skill §5A; ICAO 340.29 m/s at 15 °C',used:'Mach for drag lookup, transonic flags',
+    anchors:[{l:'20 °C',got:()=>sos(20),want:343.24,tol:0.02,u:'m/s'},{l:'ICAO 15 °C',got:()=>sos(15),want:340.29,tol:0.02,u:'m/s'}]},
+  {name:'Sectional density (§9H)',status:'ok',eq:'SD = m_gr / (7000·d_in²) — no π/4',src:'small-arms convention — skill §3',used:'BC / Truing, Bench',
+    anchors:[{l:'Altaros Queen .25, 60 gr',got:()=>calcSD(60,6.35),want:0.137,tol:5e-4,u:'lb/in²'}]},
+  {name:'BC unit conversion (§9H)',status:'ok',eq:'BC[kg/m²] = BC[lb/in²] × 703.07',src:'1 lb/in² = 703.0696 kg/m² — skill §2',used:'BC display, drag term',
+    anchors:[{l:'Queen G7 0.128',got:()=>0.128*LB2KGM2,want:90.0,tol:0.05,u:'kg/m²'}]},
+  {name:'Berger gyroscopic stability',status:'ok',eq:'Sg = C·m / (t²·d³·L·(1+L²)) · (v/2800)^⅓ · (T_F+460)/519 · 29.92/P_inHg',
+    src:'Berger twist calculator (bergerbullets.com), reproduced at 853 fps / 10 °C / 986 hPa — skill §8. C verified for Queen 2.283 and King 1.886 only',used:'Stability, BC penalty, spin drift',
+    anchors:[{l:'Queen 1:20″ (C 2.283)',got:()=>fxBerger(60,12.9,20,2.283),want:1.43,tol:0.005,u:''},
+             {l:'Queen 1:17″',got:()=>fxBerger(60,12.9,17,2.283),want:1.98,tol:0.005,u:''},
+             {l:'King 1:20″ (C 1.886)',got:()=>fxBerger(66,13.9,20,1.886),want:1.07,tol:0.005,u:''},
+             {l:'King 1:17″',got:()=>fxBerger(66,13.9,17,1.886),want:1.48,tol:0.005,u:''},
+             {l:'King 1:16″',got:()=>fxBerger(66,13.9,16,1.886),want:1.67,tol:0.005,u:''}]},
+  {name:'Under-stabilisation BC penalty',status:'ok',eq:'BC_eff = BC·(Sg/1.5)^0.4 for 1.0 ≤ Sg < 1.5',src:'Berger-anchored — skill §4B',used:'every trajectory when Sg < 1.5',
+    anchors:[{l:'Queen 1:20″, Sg 1.43 → −2 %',got:()=>bcEffSg(1,1.43),want:0.98,tol:0.005,u:'×'},{l:'King 1:20″, Sg 1.07 → −13 %',got:()=>bcEffSg(1,1.07),want:0.87,tol:0.005,u:'×'}]},
+  {name:'G7 / G1 drag tables',status:'ok',eq:'Cd(Mach), linear interpolation',src:'BRL / McCoy standard tables — ballistics-engine data/g1.csv, g7.csv = py-ballisticcalc drag_tables.py (V1.24.2)',used:'every trajectory',
+    anchors:[{l:'G7 Mach 0.90',got:()=>interp(G7T,0.9),want:0.1464,tol:1e-9,u:'Cd'},{l:'G7 Mach 1.00',got:()=>interp(G7T,1),want:0.3803,tol:1e-9,u:'Cd'},
+             {l:'G1 Mach 0.75',got:()=>interp(G1T,0.75),want:0.2313,tol:1e-9,u:'Cd'},{l:'G1 Mach 1.00',got:()=>interp(G1T,1),want:0.4805,tol:1e-9,u:'Cd'}]},
+  {name:'RK4 point-mass trajectory + drag term',status:'ok',eq:'a = (π/8)·ρ·v²·Cd/BC · RK4, dt 2 ms · zero by bisection on launch angle',
+    src:'first principles (skill §6C/§7); reproduced against py-ballisticcalc 3.1.1 and the owner\'s Element Ballistics table (V1.24.2)',used:'every solution, dope card, hold sheet, truing',
+    anchors:[{l:'Queen G7 0.128 @ 260 m/s — v at 200 m (py-ballisticcalc)',got:()=>{const e=FX_ENV();return fxAt(rk4traj(260,0.128,60,50,200,0.044,e.rho,e.aS,1,'g7',0.245,null),200).v;},want:229.40,tol:0.05,u:'m/s'},
+             {l:'King G1 0.250 @ 260 m/s — v at 200 m (py-ballisticcalc)',got:()=>{const e=FX_ENV();return fxAt(rk4traj(260,0,66,50,200,0.044,e.rho,e.aS,1,'g1',0.250,null),200).v;},want:231.19,tol:0.05,u:'m/s'},
+             {l:'Queen G1 0.245 @ 285 m/s — drop at 1000 m (Element, ±0.5 %)',got:()=>-fxAt(rk4traj(285,0,60,100,1000,0.070,airDensity(27.5,1011,53),sos(27.5),1,'g1',0.245,null),1000).drop/10,want:8636.8,tol:43.2,u:'cm'},
+             {l:'drop at the zero range',got:()=>{const e=FX_ENV();return fxAt(rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),50).drop;},want:0,tol:0.1,u:'mm'}]},
+  {name:'Wind drift (lag time, signed crosswind)',status:'ok',eq:'drift = W·sin θ·(t − R/v₀)',src:'Didion / McCoy lag-time rule — skill §9; sign fix V1.8.2, headwind fix V1.23.0',used:'every solution',
+    anchors:[{l:'90° and 270° equal and opposite at 100 m',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),r=solveShot(p,nearestPt,50,100,0,4,90,260,0.1,0,90).mrWind,l=solveShot(p,nearestPt,50,100,0,4,270,260,0.1,0,90).mrWind;return Math.abs(r)>0.05?r+l:NaN;},want:0,tol:1e-9,u:'mrad'},
+             {l:'0° headwind → no windage',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null);return solveShot(p,nearestPt,50,100,0,4,0,260,0.1,0,90).mrWind;},want:0,tol:1e-9,u:'mrad'}]},
+  {name:'Angular units',status:'ok',eq:'mrad = mm/m · 1 MOA = 0.290888 mrad',src:'exact definitions — skill §10',used:'every dial and hold',
+    anchors:[{l:'100 mm at 100 m',got:()=>toMOA(100,100),want:3.43775,tol:1e-5,u:'MOA'},{l:'¼ MOA click',got:()=>clickMrad(0.25,'moa'),want:0.072722,tol:1e-6,u:'mrad'}]},
+  {name:'Unit conversions',status:'ok',eq:'1 yd = 0.9144 m · 1 ft = 0.3048 m · 1 in = 25.4 mm',src:'international yard and pound (1959), exact',used:'every displayed value',
+    anchors:[{l:'0.9144 m in yards',got:()=>QDEF.range.to.yd(0.9144),want:1,tol:1e-12,u:'yd'},{l:'0.3048 m/s in fps',got:()=>QDEF.vel.to.fps(0.3048),want:1,tol:1e-12,u:'fps'}]},
+  {name:'Coriolis',status:'ok',eq:'Δ_h = 2Ω·sin(lat)·∫x dt, Δ_v = 2Ω·cos(lat)·sin(az)·∫x dt',src:'exact physics; analytic constant-velocity check Ω·sin(lat)·X·T (McCoy)',used:'Solver (optional)',
+    anchors:[{l:'constant 250 m/s, 500 m, lat 46.05°',got:()=>{const pts=[];for(let x=0;x<=500;x+=1)pts.push({range:x,tof:x/250});return coriolisH_mm(pts,pts[500],46.05);},want:OMEGA*Math.sin(46.05*DEG)*500*2*1000,tol:0.01,u:'mm'}]},
+  {name:'BC truing (bisection)',status:'ok',eq:'BC such that v_model(d) = v_measured(d)',src:'inverse of the verified trajectory engine; round-trip check',used:'BC / Truing',
+    anchors:[{slow:true,l:'Queen G7 0.128: true BC from its own 100 m velocity',got:()=>{const e=FX_ENV();return trueBCsingle(260,60,100,velAtDist(260,0.128,60,100,e.rho,e.aS,'g7'),e.rho,e.aS,'g7').bc;},want:0.128,tol:1e-4,u:'lb/in²'}]},
+  {name:'Spin drift (Litz)',status:'est',eq:'drift_in = 1.25·(Sg+1.2)·t^1.83',src:'Litz empirical fit from supersonic rifle data — NOT validated for subsonic airgun slugs. Default off',used:'Solver (optional)',
+    anchors:[{l:'formula reproduction: Sg 1.5, t 1.0 s',got:()=>spinDrift_mm(1.5,1.0,'right'),want:85.725,tol:1e-6,u:'mm'}]},
+  {name:'Stability constant C lookup',status:'est',eq:'nearest verified .25 anchor; .30 2.699 and .35 3.822 class values',
+    src:'.25 Queen/King Berger-verified; .30/.35 values come from theoretical SEN designs (not real projectiles) → ESTIMATE. Refused outside .25 L/D 2.0–3.1 and for other calibres',used:'Stability when a profile has no C',
+    anchors:[{l:'Queen geometry → 2.283',got:()=>estimateC(6.35,12.9).c,want:2.283,tol:1e-9,u:''},{l:'L/D 1.66 (ZAN .25) → not computed',got:()=>estimateC(6.35,10.58).valid?1:0,want:0,tol:0,u:''}]},
+  {name:'G1 ≈ G7 / 0.509',status:'est',eq:'BC_G1 ≈ BC_G7 / 0.509',src:'Litz conversion factor, ±5–8 % — skill §4A',used:'BC / Truing estimate',
+    anchors:[{l:'Queen G7 0.128',got:()=>0.128/0.509,want:0.2515,tol:1e-4,u:'lb/in²'}]},
+  {name:'MV–temperature model',status:'est',eq:'v(t) = a + b·t, least squares',src:'regression is exact; linear behaviour is an assumption until chrono data across temperatures exists',used:'Truing → MV–temp',
+    anchors:[{l:'270 m/s at 0 °C, 280 at 20 °C → 10 °C',got:()=>mvtFit([{t:0,v:270},{t:20,v:280}]).at(10),want:275,tol:1e-9,u:'m/s'}]}
+];
+const FX_NOT_MODELLED=['GA diabolo drag model — pellets use G1 (warning above Mach 0.80)','Aerodynamic jump','Custom Cd–Mach tables (needs Doppler data)','Stability for L/D < 2.0 (Berger not validated)','Transonic BC behaviour (±30 %, Doppler only)'];
+// full=false (boot): skips anchors marked slow (the truing round trip, ~0.5 s) — truing never
+// feeds the dope directly; they run whenever the Formulas page opens.
+function fxRun(full){
+  return FORMULAS.map(f=>({f,res:f.anchors.filter(a=>full||!a.slow).map(a=>{let got;try{got=a.got();}catch(e){got=NaN;}
+    return{a,got,ok:Number.isFinite(got)&&Math.abs(got-a.want)<=a.tol};})}));
+}
+let fxLast=null;
+function fxCheck(full){
+  fxLast=fxRun(full);
+  const bad=fxLast.filter(r=>r.res.some(x=>!x.ok)).map(r=>r.f.name);
+  const al=document.getElementById('fx-alarm');
+  if(al){al.textContent=bad.length?'⚠ Formula self-check failed: '+bad.join(', ')+' — don\'t trust the dope. See More → Formulas.':'';al.style.display=bad.length?'':'none';}
+  return bad;
+}
+function renderFormulas(){
+  fxCheck(true);
+  const box=document.getElementById('fx-list');if(!box)return;
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const fmt=v=>!Number.isFinite(v)?'error':Math.abs(v)>=100?v.toFixed(2):(+v.toPrecision(5)).toString();
+  const n=fxLast.reduce((s,r)=>s+r.res.length,0),okN=fxLast.reduce((s,r)=>s+r.res.filter(x=>x.ok).length,0);
+  document.getElementById('fx-sum').textContent=`${okN} of ${n} anchors pass · ${FORMULAS.filter(f=>f.status==='ok').length} verified · ${FORMULAS.filter(f=>f.status==='est').length} estimates · computed live by this build`;
+  box.replaceChildren(...fxLast.map(({f,res})=>{
+    const card=el('div','fx-card'+(res.some(x=>!x.ok)?' fx-bad':''));
+    const head=el('div','fx-head');head.append(el('span','fx-name',f.name),el('span','fx-st fx-'+f.status,f.status==='ok'?'✓ Verified':'EST'));
+    const rows=el('table','fx-tab');
+    res.forEach(({a,got,ok})=>{const tr=el('tr');tr.append(el('td',null,a.l),el('td',null,fmt(got)+(a.u?' '+a.u:'')),el('td',null,'want '+fmt(a.want)),el('td',ok?'fx-ok':'fx-no',ok?'✓':'✗'));rows.append(tr);});
+    card.append(head,el('div','fx-eq',f.eq),el('div','note',f.src+' · used in: '+f.used),rows);
+    return card;
+  }),(()=>{const c=el('div','fx-card');c.append(el('div','fx-head',null));c.firstChild.append(el('span','fx-name','Not modelled'),el('span','fx-st fx-none','—'));
+    const ul=el('ul','fx-nm');FX_NOT_MODELLED.forEach(t=>ul.append(el('li',null,t)));c.append(ul);return c;})());
+}
 
 /* ═════════ CORE-04 (V1.24.0) — FOLD-AWARE LAYOUT ═════════
    The screen is classified by SHAPE, not pixel count: narrow (<600 CSS px) = phone layout
@@ -3738,7 +3853,7 @@ DB.dopeCards.forEach(migrateDopeCard);
 S.tgtBrg=APP.hmTgtBrg??null;syncBearingFields();renderCalMount();
 refreshUnits();startUnitObserver();
 applyLayout();window.addEventListener('resize',()=>dbnc('layout',applyLayout,120));
-renderStoreWarn();renderIosHint();requestPersist();
+renderStoreWarn();renderIosHint();requestPersist();fxCheck();
 importFromLink();
 }
 window.addEventListener('hashchange',importFromLink);

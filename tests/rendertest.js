@@ -44,6 +44,12 @@ for(const [name,vp] of [['outer',OUTER],['inner',INNER]]){
   }
 }
 
+// V1.25.0: the Formulas page fits the outer screen (no sideways page scroll).
+{const p=await open(OUTER);await p.evaluate(()=>gotoPage('formulas'));await p.waitForTimeout(300);
+ const o=await p.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,cards:document.querySelectorAll('#fx-list .fx-card').length}));
+ chk('Formulas page fits the outer screen width',o.cards>10&&o.sw<=o.cw,JSON.stringify(o));
+ await p.context().close();}
+
 // High contrast lifts main text to white; no page-wide filter left.
 const p=await open(INNER);
 const css=await p.evaluate(()=>{const g=()=>getComputedStyle(document.documentElement).getPropertyValue('--text').trim();const n=g();setApp('contrast','high');const h=g();setApp('contrast','normal');
