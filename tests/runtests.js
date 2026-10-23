@@ -25,10 +25,32 @@ const at=r=>pts.find(p=>Math.abs(p.range-r)<1e-6);
 chk('drop @ zero(50m) = 0.000 mm',   at(50).drop, 0.000, 5e-3);
 const ptsFar=rk4traj(240,0.15,60,50,800,0.044,env.rho,env.aS,25,'g7',0.25,null,env);
 chk('800 m run completes',           ptsFar[ptsFar.length-1].range, 800, 1e-6);
-chk('800 m drop = 76.76 m',          ptsFar[ptsFar.length-1].drop/1000, -76.76, 0.25);
+chk('800 m drop = 69.79 m (py-ballisticcalc)', ptsFar[ptsFar.length-1].drop/1000, -69.79, 0.10);  // V1.24.2: was 76.76 (4/π drag)
 const sol=solveShot(pts,nearestPt,50,100,0,0,90,255,0.0727,0,90);
 chk('solve @100 returns solution',   sol?1:0, 1);
 chk('dial @ zero range = 0 mrad',    solveShot(pts,nearestPt,50,50,0,0,90,255,0.1,0,90).mrElev, 0, 1e-6);
+
+console.log('\n=== V1.24.2 DRAG (§20A: standard tables + independent solvers) ===');
+const atR=(p,r)=>p.find(q=>Math.abs(q.range-r)<1e-6);
+// Standard tables: ballistics-engine data/*.csv (BRL/McCoy) = py-ballisticcalc drag_tables.py
+chk('G1 Cd M0.50 = 0.2032',           interp(G1T,0.50), 0.2032, 1e-9);
+chk('G1 Cd M0.75 = 0.2313',           interp(G1T,0.75), 0.2313, 1e-9);
+chk('G1 Cd M1.00 = 0.4805',           interp(G1T,1.00), 0.4805, 1e-9);
+chk('G7 Cd M1.00 = 0.3803',           interp(G7T,1.00), 0.3803, 1e-9);
+chk('G7 Cd M1.50 = 0.3440',           interp(G7T,1.50), 0.3440, 1e-9);
+chk('G7 Cd M2.00 = 0.2980',           interp(G7T,2.00), 0.2980, 1e-9);
+// py-ballisticcalc 3.1.1, identical inputs (20 °C / 1010 hPa / 65 %, sight 44 mm, zero 50 m)
+const q7=rk4traj(260,0.128,60,50,200,0.044,env.rho,env.aS,1,'g7',0.245,null);
+chk('Queen G7 0.128 @260: v200 = 229.40 m/s (pbc)', atR(q7,200).v, 229.40, 0.05);
+chk('Queen G7 0.128 @260: drop200 = -2288.6 mm (pbc)', atR(q7,200).drop, -2288.6, 2);
+const k1=rk4traj(260,0,66,50,200,0.044,env.rho,env.aS,1,'g1',0.250,null);
+chk('King G1 0.250 @260: v200 = 231.19 m/s (pbc)', atR(k1,200).v, 231.19, 0.05);
+chk('King G1 0.250 @260: drop200 = -2277.3 mm (pbc)', atR(k1,200).drop, -2277.3, 2);
+// Owner's Element Ballistics table (Jul 2026): Queen G1 0.245, 285 m/s, sight 70 mm, zero 100 m, 27.5 °C / 1011 hPa / 53 %
+const el=rk4traj(285,0,60,100,1000,0.070,airDensity(27.5,1011,53),sos(27.5),1,'g1',0.245,null);
+chk('Element: drop500 = 1533.8 cm (±0.5%)', -atR(el,500).drop/10, 1533.8, 7.7);
+chk('Element: drop1000 = 8636.8 cm (±0.5%)', -atR(el,1000).drop/10, 8636.8, 43.2);
+chk('Element: v1000 = 165 m/s (±1)', atR(el,1000).v, 165, 1);
 
 console.log('\n=== V1.16.0 NEW BEHAVIOUR ===');
 chk('trajReason defined',            typeof trajReason, 'string');

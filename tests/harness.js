@@ -24,6 +24,7 @@ global.document={
 global.document.documentElement.style={setProperty(){}};
 global.localStorage={getItem(k){return store[k]??null},setItem(k,v){store[k]=String(v)},removeItem(k){delete store[k]}};
 global.window={scrollTo(){},addEventListener(){},matchMedia(){return{matches:false,addEventListener(){}}},devicePixelRatio:1};
+global.matchMedia=global.window.matchMedia;  // V1.24.2: isCoarse() calls the bare global, as in a browser
 global.navigator={bluetooth:undefined,wakeLock:undefined,serviceWorker:undefined,userAgent:'node'};
 global.location={protocol:'file:',reload(){}};
 global.alert=()=>{};global.confirm=()=>false;global.prompt=()=>null;

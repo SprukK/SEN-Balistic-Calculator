@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.24.1</title>
+<title>SEN Ballistics V1.24.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -266,7 +266,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.24.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.24.2 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -709,7 +709,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.24.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.24.2 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -724,8 +724,12 @@ details.disc .dbody{padding:0 14px 14px}
    Berger Sg anchors (Queen C=2.283, King C=1.886, LR-25 C=1.877)
    ═════════════════════════════════════════════════════════════ */
 const G=9.80665,GR2KG=0.00006479891,LB2KGM2=703.07;
-const G7T=[[0,0.1198],[0.05,0.1197],[0.1,0.1196],[0.15,0.1194],[0.2,0.1193],[0.25,0.1194],[0.3,0.1194],[0.35,0.1194],[0.4,0.1193],[0.45,0.1193],[0.5,0.1194],[0.55,0.1193],[0.6,0.1194],[0.65,0.1197],[0.7,0.1202],[0.725,0.1207],[0.75,0.1215],[0.775,0.1226],[0.8,0.1242],[0.825,0.1266],[0.85,0.1306],[0.875,0.1368],[0.9,0.1464],[0.925,0.166],[0.95,0.2054],[0.975,0.2993],[1,0.3803],[1.025,0.4015],[1.05,0.4043],[1.075,0.4034],[1.1,0.4014],[1.125,0.3987],[1.15,0.3955],[1.2,0.3884],[1.3,0.3749],[1.4,0.3598],[1.5,0.3445],[1.6,0.3286],[1.8,0.2998],[2,0.2776]];
-const G1T=[[0,0.2629],[0.05,0.2558],[0.1,0.2487],[0.15,0.2413],[0.2,0.2335],[0.25,0.2252],[0.3,0.2164],[0.35,0.207],[0.4,0.1973],[0.45,0.1869],[0.5,0.1758],[0.55,0.164],[0.6,0.1515],[0.65,0.1385],[0.7,0.124],[0.725,0.1165],[0.75,0.1082],[0.775,0.114],[0.8,0.1226],[0.825,0.1326],[0.85,0.1434],[0.875,0.1528],[0.9,0.1616],[0.925,0.1692],[0.95,0.1756],[0.975,0.1808],[1,0.184],[1.05,0.1893],[1.1,0.194],[1.2,0.2005],[1.3,0.206],[1.4,0.2115],[1.5,0.2168],[1.6,0.222],[1.8,0.232],[2,0.2416],[2.5,0.263],[3,0.2837]];
+/* V1.24.2 — standard drag tables (Mach, Cd), BRL/McCoy, verbatim to Mach 5. Verified identical at every
+   point in two independent sources: ballistics-engine data/g1.csv + g7.csv (BRL / McCoy / Lowry 1965) and
+   py-ballisticcalc drag_tables.py. The previous G1 table was NOT the G1 function (Cd at Mach 0.75 was
+   0.1082 vs 0.2313); the previous G7 table deviated above Mach 1.2. */
+const G7T=[[0,0.1198],[0.05,0.1197],[0.1,0.1196],[0.15,0.1194],[0.2,0.1193],[0.25,0.1194],[0.3,0.1194],[0.35,0.1194],[0.4,0.1193],[0.45,0.1193],[0.5,0.1194],[0.55,0.1193],[0.6,0.1194],[0.65,0.1197],[0.7,0.1202],[0.725,0.1207],[0.75,0.1215],[0.775,0.1226],[0.8,0.1242],[0.825,0.1266],[0.85,0.1306],[0.875,0.1368],[0.9,0.1464],[0.925,0.166],[0.95,0.2054],[0.975,0.2993],[1,0.3803],[1.025,0.4015],[1.05,0.4043],[1.075,0.4034],[1.1,0.4014],[1.125,0.3987],[1.15,0.3955],[1.2,0.3884],[1.25,0.381],[1.3,0.3732],[1.35,0.3657],[1.4,0.358],[1.5,0.344],[1.55,0.3376],[1.6,0.3315],[1.65,0.326],[1.7,0.3209],[1.75,0.316],[1.8,0.3117],[1.85,0.3078],[1.9,0.3042],[1.95,0.301],[2,0.298],[2.05,0.2951],[2.1,0.2922],[2.15,0.2892],[2.2,0.2864],[2.25,0.2835],[2.3,0.2807],[2.35,0.2779],[2.4,0.2752],[2.45,0.2725],[2.5,0.2697],[2.55,0.267],[2.6,0.2643],[2.65,0.2615],[2.7,0.2588],[2.75,0.2561],[2.8,0.2533],[2.85,0.2506],[2.9,0.2479],[2.95,0.2451],[3,0.2424],[3.1,0.2368],[3.2,0.2313],[3.3,0.2258],[3.4,0.2205],[3.5,0.2154],[3.6,0.2106],[3.7,0.206],[3.8,0.2017],[3.9,0.1975],[4,0.1935],[4.2,0.1861],[4.4,0.1793],[4.6,0.173],[4.8,0.1672],[5,0.1618]];
+const G1T=[[0,0.2629],[0.05,0.2558],[0.1,0.2487],[0.15,0.2413],[0.2,0.2344],[0.25,0.2278],[0.3,0.2214],[0.35,0.2155],[0.4,0.2104],[0.45,0.2061],[0.5,0.2032],[0.55,0.202],[0.6,0.2034],[0.7,0.2165],[0.725,0.223],[0.75,0.2313],[0.775,0.2417],[0.8,0.2546],[0.825,0.2706],[0.85,0.2901],[0.875,0.3136],[0.9,0.3415],[0.925,0.3734],[0.95,0.4084],[0.975,0.4448],[1,0.4805],[1.025,0.5136],[1.05,0.5427],[1.075,0.5677],[1.1,0.5883],[1.125,0.6053],[1.15,0.6191],[1.2,0.6393],[1.25,0.6518],[1.3,0.6589],[1.35,0.6621],[1.4,0.6625],[1.45,0.6607],[1.5,0.6573],[1.55,0.6528],[1.6,0.6474],[1.65,0.6413],[1.7,0.6347],[1.75,0.628],[1.8,0.621],[1.85,0.6141],[1.9,0.6072],[1.95,0.6003],[2,0.5934],[2.05,0.5867],[2.1,0.5804],[2.15,0.5743],[2.2,0.5685],[2.25,0.563],[2.3,0.5577],[2.35,0.5527],[2.4,0.5481],[2.45,0.5438],[2.5,0.5397],[2.6,0.5325],[2.7,0.5264],[2.8,0.5211],[2.9,0.5168],[3,0.5133],[3.1,0.5105],[3.2,0.5084],[3.3,0.5067],[3.4,0.5054],[3.5,0.504],[3.6,0.503],[3.7,0.5022],[3.8,0.5016],[3.9,0.501],[4,0.5006],[4.2,0.4998],[4.4,0.4995],[4.6,0.4992],[4.8,0.499],[5,0.4988]];
 function interp(T,x){
   if(x<=T[0][0])return T[0][1];if(x>=T[T.length-1][0])return T[T.length-1][1];
   for(let i=0;i<T.length-1;i++)if(x>=T[i][0]&&x<=T[i+1][0]){const t=(x-T[i][0])/(T[i+1][0]-T[i][0]);return T[i][1]+t*(T[i+1][1]-T[i][1]);}return T[T.length-1][1];
@@ -753,7 +757,12 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
   };
   const cur=mkEnv(rho,aS,bc_g7,bc_g1);
   const zen=zeroEnv?mkEnv(zeroEnv.rho,zeroEnv.aS,zeroEnv.bc7??bc_g7,zeroEnv.bc1??bc_g1):cur;
-  function D(vx,vy,env){const v=Math.sqrt(vx*vx+vy*vy),m=v/env.aS,cd=interp(DT,m),dec=(env.rho*v*v*cd)/(2*env.bcSiAt(v));return[-(dec/v)*vx,-(dec/v)*vy-G];}
+  /* V1.24.2 — drag deceleration = (π/8)·ρ·v²·Cd / BC, i.e. (π/4)·ρv²Cd / (2·BC_si). The small-arms BC
+     (§9H: m/(i·d²), no π/4) omits the reference area's π/4, so the drag term must restore it:
+     F = ½ρv²·Cd·(πd²/4) → a = (π/8)ρv²Cd·d²/m. Without it every trajectory had 4/π = 27.3% too much
+     drag. Verified: first principles · py-ballisticcalc (constant 2.08551e-4 = (π/8)·ρ₀/144, reproduced to
+     0.01 m/s) · owner's Element Ballistics table (Queen G1 0.245, 285 m/s) within 0.2% to 1000 m. */
+  function D(vx,vy,env){const v=Math.sqrt(vx*vx+vy*vy),m=v/env.aS,cd=interp(DT,m),dec=Math.PI/4*(env.rho*v*v*cd)/(2*env.bcSiAt(v));return[-(dec/v)*vx,-(dec/v)*vy-G];}
   function step(x,y,vx,vy,h,env){
     const[k1ax,k1ay]=D(vx,vy,env);const[k2ax,k2ay]=D(vx+h*k1ax/2,vy+h*k1ay/2,env);const[k3ax,k3ay]=D(vx+h*k2ax/2,vy+h*k2ay/2,env);const[k4ax,k4ay]=D(vx+h*k3ax,vy+h*k3ay,env);
     return[x+h*vx,y+h*vy,vx+h*(k1ax+2*k2ax+2*k3ax+k4ax)/6,vy+h*(k1ay+2*k2ay+2*k3ay+k4ay)/6];
@@ -1509,6 +1518,23 @@ function migrateWeatherSeeds(){
     const w=DB.weathers.find(x=>x.name===old.n&&x.temp===old.t&&x.pres===old.p&&x.rh===old.r);
     if(w){if(!referenced(w.id)){DB.weathers=DB.weathers.filter(x=>x.id!==w.id);}else{w.name+=' (superseded)';}changed=true;}
   }
+  if(changed)saveDB();
+}
+/* V1.24.2 — BCs trued in the app before the drag fix were solved against the old engine.
+   G7: the table was right below Mach 1.2 and only the π/4 changed, so the same physical drag
+   needs BC × π/4 — converted exactly. G1: the table itself changed, so no exact conversion
+   exists — the BC is set to pending (trajectory blocked with truing guidance, the standing
+   convention) and the old value is kept in the notes. Runs once per record (bcConv). */
+function migrateTruedBC(){
+  let changed=false;const k=Math.PI/4,r4=x=>+(x*k).toFixed(4);
+  DB.projectiles.forEach(p=>{
+    if(!p.bcTrued||p.bcConv)return;
+    const g7=/·g7·/.test(p.bcTrued);
+    if(g7){if(p.bcg7>0)p.bcg7=r4(p.bcg7);if(p.bcBands&&p.bcBands.drag==='g7')p.bcBands.bands.forEach(b=>{b.bc=r4(b.bc);});}
+    else{p.notes=((p.notes||'')+' · G1 BC '+p.bcg1+' trued before V1.24.2 (wrong G1 table) — re-true needed').replace(/^ · /,'');
+      p.bcg1=0;if(p.bcBands&&p.bcBands.drag==='g1')p.bcBands=null;}
+    p.bcConv=g7?'V1.24.2 ×π/4':'V1.24.2 re-true';changed=true;
+  });
   if(changed)saveDB();
 }
 function seedDefaults(){
@@ -2654,7 +2680,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.24.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.24.2'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3120,7 +3146,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.24.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.24.2'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3690,7 +3716,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ═════════ boot ═════════ */
 Bus.on(()=>{renderActBar();syncTrajInputs();refreshSelects();if(homeVisible())renderQuick();autoTraj();});
 async function boot(){
-await loadDB();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();
+await loadDB();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();
 DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (V1.13.2): legacy free-text cleanup
 /* V1.12.5 (C3): saveDB persists profile IDs but not the derived overridables (mv/bc/sight/ct/cp/crh)
    — they were left null on relaunch, so Home showed "select rifle…" despite restored chips.

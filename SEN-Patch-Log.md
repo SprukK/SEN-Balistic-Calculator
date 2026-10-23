@@ -7,6 +7,40 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.24.2 — patch — Drag engine corrected: standard G1 table, G7 supersonic values, missing π/4 in the drag term · trued BCs migrated
+
+**Found while building CORE-06** (the formula panel needed drag-table anchors). Two independent defects in the one place every trajectory, dope card, hold sheet and truing result comes from (`rk4traj`):
+
+1. **The G1 table was not the G1 drag function.** It matched only to Mach 0.15, then fell away: Cd at Mach 0.50 was 0.1758 (standard 0.2032), at **0.75 0.1082 (standard 0.2313 — less than half)**, at 1.00 0.1840 (0.4805). Present since V3.x. The G7 table was correct up to Mach 1.2 and deviated above it (Mach 2.0: 0.2776 vs 0.2980), with points missing — irrelevant to subsonic airguns, but wrong.
+2. **The drag term was missing π/4.** The app used dec = ρv²Cd / (2·BC·703.07). The small-arms BC is m/(i·d²) (§9H, correctly without π/4), so the drag term must restore the reference area's π/4: F = ½ρv²·Cd·(πd²/4) ⇒ a = (π/8)·ρv²·Cd / BC. Without it **every trajectory, G7 included, had 4/π = 27.3 % too much drag**. `SEN-BALLISTICS-SKILL.md` §6C carried the same formula.
+
+The two errors partly cancelled for G1 (too little table drag × too much equation drag), which is why the July 2026 cross-check against Element Ballistics showed a "smooth, growing divergence" that was then diagnosed as a subsonic drag-model difference. It was these two bugs.
+
+**Verification (§20A — three independent references):**
+- *Tables:* ballistics-engine `data/g1.csv` + `g7.csv` (BRL / McCoy / Lowry 1965) and py-ballisticcalc `drag_tables.py` agree at all 79 (G1) and 84 (G7) points to Mach 5; the app now carries them verbatim.
+- *Drag term:* first-principles derivation above; py-ballisticcalc's drag constant 2.08551e‑4 = (π/8)·ρ₀/144 exactly. With the fix, the app reproduces py-ballisticcalc 3.1.1 at identical inputs: Queen G7 0.128 @ 260 m/s → v₂₀₀ 229.41 vs 229.40 m/s, drop₂₀₀ −2287.8 vs −2288.6 mm; King G1 0.250 → v₂₀₀ 231.17 vs 231.19, drop −2276.6 vs −2277.3; 800 m G7 run −69.75 vs −69.79 m.
+- *Owner's Element Ballistics table* (Queen G1 0.245, 285 m/s, sight 70 mm, zero 100 m, 27.5 °C / 1011 hPa / 53 %):
+
+| Range | Element | V1.24.1 | V1.24.2 |
+|---|---|---|---|
+| 300 m | 416.9 cm · 237 m/s | 390.2 (−6.4 %) · 254 | 417.8 (+0.2 %) · 237 |
+| 600 m | 2408.3 · 202 | 2158.7 (−10.4 %) · 223 | 2413.1 (+0.2 %) · 202 |
+| 1000 m | 8636.8 · 165 | 7422.9 (−14.1 %) · 183 | 8647.6 (+0.1 %) · 165 |
+
+**Effect on dope.** G7 slugs now get less drag → less dial. Queen G7 0.128, 280 m/s, 50 m zero, everyday default: 100 m 2.96 → 2.90 mrad · 200 m 10.11 → 9.80 · 300 m 18.27 → 17.48. G1 (all pellets by default) now gets more drag → more dial: AEA CP .25 G1 0.060 @ 270 m/s, 75 m 1.63 → 1.79 mrad · 100 m 3.52 → 3.90; King G1 0.250 @ 260 m/s, 150 m 7.04 → 7.28 · 200 m 10.93 → 11.38.
+
+**BCs trued in the app (`bcTrued`)** were solved against the old engine and are migrated once on first launch (`migrateTruedBC`, marker `bcConv`):
+- **G7** — the table was right in the subsonic range, so the same physical drag needs BC × π/4: converted exactly (single and per band). Check: a BC the old engine trued from a py-ballisticcalc velocity (0.1631) converts to 0.1281; the new engine trues 0.1281 from the same measurement; py-ballisticcalc's BC was 0.128.
+- **G1** — the table itself changed, so no exact conversion exists. The BC is set to pending, the old value is kept in the profile notes ("G1 BC x trued before V1.24.2 (wrong G1 table) — re-true needed"), and trajectories with it are blocked with truing guidance (standing convention). The old engine trued King G1 0.250 as 0.1594.
+- Maker-published BCs (never trued) are untouched — they are standard values and are now used correctly. Exports and shares never carried the trued marker, so a projectile **imported from an old file whose BC was trued in-app** needs re-truing by hand.
+
+⚠ Any earlier project conclusion drawn from this app's trajectory or truing output (BC comparisons, Element divergence, drop tables) should be re-checked against V1.24.2.
+
+**Files:** `index.html` — `G1T`/`G7T` replaced by the standard tables to Mach 5 with source note; π/4 in `rk4traj`'s drag term with derivation note; `migrateTruedBC()` + boot call; 5 live version strings. `sw.js` CACHE → `sen-ballistics-v1.24.2`. `tests/runtests.js` — 13 new anchors (tables, py-ballisticcalc, Element), 800 m anchor re-anchored 76.76 → 69.79 m (py-ballisticcalc); `tests/harness.js` — global `matchMedia` (the harness printed a harmless boot error since V1.24.0); `tests/coursetest.js` — "bit-identical dope to the previous release" replaced by "every solution input untouched + every target computes" (dope changes on purpose); new `tests/bcmigtest.js`; `tests/README.md` (eleven suites).
+**Verify:** `node --check` clean · **`runtests.js` 33/33** (V1.24.1 fails 13 of them) · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 21/21 · **`bcmigtest.js` 11/11** · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.24.2.html`. Project knowledge: `SEN-BALLISTICS-SKILL.md` §6A G7 table and §6C drag formula corrected.
+
+---
+
 ## V1.24.1 — patch — Panes scroll independently; bottom nav and sheets pinned again; brightness slider folded into high contrast
 
 **Problem.** On the unfolded screen the solution rail scrolled together with the left pane instead of on its own (owner's test of V1.24.0). Cause, found by rendering in real Chromium: the Settings brightness slider put `filter:brightness()` on `<body>`. Any filter other than none makes that element the containing block for `position:fixed` children, so everything "fixed" was positioned against the whole page instead of the screen. The rail became page-long (3,439 px) and scrolled with the page. The same bug, present since the slider was added, put the **bottom nav at the very end of the page on both screens** (never visible while scrolling), and opened the More sheet and pickers off-screen after scrolling. jsdom does no rendering, so no existing test could see it. Separately, the Settings "Screen" line was only written when Settings was opened, so it still said "415 × 843 · phone" after unfolding.

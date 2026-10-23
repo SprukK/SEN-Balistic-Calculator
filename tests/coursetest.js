@@ -1,5 +1,5 @@
 // Course test (V1.23.0, CORE-12): dope cards schema v2 — upgrade of real previous-release cards,
-// bit-identical dope, the headwind (0°) fix, import upgrade + sanitising, target-detail editing
+// solution inputs untouched (dope bit-identical until the V1.24.2 drag fix), the headwind (0°) fix, import upgrade + sanitising, target-detail editing
 // (label, bearing, size with units, position, shots), stage time limit, compass capture,
 // printed card, persistence.
 // Usage: node coursetest.js <new.html> <previous-release.html>   (needs jsdom; see README.md)
@@ -41,7 +41,12 @@ chk('stored v1 card upgraded: labels T1–T3 / T1, shots 1, no bearing/size/posi
   c.stages[0].dists.map(d=>d.label).join()==='T1,T2,T3'&&c.stages[1].dists[0].label==='T1'&&
   c.stages.every(s=>s.time===null&&s.dists.every(d=>d.shots===1&&d.brg===null&&d.size===null&&d.pos==='')));
 w.eval("gotoPage('dope');document.getElementById('dc-sel').value=DB.dopeCards[0].id;loadDope();calcDope()");await wait(30);
-chk('every target computes bit-identical dope to the previous release',JSON.stringify(cells(w))===JSON.stringify(oldCells),cells(w).join(' / '));
+// V1.24.2 changed the drag engine on purpose (standard G1 table + π/4), so dope is no longer
+// bit-identical to the previous release. What the upgrade must guarantee: every solution input is
+// untouched, and every target still computes.
+const inputs=x=>JSON.stringify(J(x,'DB.dopeCards[0].stages.map(s=>s.dists.map(d=>[d.range,d.angle,d.wind,d.wdir]))'));
+chk('upgrade leaves every solution input identical (range, angle, wind, direction)',inputs(w)===inputs(o),inputs(w));
+chk('every target computes dope after the upgrade',cells(w).length===4&&cells(w).every(x=>!/—\|—\|—/.test(x)),cells(w).join(' / ')+'  (previous release: '+oldCells.join(' / ')+')');
 
 // 3. Headwind fix: 0° is a headwind, not a crosswind from the right.
 const fix=async file=>{const x=await open(file,{ls:legacy});x.eval(`gotoPage('dope');const d=DB.dopeCards[0].stages[0].dists[1];d.wind=5;d.wdir=0;document.getElementById('dc-sel').value=DB.dopeCards[0].id;loadDope();calcDope()`);await wait(20);return x.eval(`document.getElementById('dc-rw-'+DB.dopeCards[0].stages[0].dists[1].id).textContent`);};
