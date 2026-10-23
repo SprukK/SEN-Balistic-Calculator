@@ -7,6 +7,19 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.27.0 — minor — Course runner on Home: PRS and Big bore layouts (CORE-16, part 2)
+
+**What.** A new Home module, **Course runner**, runs a dope card's course (CORE-12 stages and targets) live: pick the course, see the current stage (name, "Stage 2 of 5", stage timer when the stage has a time limit), every target with label · range · size · position, **dial ↑ and wind clicks per target**, and its calls (✓ ✗ · per shot). Tap a target → it becomes the session distance, so Home's big solution, reticle and turret panel follow it. **Hit / Miss** record the shot and move on by themselves once the target's shots are done (target → next target → next stage); Next ›, ‹ Stage, Stage › for manual moves; hits so far at the bottom. Run state (course, stage, target, calls, timer) is remembered, so a restart mid-match resumes.
+
+**Two new templates** use it: **PRS** (course runner, solution, turret, live wind, target bearing, conditions, shot inputs) and **Big bore** (the same without bearing). Fresh installs now seed five layouts; existing ones add them from More › Layouts › New from template. Courses are built in the Dope tab as before: a Big bore station is a stage with a near and a far target and the 10-minute time, a PRS stage is a stage with its targets and par time.
+
+**Solutions** use the session rifle, ammo, weather and wind — the same path as Home (`homeTraj` + `solveShot`), not the card's stored MV/zero. A target with a compass bearing gets its own wind angle from the session wind vector (CORE-13: rel = windFrom − bearing); without a compass wind or bearing it uses the session angle. Home's trajectory now runs at least to the farthest target of the running stage (`homeTraj(courseMaxRange())`), so 300 m targets solve. No physics change.
+
+**Files:** `index.html` — course module block + CSS; `courseRun`, `courseCard`, `courseStage`, `courseOn`, `courseMaxRange`, `courseSelect`, `courseGo`, `courseStageGo`, `courseNext`, `courseCall`, `courseTimer`, `renderCourseTimer`, `renderCourse` (DOM-built, text only); `HOME_MODS.course`; `LAYOUT_TPL.prs` / `.bigbore` and seeding; template buttons; `renderHomeMods` and `renderQuick` hooks; 5 live version strings. `sw.js` CACHE → `sen-ballistics-v1.27.0`. New `tests/courserunnertest.js`; `homelayouttest.js` updated for five seeded layouts and 13 modules; `tests/README.md` (fifteen suites).
+**Verify:** `node --check` clean · `runtests.js` 33/33 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · **`courserunnertest.js` 20/20** · real Chromium render of the PRS Home checked · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.27.0.html`.
+
+---
+
 ## V1.26.0 — minor — Home layouts: named, editable, per match type (CORE-16, part 1)
 
 **What.** Home is now driven by a **layout**: a named list of Home modules (order + on/off) plus settings — fixed distance, card timer length, shots per card. The layout name sits at the top of Home (tap → switch, or "Manage layouts ›"). **More › Layouts** lists them: Use · Edit · Duplicate · Delete (the last one can't be deleted), and New from a template (Default, Benchrest 50 m, Benchrest 100 m, Blank). The editor renames, moves modules with ▲▼, switches them on/off and sets the fixed distance (in the display unit), timer minutes and shots per card; changes apply to Home at once. Rule profiles per federation were dropped (owner ruling: rules differ per event).

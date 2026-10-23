@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.26.0</title>
+<title>SEN Ballistics V1.27.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -223,6 +223,10 @@ html.fold .navbar button.on{background:var(--bg3);border-color:var(--accent)}
 /* CORE-16 layouts */
 .mod-off{display:none!important}
 #wt-body th{text-transform:none}
+.cs-row{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:minmax(0,1fr) 54px 44px 40px;gap:6px;align-items:center;padding:10px;margin-bottom:5px;border:1px solid var(--border);border-radius:9px;background:var(--bg3);font-family:var(--mono);font-size:12px;cursor:pointer;min-height:44px}
+.cs-row.cs-cur{border-color:var(--accent);background:var(--bg4)}
+.cs-dial{text-align:right;color:var(--accent);font-size:15px;font-weight:600}.cs-wind{text-align:right;color:var(--gold);font-size:14px}.cs-calls{text-align:right;color:var(--text2);letter-spacing:.1em}
+.cs-cur .cs-dial{font-size:19px}.cs-timer{font-family:var(--disp);font-weight:800;font-size:20px;color:var(--gold)}
 .laybar{display:flex;justify-content:flex-end;margin:-4px 0 8px}
 .lay-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
 .lay-row.lay-on{border-color:var(--accent)}
@@ -288,7 +292,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.26.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.27.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -422,6 +426,19 @@ details.disc .dbody{padding:0 14px 14px}
       <button class="btn-xs" onclick="timerShot(1)">Shot +1</button>
       <button class="btn-xs" id="tm-start" onclick="timerStart()">Start</button>
     </div>
+  </div>
+
+  <div class="panel mod-off" id="home-course">
+    <div class="ph"><h2>Course</h2><span class="psub"><span id="cs-timer" class="cs-timer"></span> <button class="btn-xs" id="cs-tbtn" onclick="courseTimer()">Start</button></span></div>
+    <div class="fld"><select id="cs-card" aria-label="Course (dope card)" onchange="courseSelect(this.value)"></select></div>
+    <div class="note" id="cs-stage" style="margin:6px 0">—</div>
+    <div id="cs-targets"></div>
+    <div class="btnrow cs-calls">
+      <button class="btn" onclick="courseCall(true)">Hit</button><button class="btn" onclick="courseCall(false)">Miss</button>
+      <button class="btn primary" onclick="courseNext()">Next ›</button>
+      <button class="btn-xs" onclick="courseStageGo(-1)" aria-label="Previous stage">‹ Stage</button><button class="btn-xs" onclick="courseStageGo(1)" aria-label="Next stage">Stage ›</button>
+    </div>
+    <div class="note" id="cs-score"></div>
   </div>
 
   <div class="panel" id="home-inputs">
@@ -764,7 +781,7 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="ph"><h2>Home layouts</h2><span class="psub">what Home shows, per match type — rename, copy, edit</span></div>
     <div id="lay-list"></div>
     <div class="note">New layout from a template:</div>
-    <div class="btnrow"><button class="btn" onclick="newLayout('default')">Default</button><button class="btn" onclick="newLayout('br50')">Benchrest 50 m</button><button class="btn" onclick="newLayout('br100')">Benchrest 100 m</button><button class="btn" onclick="newLayout('blank')">Blank</button></div>
+    <div class="btnrow"><button class="btn" onclick="newLayout('default')">Default</button><button class="btn" onclick="newLayout('br50')">Benchrest 50 m</button><button class="btn" onclick="newLayout('br100')">Benchrest 100 m</button><button class="btn" onclick="newLayout('prs')">PRS</button><button class="btn" onclick="newLayout('bigbore')">Big bore</button><button class="btn" onclick="newLayout('blank')">Blank</button></div>
   </div>
   <div class="panel" id="lay-edit" style="display:none"></div>
 </div>
@@ -782,7 +799,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.26.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.27.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1903,7 +1920,7 @@ function renderQuick(){
     document.getElementById('rail-setval').textContent=scope.railVal+' '+angLabel(ru);
     document.getElementById('rail-unit-lbl').textContent=angLabel(ru);
   }else{railPanel.style.display='none';homeRailOff=0;}
-  const tr=homeTraj();
+  const tr=homeTraj(courseMaxRange());   // V1.27.0: long enough for every target of the running stage
   let elev=null,wind=null,statusMsg='';
   const clickStep=scope?.clickStepMrad||0.1;
   if(!tr){
@@ -2763,7 +2780,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.26.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.27.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3229,7 +3246,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.26.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.27.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3509,12 +3526,15 @@ const HOME_MODS={
   windoff:{el:'home-windoff',name:'Wind offset now (mm + clicks)'},
   windtable:{el:'home-windtable',name:'Wind offset table 1–5'},
   chrono:{el:'home-chrono',name:'Chrono ES / SD → vertical'},
-  timer:{el:'home-timer',name:'Card timer + shot count'}
+  timer:{el:'home-timer',name:'Card timer + shot count'},
+  course:{el:'home-course',name:'Course runner (stage · targets · calls)'}
 };
 const LAYOUT_TPL={
   default:{name:'Default',on:['solution','rail','turret','live','bearing','manwind','cond','inputs'],set:{dist:null,timerMin:20,shots:25}},
   br50:{name:'Benchrest 50 m',on:['solution','windoff','windtable','chrono','timer','live','manwind','cond','inputs'],set:{dist:50,timerMin:20,shots:25}},
   br100:{name:'Benchrest 100 m',on:['solution','windoff','windtable','chrono','timer','live','manwind','cond','inputs'],set:{dist:100,timerMin:20,shots:25}},
+  prs:{name:'PRS',on:['course','solution','turret','live','bearing','cond','inputs'],set:{dist:null,timerMin:20,shots:25}},
+  bigbore:{name:'Big bore',on:['course','solution','turret','live','cond','inputs'],set:{dist:null,timerMin:20,shots:25}},
   blank:{name:'New layout',on:['solution','inputs'],set:{dist:null,timerMin:20,shots:25}}
 };
 function layoutFromTpl(t,name){
@@ -3531,7 +3551,7 @@ function normLayout(L){
     set:{dist:s.dist>0?+s.dist:null,timerMin:s.timerMin>0?Math.min(180,+s.timerMin):20,shots:s.shots>0?Math.min(999,Math.round(s.shots)):25}};
 }
 function initLayouts(){
-  if(!Array.isArray(APP.layouts)||!APP.layouts.length)APP.layouts=['default','br50','br100'].map(t=>layoutFromTpl(t));
+  if(!Array.isArray(APP.layouts)||!APP.layouts.length)APP.layouts=['default','br50','br100','prs','bigbore'].map(t=>layoutFromTpl(t));
   APP.layouts=APP.layouts.map(normLayout);
   if(!APP.layouts.some(l=>l.id===APP.layoutId))APP.layoutId=APP.layouts[0].id;
 }
@@ -3589,6 +3609,7 @@ function renderHomeMods(tr){
     set('cr-vert',c.es>0&&tp&&S.mv>0?'ES '+uq('vel',c.es)+' ≈ '+uq('drop',mvSpreadVert(tp.tof,c.es,S.mv))+' vertical spread at '+uq('range',S.dist_m):'Enter MV, ES and SD in More › Sensors › Chronograph.');
   }
   if(on('timer'))renderTimer();
+  if(on('course'))renderCourse(tr);
 }
 /* MV spread → vertical spread at a fixed launch angle: Δy ≈ g·t²·ΔV/V₀ (small ΔV; t = time of
    flight). EST approximation — reproduced against py-ballisticcalc fixed-angle runs (Queen G7
@@ -3660,6 +3681,68 @@ function renderLayoutEditor(){
   const done=el('button','btn primary','Done');done.onclick=()=>{layoutEditId=null;renderLayouts();};
   const br=el('div','btnrow');br.append(reset,done);
   ed.replaceChildren(el('h2',null,'Edit layout'),fld('Name',name),el('div','note','Home, top to bottom. ▲▼ moves a module, On/Off shows or hides it. The fold rail keeps the solution, turret and conditions on the right.'),mods,grid,br);
+}
+
+/* ═════════ CORE-16 part 2 (V1.27.0) — COURSE RUNNER (PRS · Big bore) ═════════
+   Runs a dope card's course (CORE-12: stages → targets with label, bearing, size, position,
+   shots, stage time) live on Home: the current stage's targets with dial and wind per target,
+   tap a target to make it the session distance (Home's solution and reticle follow), Hit / Miss
+   calls that advance on their own, stage timer, hits so far. Solutions use the SESSION rifle,
+   ammo, weather and wind — the same as Home — not the card's stored MV/zero. A target with a
+   compass bearing gets its own wind angle from the session wind vector (CORE-13:
+   rel = windFrom − bearing); otherwise the session angle. Run state (card, stage, target, calls)
+   lives in APP.run so a restart mid-match resumes where it was. */
+const courseRun=()=>APP.run||(APP.run={cardId:null,si:0,ti:0,calls:{},start:null});
+function courseCard(){const r=courseRun();return DB.dopeCards.find(c=>c.id===r.cardId)||DB.dopeCards[0]||null;}
+function courseStage(){const c=courseCard();if(!c||!c.stages.length)return null;return c.stages[Math.min(courseRun().si,c.stages.length-1)];}
+function courseOn(){const L=activeLayout();return!!(L&&L.mods.some(m=>m.id==='course'&&m.on));}
+function courseMaxRange(){const st=courseOn()?courseStage():null;return st?Math.max(0,...st.dists.map(d=>+d.range||0))+25:0;}
+let courseIv=null;
+function courseSave(){saveDBSoon();renderQuick();}
+function courseSelect(id){APP.run={cardId:id,si:0,ti:0,calls:{},start:null};if(courseIv){clearInterval(courseIv);courseIv=null;}const st=courseStage();if(st&&st.dists[0])Bus.set('dist_m',+st.dists[0].range);courseSave();}
+function courseGo(ti){const st=courseStage();if(!st||!st.dists[ti])return;courseRun().ti=ti;Bus.set('dist_m',+st.dists[ti].range);saveDBSoon();}
+function courseStageGo(d){const c=courseCard(),r=courseRun();if(!c)return;const si=Math.max(0,Math.min(c.stages.length-1,r.si+d));if(si===r.si)return;
+  r.si=si;r.ti=0;r.start=null;if(courseIv){clearInterval(courseIv);courseIv=null;}const st=courseStage();if(st&&st.dists[0])Bus.set('dist_m',+st.dists[0].range);courseSave();}
+function courseNext(){const st=courseStage(),r=courseRun();if(!st)return;if(r.ti<st.dists.length-1)courseGo(r.ti+1);else courseStageGo(1);}
+function courseCall(hit){
+  const st=courseStage(),r=courseRun();if(!st)return;const d=st.dists[Math.min(r.ti,st.dists.length-1)];
+  const calls=r.calls[d.id]||(r.calls[d.id]=[]);const n=Math.max(1,d.shots||1);
+  if(calls.length<n)calls.push(hit?'h':'m');
+  if(calls.length>=n)courseNext();else courseSave();
+}
+function courseTimer(){const r=courseRun();if(r.start){r.start=null;if(courseIv){clearInterval(courseIv);courseIv=null;}}else{r.start=Date.now();courseIv=setInterval(renderCourseTimer,1000);}saveDBSoon();renderCourseTimer();}
+function renderCourseTimer(){
+  const st=courseStage(),t=document.getElementById('cs-timer'),b=document.getElementById('cs-tbtn');if(!t||!b)return;
+  if(!st||!(st.time>0)){t.textContent='';b.style.display='none';return;}
+  b.style.display='';const r=courseRun(),left=Math.max(0,st.time-(r.start?Math.floor((Date.now()-r.start)/1000):0));
+  t.textContent=Math.floor(left/60)+':'+String(left%60).padStart(2,'0');t.style.color=r.start&&left<=10?'var(--warn)':'';b.textContent=r.start?'Reset':'Start';
+  if(r.start&&left===0&&courseIv){clearInterval(courseIv);courseIv=null;try{navigator.vibrate&&navigator.vibrate([300,150,300]);}catch(e){}}
+}
+function renderCourse(tr){
+  const sel=document.getElementById('cs-card'),box=document.getElementById('cs-targets');if(!sel||!box)return;
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const c=courseCard(),r=courseRun();
+  sel.replaceChildren(...DB.dopeCards.map(x=>{const o=el('option',null,x.name);o.value=x.id;return o;}));
+  if(c)sel.value=c.id;sel.style.display=DB.dopeCards.length?'':'none';
+  const head=document.getElementById('cs-stage'),score=document.getElementById('cs-score');
+  if(!c){head.textContent='No course yet — build one in the Dope tab (stages, targets, bearings, sizes, stage time).';box.replaceChildren();score.textContent='';renderCourseTimer();return;}
+  if(r.cardId!==c.id)r.cardId=c.id;
+  const st=courseStage();
+  head.textContent='Stage '+(Math.min(r.si,c.stages.length-1)+1)+' of '+c.stages.length+' · '+st.name;
+  const ok=tr&&!tr.bcPending&&tr.pts,z=ok?zeroConds():null,click=rifleScope(getRifle())?.clickStepMrad||0.1;
+  const ti=Math.min(r.ti,st.dists.length-1);
+  box.replaceChildren(...st.dists.map((d,i)=>{
+    const rel=d.brg!=null&&S.wind.from!=null?norm360(S.wind.from-d.brg):S.wind.dir;
+    const s=ok?solveShot(tr.pts,nearestPt,z.range,+d.range,+d.angle||0,S.wind.speed,rel,S.mv,click,z.wSpd,z.wDir):null;
+    const b=el('button','cs-row'+(i===ti?' cs-cur':''));b.dataset.dist=d.id;b.onclick=()=>courseGo(i);
+    const info=el('span','cs-info');info.append(el('b',null,d.label||('T'+(i+1))),document.createTextNode(' · '+ut('range',+d.range)+(d.size?' · '+ut('tsize',d.size):'')+(d.pos?' · '+TARGET_POS[d.pos]:'')));
+    const calls=(r.calls[d.id]||[]).map(x=>x==='h'?'✓':'✗').join('')+'·'.repeat(Math.max(0,Math.max(1,d.shots||1)-(r.calls[d.id]||[]).length));
+    b.append(info,el('span','cs-dial',s?(s.clElev>=0?'↑':'↓')+Math.abs(s.clElev).toFixed(0):'—'),el('span','cs-wind',s?(s.clWind>=0?'→':'←')+Math.abs(s.clWind).toFixed(0):'—'),el('span','cs-calls',calls));
+    return b;
+  }));
+  const all=Object.values(r.calls).flat(),hits=all.filter(x=>x==='h').length;
+  score.textContent='Hits '+hits+' / '+all.length+' · solutions use the session rifle, ammo, weather and wind'+(st.dists.some(d=>d.brg!=null)&&S.wind.from==null?' · set a compass wind to use target bearings':'');
+  renderCourseTimer();
 }
 
 /* ═════════ CORE-06 (V1.25.0) — FORMULA VERIFICATION PANEL (§20A) ═════════

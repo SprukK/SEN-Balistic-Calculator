@@ -1,8 +1,8 @@
 # SEN regression tests
 
-Run all fourteen before every release. All must be fully green.
+Run all fifteen before every release. All must be fully green.
 
-| File | What it checks | Expected on V1.26.0 |
+| File | What it checks | Expected on V1.27.0 |
 |---|---|---|
 | `runtests.js` (+ `harness.js`) | 33 numeric physics anchors: air density, speed of sound, SD, Berger Sg (Queen, King, LRAI-35), unit conversions, RK4 trajectory, firing solution; **V1.24.2:** standard G1/G7 table values, trajectories reproduced against py-ballisticcalc (G7 and G1) and the owner's Element Ballistics table to 1000 m | PASS 33 / FAIL 0 |
 | `domtest.js` | Real-DOM (jsdom) click test: bottom nav, More sheet, act-bar pickers, Home disclosures, zero uncaught errors | PASS 14 / FAIL 0 |
@@ -16,7 +16,8 @@ Run all fourteen before every release. All must be fully green.
 | `rendertest.js` | Real rendering (V1.24.1, headless Chromium): on the outer screen and the unfolded inner screen at Normal/Large/XL text — bottom nav pinned while the page scrolls, solution rail fits the screen and scrolls independently of the left pane, More sheet on screen after scrolling; high contrast lifts main text to white with no page filter; Settings screen line follows fold/unfold; **V1.25.0:** Formulas page fits the outer screen | PASS 22 / FAIL 0 |
 | `bcmigtest.js` | Trued-BC migration (V1.24.2): BCs trued by the previous release's engine — G7 converted × π/4 (equals what the new engine trues from the same measurement and the py-ballisticcalc BC), banded G7 per band, G1 set to pending with the old value in the notes and the trajectory blocked with truing guidance, maker BCs untouched, runs once | PASS 11 / FAIL 0 |
 | `formulatest.js` | Formula panel (V1.25.0, CORE-06): self-check at boot (slow truing round trip excluded), Formulas page in More with one card per formula, every anchor passes live, every formula has equation/source/use/anchors, exactly the five estimates flagged EST (V1.26.0: + MV spread → vertical), no theoretical SEN design as an anchor, a broken formula or corrupted drag value raises the warning on every screen and turns its card red, text-only rendering | PASS 19 / FAIL 0 |
-| `homelayouttest.js` | Home layouts (V1.26.0, CORE-16): seeded layouts, Default identical to the previous release's Home, switching from the Home sheet, Benchrest 50/100 m modules equal to the solver (wind offset now, 1–5 table in the display unit), chrono → vertical spread, card timer, editor (rename, ▲▼, on/off, settings, duplicate, delete, new from template, last one protected), restart, fold rail, imperial, escaping, garbage normalised | PASS 31 / FAIL 0 |
+| `homelayouttest.js` | Home layouts (V1.26.0, CORE-16): seeded layouts (five from V1.27.0), Default identical to the previous release's Home, switching from the Home sheet, Benchrest 50/100 m modules equal to the solver (wind offset now, 1–5 table in the display unit), chrono → vertical spread, card timer, editor (rename, ▲▼, on/off, settings, duplicate, delete, new from template, last one protected), restart, fold rail, imperial, escaping, garbage normalised | PASS 31 / FAIL 0 |
+| `courserunnertest.js` | Course runner (V1.27.0, CORE-16 part 2): PRS and Big bore layouts run a dope card's course on Home — guidance without a course, targets' dial/wind equal Home's solution, per-target wind from bearings, tap → session distance, Hit/Miss through shots → targets → stages, 300 m beyond Home's default range, hits, stage timer, restart resumes, course switch resets, imperial, escaping | PASS 20 / FAIL 0 |
 | `swtest.js` | Service worker (V1.25.1, CORE-09): runs the real `sw.js` against a simulated CacheStorage — activating a release deletes only Main's old caches (`sen-ballistics-*`, legacy `sen-calc-*`) and never the Lab probe's (`sen-ble-probe-*`, `sen-lab-*`) or anyone else's | PASS 6 / FAIL 0 |
 
 `domtest.js`, `layouttest.js` and `rendertest.js` are mandatory for any change to navigation, sheets, event wiring, page layout or page-wide CSS (V7 §21.4). `windtest.js` is mandatory for any change to wind, bearings or the Calypso path. `unittest.js` is mandatory for any change that adds or edits a number field or prints a value with a unit. `storagetest.js`, `importtest.js`, `sharetest.js`, `coursetest.js` and `bcmigtest.js` are mandatory for any change to loading, saving, import/export or the data schema. Any change to the drag engine, tables or truing needs `runtests.js` anchors reproduced against an independent solver (§20A). Any change to `sw.js` runs `swtest.js`; any change to the storage names or snapshot shape also breaks the Lab app's reader (storage contract next to `IDB_NAME` in `index.html`). Any new or changed formula also gets an entry with anchors in the app's `FORMULAS` registry, and `formulatest.js` must stay green. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
@@ -71,6 +72,9 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 
 # 14. home layouts test: new build vs the previous release (its Home order must be reproduced by "Default")
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node homelayouttest.js ../index.html ../RTI-SEN-Ballistic-Calculator-V1.25.1.html)
+
+# 15. course runner test
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node courserunnertest.js ../index.html)
 ```
 
 ## Provenance
