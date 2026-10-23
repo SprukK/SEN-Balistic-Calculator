@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.24.0</title>
+<title>SEN Ballistics V1.24.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -22,8 +22,10 @@
   --src-auto:rgba(114,180,194,.14);--src-man:rgba(202,168,105,.16);
   --tick:rgba(202,168,105,.55);--glow:rgba(114,180,194,.30);
 }
-/* FIX-14b — high-contrast mode: brighter secondary text, stronger borders (bright-sun field use) */
-html.hc{--text2:#e9e6dc;--text3:#bcb9af;--border:rgba(210,192,152,.26);--border2:rgba(210,192,152,.42);--src-auto:rgba(114,180,194,.28);--src-man:rgba(202,168,105,.32);--tick:rgba(202,168,105,.8)}
+/* FIX-14b — high-contrast mode: brighter secondary text, stronger borders (bright-sun field use).
+   V1.24.1: also lifts main text to full white — replaces the removed brightness slider, whose
+   body filter made every position:fixed element (bottom nav, rail, sheets) scroll with the page. */
+html.hc{--text:#ffffff;--text2:#e9e6dc;--text3:#bcb9af;--border:rgba(210,192,152,.26);--border2:rgba(210,192,152,.42);--src-auto:rgba(114,180,194,.28);--src-man:rgba(202,168,105,.32);--tick:rgba(202,168,105,.8)}
 /* FIX-14c — font-size option (zoom scales the whole px-sized layout uniformly; Chrome/Android primary) */
 html.fs-l body{zoom:1.15}
 html.fs-xl body{zoom:1.3}
@@ -32,7 +34,7 @@ html.fs-xl body{zoom:1.3}
 .subnav button.on{background:var(--accent);border-color:var(--accent);color:#0a0b0e}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-text-size-adjust:100%;background-image:radial-gradient(ellipse 900px 500px at 50% -10%,rgba(114,180,194,.05),transparent 60%)}
-body{max-width:1100px;margin:0 auto;padding:0 14px calc(88px + env(safe-area-inset-bottom));filter:brightness(var(--bright,1))}
+body{max-width:1100px;margin:0 auto;padding:0 14px calc(88px + env(safe-area-inset-bottom))}
 button{font-family:inherit;cursor:pointer}
 input,select{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:8px 9px;width:100%;min-height:38px;transition:border-color .15s,box-shadow .15s}
 input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
@@ -264,7 +266,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.24.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.24.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -707,7 +709,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.24.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.24.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1058,15 +1060,13 @@ function renderSettings(){
   const box=document.getElementById('settings-body');
   // display block
   let html=`<div class="panel"><h2>Display</h2>
-    <div class="fld"><label>Main text brightness · ${Math.round(APP.bright*100)}%</label>
-      <input type="range" min="0.8" max="1.25" step="0.01" value="${APP.bright}" oninput="setBright(this.value)" style="width:100%"></div>
-    <div class="fld" style="margin-top:10px"><label>Dual-unit display (cards &amp; widget)</label>
+    <div class="fld"><label>Dual-unit display (cards &amp; widget)</label>
       <div class="seg"><button class="${APP.dual?'on':''}" onclick="setApp('dual',true)">On</button><button class="${!APP.dual?'on':''}" onclick="setApp('dual',false)">Off</button></div></div>
     <div class="fld" style="margin-top:10px"><label>High-contrast mode (bright sun)</label>
       <div class="seg"><button class="${APP.contrast!=='high'?'on':''}" onclick="setApp('contrast','normal')">Normal</button><button class="${APP.contrast==='high'?'on':''}" onclick="setApp('contrast','high')">High</button></div></div>
     <div class="fld" style="margin-top:10px"><label>Text size</label>
       <div class="seg"><button class="${APP.fontScale==='m'?'on':''}" onclick="setApp('fontScale','m')">Normal</button><button class="${APP.fontScale==='l'?'on':''}" onclick="setApp('fontScale','l')">Large</button><button class="${APP.fontScale==='xl'?'on':''}" onclick="setApp('fontScale','xl')">XL</button></div></div>
-    <div class="note" id="screen-info">Screen ${window.innerWidth} × ${window.innerHeight} CSS px · ${isCoarse()?'touch':'mouse'} · layout: ${({phone:'phone (single column)',inner:'fold inner screen (two panes + live solution rail)',wide:'wide'})[layout]}</div>
+    <div class="note" id="screen-info">${screenInfo()}</div>
     <div class="note">Dual-unit shows a muted secondary value after the primary in big output cards and the home widget. Tables stay single-unit for legibility.</div></div>`;
   // field block (FIX-14a)
   html+=`<div class="panel"><h2>Field</h2>
@@ -1108,7 +1108,6 @@ async function renderStoreQuota(){
 function setUnit(k,v){if(QDEF[k].locked)return;UNITS[k]=v;if(SUNITS[k]===v)SUNITS[k]='off';saveDB();renderSettings();rerenderAll();}
 function setSec(k,v){SUNITS[k]=v;saveDB();renderSettings();rerenderAll();}
 function setApp(k,v){APP[k]=v;saveDB();if(k==='contrast'||k==='fontScale')applyDisplayPrefs();renderSettings();rerenderAll();}
-function setBright(v){APP.bright=+v;document.documentElement.style.setProperty('--bright',v);saveDB();const lbl=document.querySelector('#settings-body label');if(lbl)lbl.textContent=`Main text brightness · ${Math.round(v*100)}%`;}
 function rerenderAll(){refreshUnits();if(lastTraj){renderTraj();renderQuick();}renderActBar();syncTrajInputs();}
 function downloadScopePrompt(){
   const schema=JSON.stringify({senScopeImport:1,scope:{name:"",sku:"",adjUnit:"mil",click:0.1,cpr:100,elev:0,wind:0,source:"",notes:""},reticle:{id:"",name:"",fp:"FFP",dotMrad:0,hashes:[],windHashes:[],verified:false,notes:""}},null,2);
@@ -2655,7 +2654,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.24.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.24.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3121,7 +3120,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.24.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.24.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3405,13 +3404,15 @@ function moveFromRail(){
   RAIL_BLOCKS.forEach(id=>{const el=document.getElementById(id),mark=document.querySelector('[data-rail-home="'+id+'"]');
     if(el&&mark){mark.replaceWith(el);}});
 }
+const screenInfo=()=>`Screen ${window.innerWidth} × ${window.innerHeight} CSS px · ${isCoarse()?'touch':'mouse'} · layout: ${({phone:'phone (single column)',inner:'fold inner screen (two panes + live solution rail)',wide:'wide'})[layout]}`;
 function applyLayout(){
   const mode=layoutMode(window.innerWidth,window.innerHeight,isCoarse());
-  if(mode===layout)return;
+  const info=()=>{const el=document.getElementById('screen-info');if(el)el.textContent=screenInfo();};
+  if(mode===layout){info();return;}
   layout=mode;
   document.documentElement.classList.toggle('fold',mode==='inner');
   mode==='inner'?moveToRail():moveFromRail();
-  renderQuick();
+  info();renderQuick();
 }
 const homeVisible=()=>layout==='inner'||document.getElementById('page-home').classList.contains('active');
 function renderRailHead(){
@@ -3697,7 +3698,6 @@ DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (
    overwritten; pullFromProfiles skips any field whose profile is missing). */
 if(S.rifleId||S.projId||S.curWxId)Bus.pullFromProfiles(['mv','sight','bc','ct','cp','crh']);
 applyDisplayPrefs();if(APP.wakeLock)wlAcquire();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&APP.wakeLock&&!_wl)wlAcquire();});
-document.documentElement.style.setProperty('--bright',APP.bright);
 reticleMag=APP.retMag??null;document.documentElement.style.setProperty('--ret-px',RET_PX_FIXED+'px');
 turretElevMode=APP.turretMode||'match';
 {const el=document.getElementById('sv-lat');if(el&&APP.lat!=null)el.value=APP.lat;}

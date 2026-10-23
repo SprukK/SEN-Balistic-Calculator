@@ -7,6 +7,20 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.24.1 — patch — Panes scroll independently; bottom nav and sheets pinned again; brightness slider folded into high contrast
+
+**Problem.** On the unfolded screen the solution rail scrolled together with the left pane instead of on its own (owner's test of V1.24.0). Cause, found by rendering in real Chromium: the Settings brightness slider put `filter:brightness()` on `<body>`. Any filter other than none makes that element the containing block for `position:fixed` children, so everything "fixed" was positioned against the whole page instead of the screen. The rail became page-long (3,439 px) and scrolled with the page. The same bug, present since the slider was added, put the **bottom nav at the very end of the page on both screens** (never visible while scrolling), and opened the More sheet and pickers off-screen after scrolling. jsdom does no rendering, so no existing test could see it. Separately, the Settings "Screen" line was only written when Settings was opened, so it still said "415 × 843 · phone" after unfolding.
+
+**Fix.**
+- Brightness slider removed (owner's decision) together with its body filter. **High-contrast mode now also lifts main text to full white** (`--text` #f5f3ee → #ffffff), which covers the bright-sun use. Normal mode looks exactly like the old 100%. A saved `APP.bright` value is kept as an inert key, so existing data, backups and shared files import unchanged.
+- The Settings screen line is refreshed on every resize/fold (`screenInfo()`).
+- Result: the bottom nav is pinned on both screens; on the inner screen the rail fills the height above the nav and scrolls on its own, independently of the left pane; sheets open on screen wherever you have scrolled.
+
+**Files:** `index.html` — body filter removed; `html.hc` adds `--text:#ffffff`; brightness slider, `setBright` and the boot-time `--bright` line removed; `screenInfo()` and the refresh in `applyLayout`; 5 live version strings. `sw.js` CACHE → `sen-ballistics-v1.24.1`. New `tests/rendertest.js`; `tests/README.md` updated (ten suites).
+**Verify:** `node --check` clean · `runtests.js` 20/20 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 20/20 · `layouttest.js` 18/18 · **`rendertest.js` 21/21** (headless Chromium): outer 415×843 and inner 840×910 at Normal/Large/XL text — nav pinned to the screen bottom after scrolling 800 px, rail 0–846 px with its own scroll (scrollHeight 882 > 846), scrolling the rail doesn't move the page and vice versa, More sheet on screen after scrolling; high contrast #ffffff with body filter `none` and no slider; Settings line 415 × 843 · phone → 840 × 910 · fold inner. The same test on V1.24.0 fails 20 of 21 (nav at y = 2,708, rail 3,439 px tall, sheet at y = −736). `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.24.1.html`.
+
+---
+
 ## V1.24.0 — minor — Fold-aware layout: two panes + live solution rail on the inner screen (CORE-04)
 
 **Why.** The app knew only "narrow" or "≥760 px". The Magic V5's inner screen (2352×2172 px, near-square) is wider than 760 CSS px, so it got the desktop treatment: navigation moved to a static strip at the top (out of thumb reach) and the content became one long centred column.

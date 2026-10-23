@@ -1,8 +1,8 @@
 # SEN regression tests
 
-Run all nine before every release. All must be fully green.
+Run all ten before every release. All must be fully green.
 
-| File | What it checks | Expected on V1.24.0 |
+| File | What it checks | Expected on V1.24.1 |
 |---|---|---|
 | `runtests.js` (+ `harness.js`) | 20 numeric physics anchors: air density, speed of sound, SD, Berger Sg (Queen, King, LRAI-35), unit conversions, RK4 trajectory, firing solution | PASS 20 / FAIL 0 |
 | `domtest.js` | Real-DOM (jsdom) click test: bottom nav, More sheet, act-bar pickers, Home disclosures, zero uncaught errors | PASS 14 / FAIL 0 |
@@ -13,8 +13,9 @@ Run all nine before every release. All must be fully green.
 | `unittest.js` | Units (V1.22.0): every conversion pair exact, every number input classified (unit or explicit exemption — fails on any new unclassified field), 250 m → 273.4 yd and back to exactly 250, typing in display units stores metric, unedited form saves never drift, session + trajectory bit-identical in metric vs imperial, dual units incl. Home, no metric value left on any page in imperial | PASS 18 / FAIL 0 |
 | `coursetest.js` | Course model (V1.23.0): real previous-release dope cards upgraded to schema v2, bit-identical dope, 0° headwind fix, v1/v2 import upgrade + sanitising, own card re-import identical, target details (label, bearing, size with units, position, shots), stage time, compass capture, printed card, restart | PASS 20 / FAIL 0 |
 | `layouttest.js` | Layout (V1.24.0): screen classified by shape (outer phone, inner fold both orientations, desktop, landscape tablet, mouse square), two-pane rail with reticle/solution + turret + conditions, rail live on other tabs, turret usable from the rail, all tabs + More sheet, fold/unfold restoring the exact original order, Settings screen info, starting unfolded | PASS 18 / FAIL 0 |
+| `rendertest.js` | Real rendering (V1.24.1, headless Chromium): on the outer screen and the unfolded inner screen at Normal/Large/XL text — bottom nav pinned while the page scrolls, solution rail fits the screen and scrolls independently of the left pane, More sheet on screen after scrolling; high contrast lifts main text to white with no page filter; Settings screen line follows fold/unfold | PASS 21 / FAIL 0 |
 
-`domtest.js` and `layouttest.js` are mandatory for any change to navigation, sheets, event wiring or page layout (V7 §21.4). `windtest.js` is mandatory for any change to wind, bearings or the Calypso path. `unittest.js` is mandatory for any change that adds or edits a number field or prints a value with a unit. `storagetest.js`, `importtest.js`, `sharetest.js` and `coursetest.js` are mandatory for any change to loading, saving, import/export or the data schema. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
+`domtest.js`, `layouttest.js` and `rendertest.js` are mandatory for any change to navigation, sheets, event wiring, page layout or page-wide CSS (V7 §21.4). `windtest.js` is mandatory for any change to wind, bearings or the Calypso path. `unittest.js` is mandatory for any change that adds or edits a number field or prints a value with a unit. `storagetest.js`, `importtest.js`, `sharetest.js` and `coursetest.js` are mandatory for any change to loading, saving, import/export or the data schema. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
 
 ## How to run
 
@@ -50,6 +51,10 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 
 # 9. layout test
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node layouttest.js ../index.html)
+
+# 10. render test: real Chromium via Playwright (pre-installed in Claude's cloud workspace at
+#     /opt/npm-tools/node_modules; elsewhere: npm install playwright --prefix /tmp/jsdom && npx playwright install chromium)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules:/opt/npm-tools/node_modules node rendertest.js ../index.html)
 ```
 
 ## Provenance
@@ -62,4 +67,4 @@ Notes:
 - When a change alters what a test asserts (new nav page, new chip), update the test in the same commit and say so in the patch log.
 - `sharetest.js` cannot drive a real camera: in-app QR scanning (BarcodeDetector on Android, jsQR on iOS) must be checked on a phone after release.
 - `windtest.js` simulates compass sensor events; the real phone compass and the Calypso's direction convention (clockwise, wind FROM, relative to its mark) must be checked on the device.
-- `layouttest.js` drives the layout logic with simulated screen sizes; jsdom does no real rendering, so the look of the two-pane screen must be checked on the Magic V5.
+- `layouttest.js` drives the layout logic with simulated screen sizes; jsdom does no real rendering. `rendertest.js` covers positions and scrolling in real Chromium (it fails 20 of 21 on V1.24.0); the look on the Magic V5 itself is still checked on the device.
