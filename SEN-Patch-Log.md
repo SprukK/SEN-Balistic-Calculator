@@ -7,6 +7,26 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.24.0 — minor — Fold-aware layout: two panes + live solution rail on the inner screen (CORE-04)
+
+**Why.** The app knew only "narrow" or "≥760 px". The Magic V5's inner screen (2352×2172 px, near-square) is wider than 760 CSS px, so it got the desktop treatment: navigation moved to a static strip at the top (out of thumb reach) and the content became one long centred column.
+
+**Classification by shape, not pixels** (`layoutMode`, re-evaluated on every resize, so folding/unfolding switches immediately without losing anything):
+- narrower than 600 CSS px → **phone** layout, exactly as before (outer screen);
+- ≥ 600 px, touch, aspect between 4:5 and 5:4 → **inner fold screen**, two panes;
+- anything else (desktop, landscape tablet, mouse) → **wide**, as before.
+
+**Two panes on the inner screen.** Left: the current tab, unchanged. Right: a **live solution rail** visible on every tab — header (distance · projectile), **reticle with hold dot + Elevation/Windage**, the **turret panel** (owner's choice) and the **conditions strip** (zero, wind, direction, crosswind). Change the wind on the Wind tab, a value on Trajectory or a dope target, and the rail updates live. The bottom navigation stays at the bottom. The rail *moves* the existing Home blocks (ids unchanged, every renderer keeps working) and puts them back exactly where they were on fold; nothing is duplicated. Home's renderer now runs whenever its blocks are visible (`homeVisible`), not only on the Home tab.
+
+**Settings → Display** shows what was detected, e.g. "Screen 784 × 724 CSS px · touch · layout: fold inner screen (two panes + live solution rail)" — so the thresholds can be tuned from real device numbers.
+
+Built as a self-contained module, so the rail can become one of the draggable blocks of CORE-16 later.
+
+**Files:** `index.html` — `#sol-rail` container + `#rail-head`; `id="home-dash"` on the dashboard; fold CSS (`html.fold` …, bottom nav restored, rail positioning, rail-internal dashboard/conditions arrangement); new `RAIL_BLOCKS`, `layoutMode`, `isCoarse`, `moveToRail`, `moveFromRail`, `applyLayout`, `homeVisible`, `renderRailHead`; `notifyWind` and the bus subscriber use `homeVisible()`; `renderQuick` updates the rail header; boot applies the layout and listens to resize; Settings screen info; 6 live version strings. `sw.js` CACHE → `sen-ballistics-v1.24.0`. New `tests/layouttest.js`; `tests/README.md` updated.
+**Verify:** `node --check` clean · `runtests.js` 20/20 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 20/20 · **`layouttest.js` 18/18**: classification of outer (390×866), inner (784×724 and rotated 724×784), desktop (1440×900 mouse), landscape tablet (1024×768) and mouse square (800×800); outer screen unchanged; unfolding moves reticle/solution, turret and conditions into the rail in order with each block present exactly once while shot inputs stay left; wind changed on the Wind tab updates rail windage (→0 → →17); distance changed on another tab updates the rail header; turret steppers work from the rail; all 11 tabs and the More sheet work; rotation keeps two panes; folding back restores the exact original Home order with no leftover markers; repeated fold/unfold never duplicates; Settings reports 784 × 724 · touch · fold inner screen; launching unfolded starts in two panes; zero uncaught errors. **Not machine-checkable:** the visual result on the real inner screen · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.24.0.html`.
+
+---
+
 ## V1.23.0 — minor — Stage/course model: target details, stage time, dope cards schema v2 (CORE-12) · headwind fix
 
 **Design.** The dope card already was a match structure (card → stages → targets with range, angle, wind, direction), so it is extended rather than duplicated by a second "course" model.
