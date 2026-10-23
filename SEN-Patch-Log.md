@@ -7,6 +7,17 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.25.1 — patch — Service worker stops deleting the Lab app's cache · storage contract (CORE-09, Main side)
+
+**Problem.** Main and the Lab app (SprukK/SEN-Testing) are both served from `sprukk.github.io`, so they share one CacheStorage. Main's service worker deleted every cache except its own current one on activation (`keys.filter(k => k !== CACHE)`), so **every Main release wiped the Lab probe's offline cache** (`sen-ble-probe-*`) — the probe then needed a network connection to start. The Lab's own service worker was already scoped to its prefix.
+
+**Fix.** `sw.js` deletes only Main-owned caches (`sen-ballistics-*`, plus the legacy `sen-calc-*` from V3.x) other than the current one. The **storage contract** is written next to `IDB_NAME` in `index.html`: Main owns IndexedDB `sen_main`, localStorage `sen_platform_*`, caches `sen-ballistics-*`; the Lab owns `sen_lab`, `sen_lab_*`, `sen-ble-probe-*`/`sen-lab-*`; the Lab may read Main's snapshot read-only and never creates Main's database. No change to how Main stores data. The Lab-side reader ships as SEN BLE Probe V1.2.0 in SprukK/SEN-Testing.
+
+**Files:** `sw.js` — `OWN_CACHE` filter, CACHE → `sen-ballistics-v1.25.1`; `index.html` — storage-contract comment, 5 live version strings. New `tests/swtest.js`; `tests/README.md` (thirteen suites).
+**Verify:** `node --check` clean · `runtests.js` 33/33 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · **`swtest.js` 6/6** (the V1.25.0 `sw.js` fails the Lab-cache and unrelated-cache checks) · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.25.1.html`.
+
+---
+
 ## V1.25.0 — minor — Formula verification panel + start-up self-check (CORE-06)
 
 **What.** A new **Formulas** page (More → Formulas) lists every formula the app uses: the equation, its source, where it is used, its status (**✓ Verified** or **EST**) and its anchors. Every anchor is **recomputed live by this build's own functions** each time the page opens and shown as got / want / ✓✗. A "Not modelled" card lists what the app deliberately doesn't do (GA diabolo drag, aero jump, custom Cd–Mach, Sg for L/D < 2.0, transonic BC).

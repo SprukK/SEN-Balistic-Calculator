@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.25.0</title>
+<title>SEN Ballistics V1.25.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -277,7 +277,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.25.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.25.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -731,7 +731,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.25.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.25.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1156,6 +1156,13 @@ function downloadScopePrompt(){
    V1.17.x still finds its data. If IndexedDB is unavailable the app keeps using localStorage.
    Every snapshot and export carries SCHEMA (one version per record type); importing a file
    from a newer schema is refused instead of being silently misread. */
+/* CORE-09 (V1.25.1) — STORAGE CONTRACT. Main and the Lab app (SprukK/SEN-Testing) share the
+   sprukk.github.io origin, so they share IndexedDB, localStorage and CacheStorage. Namespaces:
+     Main owns  IndexedDB 'sen_main' · localStorage 'sen_platform_*' · caches 'sen-ballistics-*' (+ legacy 'sen-calc-*')
+     Lab owns   IndexedDB 'sen_lab'  · localStorage 'sen_lab_*'      · caches 'sen-ble-probe-*', 'sen-lab-*'
+   Lab may READ Main's 'sen_main' / 'sen_platform_v1' snapshot (read-only transactions, never
+   creates the database) and checks SCHEMA before trusting it; neither app writes the other's
+   namespace. Changing IDB_NAME, IDB_STORE, IDB_KEY, SK or the snapshot shape breaks the Lab reader. */
 const SK='sen_platform_v1';
 const IDB_NAME='sen_main',IDB_STORE='kv',IDB_KEY='db';
 const SCHEMA={rifles:1,projectiles:1,weathers:1,scopes:1,reticles:1,dopeCards:2};
@@ -2703,7 +2710,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.25.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.25.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3169,7 +3176,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.25.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.25.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
