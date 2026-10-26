@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.27.0</title>
+<title>SEN Ballistics V1.27.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -292,7 +292,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.27.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.27.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -799,7 +799,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.27.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.27.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -2780,7 +2780,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.27.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.27.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3246,7 +3246,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.27.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.27.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3400,10 +3400,13 @@ function impScope(v){IMP.scopePick.choice=v;}
    has NO temperature/humidity (those come from manual entry or an online API). Replaces the old
    binary-HDLC parser, which only ever saw the frozen idle frame. */
 const CALYPSO_SVC='49535343-fe7d-4ae5-8fa9-9fafd205e455';
-const CALYPSO_HANDSHAKE=[':DU,1668647648,A7',':GK',':PS,1,1,9F',':WU,5',':WU,6',':VR'];
+/* :DU is a fixed per-unit unlock token, not a clock-set (Anemotracker HCI snoop, 2026-10-26; Lab Probe V1.3.1).
+   Until a unit gets its own token it answers :NA to :DU and :CC and never streams :WU. New unit = one snoop capture. */
+const CALYPSO_UNLOCK={'WDOT-B1F9A6':':DU,1668647648,A7','WDOT-E2896A':':DU,1802347072,AF'};
+const CALYPSO_HANDSHAKE=[':GK',':PS,1,1,9F',':WU,5',':WU,6',':VR']; // after the unlock
 const CALYPSO_KEEPALIVE=':CC,6,86';
 let bleDevice=null, bleFFF1Char=null, bleFFF2Char=null;
-let bleRxBuf='', blePendingGK=null, bleKaTimer=null, bleLastWu=0;
+let bleRxBuf='', bleKaTimer=null, bleLastWu=0, bleReply=null;
 let bleLastSpd=0, bleLastAvg=0, bleLastDir=0, bleLastBatt=null;
 function isBleSup(){return!!(navigator.bluetooth&&navigator.bluetooth.requestDevice);}
 function updateBleStatus(state,txt){
@@ -3413,6 +3416,22 @@ function updateBleStatus(state,txt){
 }
 function calypsoBytes(s){const out=[];for(let i=0;i<s.length;i++)out.push(s.charCodeAt(i));out.push(0x0d);out.push(0x0d);return new Uint8Array(out);}
 async function calypsoWrite(bytes){if(!bleFFF1Char)return;if(bleFFF1Char.properties.writeWithoutResponse)await bleFFF1Char.writeValueWithoutResponse(bytes);else await bleFFF1Char.writeValue(bytes);}
+async function calypsoUnlock(name){ // own token first, then every other known token until one is :AK'd
+  const own=CALYPSO_UNLOCK[(name||'').toUpperCase()],all=Object.values(CALYPSO_UNLOCK);
+  for(const tok of own?[own,...all.filter(t=>t!==own)]:all){
+    bleReply=null;await calypsoWrite(calypsoBytes(tok));
+    const t0=Date.now();while(!bleReply&&Date.now()-t0<800)await new Promise(r=>setTimeout(r,40));
+    if(bleReply==='AK')return true;
+  }
+  return false;
+}
+async function calypsoBattery(server){ // battery from 0x2A19 (:GK field 2 is not battery: unit #2 sends 'BD')
+  try{const c=await(await server.getPrimaryService(0x180F)).getCharacteristic(0x2A19);
+    const show=v=>{bleLastBatt=v.getUint8(0);updateBleDisplay();};
+    show(await c.readValue());
+    if(c.properties.notify){await c.startNotifications();c.addEventListener('characteristicvaluechanged',e=>show(e.target.value));}
+  }catch(e){} // battery is optional; wind works without it
+}
 async function toggleBLE(){
   if(!isBleSup()){alert('Web Bluetooth not supported.\nUse Chrome on Android or Chrome/Edge on desktop. (iOS blocks Web Bluetooth — use manual wind entry.)');return;}
   if(bleDevice&&bleDevice.gatt.connected){await bleDevice.gatt.disconnect();return;}
@@ -3428,23 +3447,30 @@ async function toggleBLE(){
     bleFFF2Char=chars.find(c=>c.uuid.includes('fff2'))||null;
     if(!bleFFF2Char)throw new Error('FFF2 notify characteristic not found');
     if(!bleFFF1Char)throw new Error('FFF1 write characteristic not found (cannot send handshake)');
-    bleRxBuf='';blePendingGK=null;
+    bleRxBuf='';
     await bleFFF2Char.startNotifications();
     bleFFF2Char.addEventListener('characteristicvaluechanged',onCalypsoPacket);
     updateBleStatus('connected','Connected: '+bleDevice.name+' · activating…');
     document.getElementById('ble-live-wrap').style.display='block';
     // run the proven handshake after a short settle
     await new Promise(r=>setTimeout(r,600));
+    if(!await calypsoUnlock(bleDevice.name)){
+      updateBleStatus('connected','Connected: '+bleDevice.name+' · locked');
+      const sl=document.getElementById('ble-service-list');if(sl)sl.textContent='This Calypso isn\'t unlocked for SEN yet: its :DU code is unknown. Capture it once (Anemotracker + HCI snoop) and add it to the app.';
+      return;
+    }
+    await new Promise(r=>setTimeout(r,120));
     for(const s of CALYPSO_HANDSHAKE){await calypsoWrite(calypsoBytes(s));await new Promise(r=>setTimeout(r,120));}
     await calypsoWrite(calypsoBytes(CALYPSO_KEEPALIVE));
     bleKaTimer=setInterval(()=>{if(bleDevice&&bleDevice.gatt.connected)calypsoWrite(calypsoBytes(CALYPSO_KEEPALIVE)).catch(()=>{});},10000);
     updateBleStatus('connected','Connected: '+bleDevice.name);
+    calypsoBattery(server);
     const sl=document.getElementById('ble-service-list');if(sl)sl.textContent='Handshake sent · awaiting live :WU wind…';
   }catch(e){updateBleStatus('','Error: '+e.message);onCalypsoDisconnect();}
 }
 function onCalypsoDisconnect(){
   if(bleKaTimer){clearInterval(bleKaTimer);bleKaTimer=null;}
-  bleFFF1Char=bleFFF2Char=null;bleRxBuf='';blePendingGK=null;
+  bleFFF1Char=bleFFF2Char=null;bleRxBuf='';
   updateBleStatus('','Disconnected');
   const w=document.getElementById('ble-live-wrap');if(w)w.style.display='none';
 }
@@ -3466,14 +3492,10 @@ function calypsoParse(s){
       bleLastWu=Date.now();
       updateBleDisplay();
     }
-  }else if(s.startsWith(':GK')){
-    const f=s.split(',');
-    if(f.length>=3){bleLastBatt=parseInt(f[2]);updateBleDisplay();}
-    else blePendingGK=f[1]||'';
-  }else if(blePendingGK!==null&&s.startsWith(',')){
-    bleLastBatt=parseInt(s.replace(',','').trim());blePendingGK=null;updateBleDisplay();
+  }else if(s.startsWith(':AK')){bleReply='AK';
+  }else if(s.startsWith(':NA')){bleReply='NA';
   }
-  // :VR, :AK, :CC ignored
+  // :GK (id; field 2 is not battery), :VR, :CC ignored
 }
 function updateBleDisplay(){
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};

@@ -7,6 +7,28 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.27.1 — patch — Calypso unit #2 streams: per-unit unlock code; battery from the battery service (LAB-02)
+
+**Problem.** The second Calypso (WDOT-E2896A) connected but never showed wind. The handshake's first sentence, `:DU,1668647648,A7`, was captured from unit #1 in June and treated as a clock-set. An Anemotracker HCI snoop of unit #2 (2026-10-26, Sony Xperia 1 VI) showed it is a **fixed per-unit unlock code**: unit #2 gets `:DU,1802347072,AF` in every session. Until a unit gets its own code it answers `:NA` to `:DU` and to the `:CC` keepalive and never streams `:WU`. Separately, the battery tile read `:GK` field 2, which unit #2 sends as `BD`, so it showed `NaN%`.
+
+**Fix.**
+- `CALYPSO_UNLOCK` table by device name: `WDOT-B1F9A6` → `:DU,1668647648,A7`, `WDOT-E2896A` → `:DU,1802347072,AF`.
+- `calypsoUnlock()` sends the unit's own code first, waits for `:AK`/`:NA`, and for an unlisted unit tries every known code once.
+- If none is accepted, the app stops: status "· locked", a note to capture the unit's code once (Anemotracker + HCI snoop), and no handshake or keepalive.
+- The rest of the handshake (`:GK`, `:PS`, `:WU,5`, `:WU,6`, `:VR`, `:CC`) is unchanged.
+- Battery now comes from `0x180F`/`0x2A19` (read plus notifications). If the unit has no battery service, the tile shows a dash and wind still works.
+
+Ported from Lab Probe V1.3.1 (SEN-Testing `c4096a5`). That build was confirmed on the Honor Magic V5 with both units streaming at once, using no manually typed codes.
+
+**Files:**
+- `index.html`: `CALYPSO_UNLOCK`, `CALYPSO_HANDSHAKE` (without `:DU`), new `calypsoUnlock()` and `calypsoBattery()`, `toggleBLE()` (unlock step, locked message, battery), `calypsoParse()` (`:AK`/`:NA` noted; `:GK` no longer sets battery; dead `blePendingGK` removed); 5 live version strings.
+- `sw.js`: CACHE → `sen-ballistics-v1.27.1`.
+- New `tests/calypsotest.js` (18 checks; 12 of them fail on V1.27.0); `tests/README.md` updated to sixteen suites.
+
+**Verify:** `node --check` clean · `runtests.js` 33/33 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · **`calypsotest.js` 18/18** · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.27.1.html`. No physics change. On-device check with unit #2 in the calculator pending.
+
+---
+
 ## V1.27.0 — minor — Course runner on Home: PRS and Big bore layouts (CORE-16, part 2)
 
 **What.** A new Home module, **Course runner**, runs a dope card's course (CORE-12 stages and targets) live: pick the course, see the current stage (name, "Stage 2 of 5", stage timer when the stage has a time limit), every target with label · range · size · position, **dial ↑ and wind clicks per target**, and its calls (✓ ✗ · per shot). Tap a target → it becomes the session distance, so Home's big solution, reticle and turret panel follow it. **Hit / Miss** record the shot and move on by themselves once the target's shots are done (target → next target → next stage); Next ›, ‹ Stage, Stage › for manual moves; hits so far at the bottom. Run state (course, stage, target, calls, timer) is remembered, so a restart mid-match resumes.
