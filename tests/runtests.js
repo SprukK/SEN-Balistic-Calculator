@@ -52,6 +52,31 @@ chk('Element: drop500 = 1533.8 cm (±0.5%)', -atR(el,500).drop/10, 1533.8, 7.7);
 chk('Element: drop1000 = 8636.8 cm (±0.5%)', -atR(el,1000).drop/10, 8636.8, 43.2);
 chk('Element: v1000 = 165 m/s (±1)', atR(el,1000).v, 165, 1);
 
+console.log('\n=== V1.29.0 WIND CHANGING ALONG THE FLIGHT (CORE-17 core, §20A vs py-ballisticcalc 3.1.1) ===');
+// Queen G7 0.128 @ 260 m/s, zero 50 m, sight 44 mm, 20 °C / 1010 hPa / 65 %. pbc: per-zone Wind(until_distance),
+// drift = windage with wind − without; blend = 1 m zones at the blended value (pbc skips zones shorter than its step).
+const wq=rk4traj(260,0.128,60,50,200,0.044,env.rho,env.aS,1,'g7',0.245,null);
+const WF=(st,mode,d)=>windDriftField(wq,d,crossField(st,mode));
+chk('uniform 3 m/s @100 = 37.221 mm (pbc)',   WF([{x:0,cross:3}],'nearest',100), 37.221, 0.10);
+chk('uniform 3 m/s @200 = 151.601 mm (pbc)',  WF([{x:0,cross:3}],'nearest',200), 151.601, 0.25);
+const ZC=[['nearest 10 m +4 / 120 m −2',[{x:10,cross:4},{x:120,cross:-2}],'nearest',40.606,61.945],
+          ['nearest 10 m 0 / 60 m +3',[{x:10,cross:0},{x:60,cross:3}],'nearest',15.742,104.015],
+          ['nearest 10 m +3 / 150 m 0',[{x:10,cross:3},{x:150,cross:0}],'nearest',35.761,95.870],
+          ['blend 10 m +4 / 120 m −2',[{x:10,cross:4},{x:120,cross:-2}],'blend',33.175,54.321],
+          ['blend 10 m 0 / 60 m +3',[{x:10,cross:0},{x:60,cross:3}],'blend',16.509,104.768]];
+for(const [n,st,m,r1,r2] of ZC){chk(n+' @100 = '+r1+' mm (pbc ±0.5)',WF(st,m,100),r1,0.5);chk(n+' @200 = '+r2+' mm (pbc ±1.5)',WF(st,m,200),r2,1.5);}
+const f2=crossField([{x:120,cross:-2},{x:10,cross:4}],'blend');
+chk('crossField: unsorted input, blend midpoint 65 m = +1', f2(65), 1, 1e-12);
+chk('crossField: nearest switches halfway (64.9 → +4, 65.1 → −2)', crossField([{x:10,cross:4},{x:120,cross:-2}],'nearest')(64.9)*10+crossField([{x:10,cross:4},{x:120,cross:-2}],'nearest')(65.1), 38, 1e-12);
+chk('equal stations = uniform field (bit-identical)', WF([{x:10,cross:2.5},{x:90,cross:2.5}],'blend',150)===WF([{x:0,cross:2.5}],'nearest',150)?1:0, 1);
+chk('mirrored stations → exactly opposite drift', WF([{x:10,cross:4},{x:120,cross:-2}],'nearest',200)+WF([{x:10,cross:-4},{x:120,cross:2}],'nearest',200), 0, 1e-12);
+const nearHalf=WF([{x:0,cross:3},{x:99.9,cross:3},{x:100.1,cross:0},{x:200,cross:0}],'nearest',200),farHalf=WF([{x:0,cross:0},{x:99.9,cross:0},{x:100.1,cross:3},{x:200,cross:3}],'nearest',200);
+chk('3 m/s over the first 100 m drifts more than over the last 100 m, and the halves add up to uniform (200 m)', nearHalf>farHalf&&Math.abs(nearHalf+farHalf-WF([{x:0,cross:3}],'nearest',200))<1e-9?1:0, 1);
+chk('beyond the trajectory → null', windDriftField(wq,250,()=>3), null);
+const s1=solveShot(wq,nearestPt,50,150,0,3,90,260,0.1,0,90),s2=solveShot(wq,nearestPt,50,150,0,3,90,260,0.1,0,90,undefined);
+chk('solveShot without stations unchanged (lag rule)', s1.windDriftMm===windDrift(nearestPt(wq,150).tof,150,260,3)&&s2.windDriftMm===s1.windDriftMm?1:0, 1);
+chk('solveShot with a field uses it', solveShot(wq,nearestPt,50,150,0,3,90,260,0.1,0,90,crossField([{x:10,cross:4},{x:120,cross:-2}],'nearest')).windDriftMm, WF([{x:10,cross:4},{x:120,cross:-2}],'nearest',150), 1e-12);
+
 console.log('\n=== V1.16.0 NEW BEHAVIOUR ===');
 chk('trajReason defined',            typeof trajReason, 'string');
 chk('runTraj accepts silent arg',    runTraj.length, 1);

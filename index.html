@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.28.0</title>
+<title>SEN Ballistics V1.29.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -292,7 +292,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.28.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.29.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -806,7 +806,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.28.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.29.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -899,7 +899,7 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
       const f=x>px?(next-px)/(x-px):0;
       const iy=py+f*(y-py),ivx=pvx+f*(vx-pvx),ivy=pvy+f*(vy-pvy),it=pt+f*dt;
       const v=Math.sqrt(ivx*ivx+ivy*ivy),mach=v/cur.aS,E=0.5*mass_gr*GR2KG*v*v;
-      out.push({range:next,drop:iy*1000,v,mach,E,tof:it,lag:it-next/mv});
+      out.push({range:next,drop:iy*1000,v,mach,E,tof:it,lag:it-next/mv,vx:ivx});
       next+=stepOut;
     }
   }
@@ -1010,7 +1010,7 @@ function finiteGuard(obj){ // returns first non-finite key, or '' if all finite
    places — a crafted import JSON was stored XSS with localStorage access. One escape helper,
    applied at every name→HTML sink. */
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,click,zeroWind,zeroWindDir){
+function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,click,zeroWind,zeroWindDir,field){
   const zp=nearest(pts,zero_m),tp=nearest(pts,dist_m);
   if(!zp||!tp)return null;
   const cosd=Math.cos(angle_deg*Math.PI/180);
@@ -1028,7 +1028,9 @@ function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,cl
   // §20A: 90° and 270° must produce equal-magnitude, OPPOSITE-sign windage.
   const crossSigned=wind_ms*Math.sin(windDir_deg*Math.PI/180);
   const zCrossSigned=(zeroWind||0)*Math.sin((zeroWindDir||0)*Math.PI/180);
-  const wd=windDrift(tp.tof,dist_m,mv,crossSigned);
+  // CORE-17: a crosswind field (two or more stations) replaces the single wind for the drift at the target.
+  const wf=field?windDriftField(pts,dist_m,field):null;
+  const wd=wf!=null?wf:windDrift(tp.tof,dist_m,mv,crossSigned);
   const wdZeroBaked=windDrift(zp.tof,zero_m,mv,zCrossSigned);
   const wdNet=wd-wdZeroBaked;
   const mrWind=wdNet/dist_m, clWind=mrWind/click;
@@ -1036,6 +1038,45 @@ function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,cl
   return{tp,zp,mrElev,clElev,mrWind,clWind,cross,crossSigned,cosd,windDriftMm:wd,windNetMm:wdNet};
 }
 function windDrift(tof,range,mv,wind){return wind*(tof-range/mv)*1000;}
+/* ═════ CORE-17 solver core (V1.29.0) — crosswind that changes along the flight ═════
+   Point mass, small crosswind: the sideways motion feels the same drag factor k = dec/v as the
+   horizontal motion, so  dvx/dt = −k·vx  and  dvz/dt = −k·(vz − w(x)).  With slowness
+   u = 1/vx (du = k·dt/vx) this integrates to  vz = vx·∫ w du  and
+        z(X) = ∫₀^X [ ∫₀^x w(x′) du(x′) ] dx.
+   Constant w gives z = w·(T − X/vx₀): the Didion lag rule windDrift() uses is this model's
+   closed form, so the two agree for uniform wind. u comes from the trajectory's own horizontal
+   velocity at each output point (vx, linear between points); w is held per 0.25 m sub-step.
+   crossField: stations [{x: m along the line of fire, cross: signed crosswind m/s, + = from the
+   right}] → w(x). 'nearest': each point uses the closest station (boundary halfway between);
+   'blend': linear between stations, held flat before the first and after the last.
+   One station → the caller keeps windDrift() (bit-identical dope). Headwind/tailwind is not
+   modelled, as in the single-wind solver.
+   §20A: py-ballisticcalc 3.1.1 (full 3-D, wind inside the relative velocity, per-zone winds) on
+   Queen G7 0.128 @ 260 m/s — see runtests.js and the Formulas page. */
+function crossField(stations,mode){
+  const s=(stations||[]).filter(t=>isFinite(t.x)&&isFinite(t.cross)).slice().sort((a,b)=>a.x-b.x);
+  if(!s.length)return()=>0;
+  return x=>{
+    if(mode==='blend'){
+      if(x<=s[0].x)return s[0].cross;
+      for(let i=1;i<s.length;i++)if(x<=s[i].x){const a=s[i-1],b=s[i];return b.x>a.x?a.cross+(b.cross-a.cross)*(x-a.x)/(b.x-a.x):b.cross;}
+      return s[s.length-1].cross;
+    }
+    let best=s[0];for(const t of s)if(Math.abs(x-t.x)<Math.abs(x-best.x))best=t;return best.cross;
+  };
+}
+// Drift (mm, same sign convention as windDrift) at `range` for crosswind field w(x). null if
+// the trajectory doesn't reach `range` or lacks vx.
+function windDriftField(pts,range,w,h=0.25){
+  if(!pts||!pts.length||pts[0].range!==0||!(pts[pts.length-1].range>=range-1e-9)||pts.some(p=>!(p.vx>0)))return null;
+  let i=0;const uAt=x=>{while(i<pts.length-2&&pts[i+1].range<x)i++;const a=pts[i],b=pts[i+1]||a,f=b.range>a.range?(x-a.range)/(b.range-a.range):0;return 1/a.vx+f*(1/b.vx-1/a.vx);};
+  let x=0,u=uAt(0),I=0,z=0;
+  while(x<range-1e-12){
+    const x1=Math.min(range,x+h),u1=uAt(x1),I1=I+w((x+x1)/2)*(u1-u);
+    z+=(I+I1)/2*(x1-x);x=x1;u=u1;I=I1;
+  }
+  return z*1000;
+}
 /* ═════ V1.14.0 · Layer-3 corrections (C1 spin drift · C2 Coriolis) ═════
    C2 Coriolis — EXACT physics, verified by independent derivation + the analytic
    constant-velocity anchor Δ = Ω·sin(lat)·X·T (McCoy form):
@@ -2791,7 +2832,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.28.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.29.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3257,7 +3298,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.28.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.29.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3874,6 +3915,11 @@ const FORMULAS=[
   {name:'Wind drift (lag time, signed crosswind)',status:'ok',eq:'drift = W·sin θ·(t − R/v₀)',src:'Didion / McCoy lag-time rule — skill §9; sign fix V1.8.2, headwind fix V1.23.0',used:'every solution',
     anchors:[{l:'90° and 270° equal and opposite at 100 m',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),r=solveShot(p,nearestPt,50,100,0,4,90,260,0.1,0,90).mrWind,l=solveShot(p,nearestPt,50,100,0,4,270,260,0.1,0,90).mrWind;return Math.abs(r)>0.05?r+l:NaN;},want:0,tol:1e-9,u:'mrad'},
              {l:'0° headwind → no windage',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null);return solveShot(p,nearestPt,50,100,0,4,0,260,0.1,0,90).mrWind;},want:0,tol:1e-9,u:'mrad'}]},
+  {name:'Wind drift — wind changing along the flight (CORE-17 core)',status:'ok',eq:'dvz/dt = −k·(vz − w(x)), k = drag/v → z(X) = ∫₀^X ∫ w du dx, u = 1/vx; stations → w(x) by nearest or linear blend',
+    src:'point-mass lateral equation; uniform wind reduces to the Didion lag rule. Reproduced against py-ballisticcalc 3.1.1 per-zone winds (full 3-D) — not yet used for dope (needs the CORE-17 station UI)',used:'solveShot when given two or more stations',
+    anchors:[{l:'uniform 3 m/s, 100 m (pbc 37.22 mm)',got:()=>{const e=FX_ENV();return windDriftField(rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),100,crossField([{x:0,cross:3}]));},want:37.22,tol:0.1,u:'mm'},
+             {l:'nearest: 10 m +4 / 120 m −2 m/s, 200 m (pbc 61.95 mm)',got:()=>{const e=FX_ENV();return windDriftField(rk4traj(260,0.128,60,50,200,0.044,e.rho,e.aS,1,'g7',0.245,null),200,crossField([{x:10,cross:4},{x:120,cross:-2}],'nearest'));},want:61.95,tol:1.5,u:'mm'},
+             {l:'blend: same stations, 200 m (pbc 54.32 mm)',got:()=>{const e=FX_ENV();return windDriftField(rk4traj(260,0.128,60,50,200,0.044,e.rho,e.aS,1,'g7',0.245,null),200,crossField([{x:10,cross:4},{x:120,cross:-2}],'blend'));},want:54.32,tol:1.5,u:'mm'}]},
   {name:'Angular units',status:'ok',eq:'mrad = mm/m · 1 MOA = 0.290888 mrad',src:'exact definitions — skill §10',used:'every dial and hold',
     anchors:[{l:'100 mm at 100 m',got:()=>toMOA(100,100),want:3.43775,tol:1e-5,u:'MOA'},{l:'¼ MOA click',got:()=>clickMrad(0.25,'moa'),want:0.072722,tol:1e-6,u:'mrad'}]},
   {name:'Unit conversions',status:'ok',eq:'1 yd = 0.9144 m · 1 ft = 0.3048 m · 1 in = 25.4 mm',src:'international yard and pound (1959), exact',used:'every displayed value',

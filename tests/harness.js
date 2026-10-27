@@ -4,7 +4,7 @@ function mkEl(id){
   const el={id,value:'',textContent:'',innerHTML:'',style:{setProperty(){},},dataset:{},
     classList:{_s:new Set(),add(c){this._s.add(c)},remove(c){this._s.delete(c)},
       toggle(c,f){f?this._s.add(c):this._s.delete(c)},contains(c){return this._s.has(c)}},
-    appendChild(){},removeChild(){},setAttribute(){},getAttribute(){return null},
+    appendChild(){},removeChild(){},replaceChildren(){},append(){},setAttribute(){},getAttribute(){return null},
     addEventListener(){},querySelector(){return null},querySelectorAll(){return []},
     getContext(){return {clearRect(){},fillRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},fill(){},fillText(){},setTransform(){},scale(){},arc(){},closePath(){},save(){},restore(){},setLineDash(){},clip(){},rect(){},measureText(){return{width:10}},createLinearGradient(){return{addColorStop(){}}},translate(){},rotate(){}}},
     width:300,height:240,checked:false,disabled:false,files:[],click(){},focus(){},remove(){}};
@@ -26,7 +26,7 @@ global.localStorage={getItem(k){return store[k]??null},setItem(k,v){store[k]=Str
 global.window={scrollTo(){},addEventListener(){},matchMedia(){return{matches:false,addEventListener(){}}},devicePixelRatio:1};
 global.matchMedia=global.window.matchMedia;  // V1.24.2: isCoarse() calls the bare global, as in a browser
 global.navigator={bluetooth:undefined,wakeLock:undefined,serviceWorker:undefined,userAgent:'node'};
-global.location={protocol:'file:',reload(){}};
+global.location={protocol:'file:',hash:'',search:'',reload(){}};
 global.alert=()=>{};global.confirm=()=>false;global.prompt=()=>null;
 global.requestAnimationFrame=f=>setTimeout(f,0);
 global.getComputedStyle=()=>({getPropertyValue:()=>''});

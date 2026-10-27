@@ -7,6 +7,34 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.29.0 — minor — Solver core for wind that changes along the flight (CORE-17, no UI yet)
+
+**Problem.** CORE-17 needs the solver to use several wind stations at once. The solver only knew one crosswind for the whole flight (Didion lag rule).
+
+**Fix.**
+- New `crossField(stations, mode)`: stations `{x: m along the line of fire, cross: signed crosswind m/s}` → crosswind at any distance, by **nearest** station (boundary halfway) or **blend** (linear between stations, flat beyond the ends).
+- New `windDriftField(pts, range, w)`: lateral point-mass equation dvz/dt = −k·(vz − w(x)) with the trajectory's own drag factor, integrated as z = ∫∫ w du dx (u = 1/vx). For a uniform wind it reduces to the lag rule.
+- `rk4traj` output points also carry `vx` (no other value changes). `solveShot` takes an optional last argument `field`; without it (every caller today) the result is unchanged. One station will keep using the lag rule, so its dope stays bit-identical.
+- Formulas page: new verified entry with three py-ballisticcalc anchors.
+- Not yet used for dope: needs the CORE-17 station UI and the owner's design calls.
+
+**§20A.** py-ballisticcalc 3.1.1 (full 3-D, wind inside the relative velocity, per-zone `Wind(until_distance)`), Queen G7 0.128 @ 260 m/s, zero 50 m, 20 °C / 1010 hPa / 65 %: uniform 3 m/s within 0.05 %; five two-station cases (three nearest, two blend) within 0.5 mm at 100 m and 1.5 mm at 200 m. Wind near the muzzle dominates: 3 m/s over the first 100 m of a 200 m shot = 112 mm, over the last 100 m = 39 mm.
+
+**Found, not fixed (needs a ruling).** `rk4traj` updates velocity by RK4 but advances position with the start-of-step velocity (`x + h·vx`). Time of flight is 0.016 % short, so the lag-rule drift is 0.5 % low (37.03 vs 37.22 mm, 3 m/s at 100 m); drop is 0.8 mm short at 200 m. With RK4 positions the app matches py-ballisticcalc to 3e-6 s, 0.1 mm drop and 0.00 mm drift. `windDriftField` uses the accurate vx, so until the fix two equal stations would read 0.5 % more drift than one station.
+
+**Test harness.** `harness.js`: stubs gained `replaceChildren`/`append` and `location.hash`; the app's boot no longer aborts part-way in the headless harness (it stopped at the link import `importFromLink` in V1.27.1, and at `wavgRender` in V1.28.0). No app behaviour involved.
+
+**Docs.** `SEN-BALLISTICS-SKILL.md` V5.2: §8C pressure convention (each C is paired with the pressure it was fitted at: Queen/King 986 hPa, LR-25 ≈ 978–981 hPa; LRAI-35-H 1.99 flagged unverified, regression anchor 1.719), §9A multi-station model, §7 position-update finding.
+
+**Files:**
+- `index.html`: `crossField`, `windDriftField`, `vx` in `rk4traj` output, optional `field` in `solveShot`, FORMULAS entry; 5 live version strings.
+- `sw.js`: CACHE → `sen-ballistics-v1.29.0`.
+- `tests/runtests.js` +20 anchors (53); `tests/harness.js`; `tests/README.md`.
+
+**Verify:** `node --check` clean · `runtests.js` 53/53 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · `calypsotest.js` 18/18 · `windavgtest.js` 28/28 · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.29.0.html`. No dope changes.
+
+---
+
 ## V1.28.0 — minor — Wind average window: the app averages the Calypso itself, over 10 s to 2 h (CALC-20)
 
 **Problem.** "avg" wind used the Calypso's own average field from `:WU`. Its window is set inside the unit and unknown, so the number couldn't be checked (§20A) or chosen. The direction sent to the session was always the instant vane reading, so an averaged speed was paired with a momentary direction.
