@@ -22,7 +22,7 @@ async function open({ls,setup}={}){
 }
 const J=(w,e)=>JSON.parse(w.eval('JSON.stringify('+e+')'));
 const wind=w=>J(w,'S.wind');
-const calypso=(w,dir,spd=5)=>w.eval(`bleLastDir=${dir};bleLastAvg=${spd};calypsoToSession(${spd})`);
+const calypso=(w,dir,spd=5)=>w.eval(`bleLastDir=${dir};calypsoToSession(${spd})`);
 const typeIn=(w,id,v)=>{const e=w.document.getElementById(id);e.value=String(v);e.dispatchEvent(new w.Event('input'));};
 function orient(w,type,props){const e=new w.Event(type);for(const k in props)Object.defineProperty(e,k,{value:props[k]});w.dispatchEvent(e);}
 

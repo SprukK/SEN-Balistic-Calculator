@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.27.1</title>
+<title>SEN Ballistics V1.28.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -292,7 +292,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.27.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.28.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -375,6 +375,7 @@ details.disc .dbody{padding:0 14px 14px}
     <span id="home-live-state">Wind: manual / session</span>
     <span style="display:flex;gap:6px;align-items:center">
       <span class="seg" style="display:inline-flex"><button class="btn-xs on" id="home-src-avg" onclick="setHomeWindSrc('avg')">avg</button><button class="btn-xs" id="home-src-inst" onclick="setHomeWindSrc('inst')">instant</button></span>
+      <select id="home-avg-win" class="btn-xs" style="flex:0 0 auto;width:auto" aria-label="Average window" onchange="setWavgWin(+this.value)"></select>
       <button class="btn-xs" id="home-live-btn" onclick="toggleHomeLive()">Enable live stream</button>
     </span>
   </div>
@@ -749,6 +750,12 @@ details.disc .dbody{padding:0 14px 14px}
         <div class="sc"><div class="sl">Direction</div><div class="sv" id="ble-dir-val">—</div><div class="su">deg</div></div>
         <div class="sc"><div class="sl">Battery</div><div class="sv" id="ble-batt" style="font-size:16px">—</div><div class="su">%</div></div>
       </div>
+      <div class="fgrid3" style="align-items:end;margin-top:8px">
+        <div class="fld"><label>Average window</label><select id="ble-avg-win" onchange="setWavgWin(+this.value)"></select></div>
+        <div class="fld"><label>Custom min</label><input type="number" id="ble-avg-min" data-q="-" min="1" max="120" step="1" onchange="if(this.value!=='')setWavgWin(this.value*60)"></div>
+        <div class="fld"><button class="btn-xs" onclick="wavgReset()">Reset average</button></div>
+      </div>
+      <div class="note" id="ble-avg-stats"></div>
       <div class="btnrow"><button class="btn" onclick="useBLEWind()">Use wind → session</button></div>
       <div class="note" id="ble-service-list"></div><div class="note" id="ble-poll-ctr"></div>
     </div>
@@ -759,7 +766,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><button class="btn-xs" onclick="captureCalMount()">📍 Phone compass</button></div>
     </div>
     <div class="note" id="cal-mount-note"></div>
-    <div class="flag info" style="margin-top:10px">Live wind via the proven activation handshake (Handoff V3). Session uses the rolling <b>average</b>; the instant value is shown above. This device measures wind only — temperature/humidity come from manual entry or an online source, not the Calypso.</div>
+    <div class="flag info" style="margin-top:10px">Live wind via the proven activation handshake (Handoff V3). Session uses the app's own <b>average</b> of the instant readings over the window you choose (the Calypso's built-in average is not used — its window is unknown). Keep the Calypso in the same orientation for the whole window; after moving it, tap Reset average. This device measures wind only — temperature/humidity come from manual entry or an online source, not the Calypso.</div>
   </div>
   <div class="panel">
     <h2>Manual wind entry</h2>
@@ -799,7 +806,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.27.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.28.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1085,7 +1092,7 @@ const QDEF={
 };
 let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',tsize:'mm',alt:'m',regp:'bar'};
 let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',tsize:'off',alt:'off',regp:'off'};
-let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',turretMode:'match',solverCor:false,solverSpin:false,lat:46.05};
+let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,turretMode:'match',solverCor:false,solverSpin:false,lat:46.05};
 /* FIX-14b/c — apply display preferences (boot + on change) */
 function applyDisplayPrefs(){
   const h=document.documentElement;
@@ -2118,14 +2125,18 @@ function updateTurretUI(dialE,remE,remW,au,aLbl){
   if(ev)ev.textContent=fmtE(dialE)+' clk'+(turretElevMode==='match'?' · auto':'');
   if(note)note.textContent=`Reticle dot = remaining hold: elev ${remE>=0?'↑':'↓'}${angInUnit(Math.abs(remE),au).toFixed(2)} ${aLbl} · wind ${remW>=0?'→':'←'}${angInUnit(Math.abs(remW),au).toFixed(2)} ${aLbl}. Solution cells show the FULL dial from turret zero.`;
 }
-function bleWindVal(){return homeWindSrc==='inst'?bleLastSpd:bleLastAvg;}
 function setHomeWindSrc(src){
   homeWindSrc=src;APP.homeWindSrc=src;saveDB();
   document.getElementById('home-src-avg').classList.toggle('on',src==='avg');
   document.getElementById('home-src-inst').classList.toggle('on',src==='inst');
   const connected=bleDevice&&bleDevice.gatt&&bleDevice.gatt.connected;
-  if((homeLive||windMode==='live')&&connected&&bleLastWu)calypsoToSession(bleWindVal());
-  renderQuick();
+  if((homeLive||windMode==='live')&&connected&&bleLastWu)calypsoLive(homeWindSrc);
+  homeLiveState();renderQuick();
+}
+function homeLiveState(){
+  const st=document.getElementById('home-live-state');if(!st||!homeLive)return;
+  const connected=bleDevice&&bleDevice.gatt&&bleDevice.gatt.connected;
+  st.textContent=connected?'Wind: LIVE from Calypso ⊙ ('+(homeWindSrc==='inst'?'instant':'avg '+wavgLabel(wavgWin()))+')':'Wind: live ON — connect Calypso (Sensors tab)';
 }
 function toggleHomeLive(){
   homeLive=!homeLive;
@@ -2134,8 +2145,8 @@ function toggleHomeLive(){
   const connected=bleDevice&&bleDevice.gatt&&bleDevice.gatt.connected;
   if(homeLive){
     btn.textContent='Disable live stream';
-    st.textContent=connected?'Wind: LIVE from Calypso ⊙ ('+homeWindSrc+')':'Wind: live ON — connect Calypso (Sensors tab)';
-    if(connected&&bleLastWu){calypsoToSession(bleWindVal());}
+    homeLiveState();
+    if(connected&&bleLastWu){calypsoLive(homeWindSrc);}
   }else{
     btn.textContent='Enable live stream';st.textContent='Wind: manual / session';
   }
@@ -2510,7 +2521,7 @@ function setWindMode(m){
   const sp=document.getElementById('wd-spd'),di=document.getElementById('wd-dir');
   if(m==='live'){
     sp.disabled=true;di.disabled=true;
-    if(bleLastWu){sp.value=bleLastAvg.toFixed(1);di.value=bleLastDir;}
+    if(bleLastWu){const a=bleAvgNow();sp.value=a.s.toFixed(1);di.value=a.d;}
     document.getElementById('wd-mode-note').innerHTML=(bleDevice&&bleDevice.gatt&&bleDevice.gatt.connected)?'Live from Calypso ⊙ — readings flow into the session automatically.':'<span style="color:var(--warn)">Calypso not connected — connect it on the Sensors tab, then live wind appears here.</span>';
     pushWindToSession();
   }else{
@@ -2524,7 +2535,7 @@ function onWindInput(){renderWind();dbnc('wind-in',()=>pushWindToSession());}
 function pushWindToSession(){
   const spd=+document.getElementById('wd-spd').value,dir=+document.getElementById('wd-dir').value;
   if(windMode!=='live'){Bus.setWind(spd,dir,'manual');return;}
-  calypsoToSession(spd);document.getElementById('wd-dir').value=S.wind.dir;
+  if(bleLastWu)calypsoLive('avg');else calypsoToSession(spd);document.getElementById('wd-dir').value=S.wind.dir;
 }
 function syncClock(){
   const dir=+document.getElementById('wd-dir').value;
@@ -2780,7 +2791,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.27.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.28.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3246,7 +3257,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.27.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.28.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3407,7 +3418,54 @@ const CALYPSO_HANDSHAKE=[':GK',':PS,1,1,9F',':WU,5',':WU,6',':VR']; // after the
 const CALYPSO_KEEPALIVE=':CC,6,86';
 let bleDevice=null, bleFFF1Char=null, bleFFF2Char=null;
 let bleRxBuf='', bleKaTimer=null, bleLastWu=0, bleReply=null;
-let bleLastSpd=0, bleLastAvg=0, bleLastDir=0, bleLastBatt=null;
+let bleLastSpd=0, bleLastDir=0, bleLastBatt=null;
+/* ═════ CALC-20 (V1.28.0) — wind average over a chosen window ═════
+   The app averages the Calypso's INSTANT readings itself, over the window the user picks
+   (APP.windAvgS, seconds). The :WU average field is not used: its window is set inside the unit
+   and unknown, so it can't be checked (§20A).
+   Average = mean of the wind arrows (vector mean): x̄ = Σ s·cos d / n, ȳ = Σ s·sin d / n;
+   speed = √(x̄²+ȳ²), direction = atan2(ȳ, x̄). Speed and direction come from the same average,
+   calm readings (vane pointing anywhere) carry almost no weight, and a wind swinging left↔right
+   cancels the way its push on the slug does. Also reported: scalar mean speed, lull/gust (min/max),
+   steadiness = vector speed / scalar mean (100 % = constant direction), window fill, gaps.
+   Equal weight per reading (the unit streams at a steady rate). History is in memory only —
+   a restart starts the window again; switching to another unit clears it. */
+const WAVG_WINS=[10,60,300,900,1800,3600], WAVG_MAX_S=7200, WAVG_GAP_S=5;
+let wavgBuf=[], wavgUnit=null;
+const wavgWin=()=>Math.min(WAVG_MAX_S,Math.max(10,Math.round(+APP.windAvgS||60)));
+const wavgLabel=w=>w<60?w+' s':(w%60?(w/60).toFixed(1):w/60)+' min';
+const fmtMS=sec=>Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');
+function wavgPush(t,s,d){
+  wavgBuf.push({t,s,d});
+  const cut=t-WAVG_MAX_S*1000;let i=0;while(i<wavgBuf.length&&wavgBuf[i].t<cut)i++;if(i)wavgBuf.splice(0,i);
+}
+function windAvg(winS,now){
+  const from=now-winS*1000,pts=wavgBuf.filter(p=>p.t>from&&p.t<=now);return pts.length?windMean(pts,winS,now):null;
+}
+function windMean(pts,winS,now){
+  let x=0,y=0,sum=0,mn=Infinity,mx=-Infinity,gap=(now-pts[pts.length-1].t)/1000;
+  pts.forEach((p,i)=>{const r=p.d*Math.PI/180;x+=p.s*Math.cos(r);y+=p.s*Math.sin(r);sum+=p.s;mn=Math.min(mn,p.s);mx=Math.max(mx,p.s);
+    if(i)gap=Math.max(gap,(p.t-pts[i-1].t)/1000);});
+  const n=pts.length,spd=Math.hypot(x/n,y/n),mean=sum/n;
+  return{n,spd,dir:spd>1e-9?Math.round((Math.atan2(y,x)*180/Math.PI+360)%360)%360:null,mean,min:mn,max:mx,
+    steady:mean>1e-9?spd/mean:null,fill:Math.min(winS,(now-pts[0].t)/1000),gap};
+}
+// Wind the session uses in avg mode; falls back to the instant reading until the first reading is in.
+function bleAvgNow(){const a=windAvg(wavgWin(),Date.now());return a?{s:a.spd,d:a.dir==null?bleLastDir:a.dir}:{s:bleLastSpd,d:bleLastDir};}
+function calypsoLive(src){const w=src==='inst'?{s:bleLastSpd,d:bleLastDir}:bleAvgNow();calypsoToSession(w.s,w.d);}
+function setWavgWin(sec){APP.windAvgS=Math.min(WAVG_MAX_S,Math.max(10,Math.round(+sec)||60));saveDB();wavgRender();homeLiveState();if(bleLastWu)updateBleDisplay();}
+function wavgReset(){wavgBuf=[];wavgRender();}
+function wavgRender(){
+  const win=wavgWin(),opts=WAVG_WINS.includes(win)?WAVG_WINS:[...WAVG_WINS,win].sort((a,b)=>a-b);
+  ['home-avg-win','ble-avg-win'].forEach(id=>{const sel=document.getElementById(id);if(!sel)return;
+    sel.replaceChildren(...opts.map(v=>{const o=document.createElement('option');o.value=v;o.textContent=wavgLabel(v);return o;}));sel.value=String(win);});
+  const st=document.getElementById('ble-avg-stats');if(!st)return;
+  const a=windAvg(win,Date.now());
+  if(!a){st.textContent='Average '+wavgLabel(win)+': waiting for readings…';return;}
+  st.textContent='Average '+wavgLabel(win)+': '+ut('wind',a.spd)+(a.dir==null?'':' at '+a.dir+'°')+' · mean speed '+ut('wind',a.mean)+
+    ' · lull '+ut('wind',a.min)+' / gust '+ut('wind',a.max)+(a.steady==null?'':' · steadiness '+Math.round(a.steady*100)+' %')+
+    ' · '+(a.fill<win-1?fmtMS(a.fill)+' of '+fmtMS(win)+' (filling)':'window full')+' · '+a.n+' readings'+(a.gap>WAVG_GAP_S?' · ⚠ gap '+Math.round(a.gap)+' s':'');
+}
 function isBleSup(){return!!(navigator.bluetooth&&navigator.bluetooth.requestDevice);}
 function updateBleStatus(state,txt){
   const dot=document.getElementById('ble-dot'),btn=document.getElementById('ble-btn'),stxt=document.getElementById('ble-status-text');
@@ -3487,9 +3545,10 @@ function calypsoParse(s){
   if(s.startsWith(':WU')){
     const f=s.split(',');
     if(f.length>=5){
-      const inst=parseFloat(f[2]),avg=parseFloat(f[3]),dir=parseFloat(f[4]);
-      if(!isNaN(inst))bleLastSpd=inst;if(!isNaN(avg))bleLastAvg=avg;if(!isNaN(dir))bleLastDir=Math.round(dir)%360;
+      const inst=parseFloat(f[2]),dir=parseFloat(f[4]); // f[3] = the unit's own average (unknown window, not used)
+      if(!isNaN(inst))bleLastSpd=inst;if(!isNaN(dir))bleLastDir=Math.round(dir)%360;
       bleLastWu=Date.now();
+      if(!isNaN(inst)&&!isNaN(dir)){const u=bleDevice&&bleDevice.name;if(u!==wavgUnit){wavgBuf=[];wavgUnit=u;}wavgPush(bleLastWu,inst,dir);}
       updateBleDisplay();
     }
   }else if(s.startsWith(':AK')){bleReply='AK';
@@ -3503,15 +3562,16 @@ function updateBleDisplay(){
   set('ble-dir-val',bleLastDir+'°');
   set('ble-batt',bleLastBatt!=null?bleLastBatt+'%':'—');
   const ctr=document.getElementById('ble-poll-ctr');
-  if(ctr){const age=(Date.now()-bleLastWu)/1000;ctr.textContent=bleLastWu?(age<3?'live · avg '+ut('wind',bleLastAvg):'signal lost ('+age.toFixed(0)+'s)'):'awaiting wind…';}
+  if(ctr){const age=(Date.now()-bleLastWu)/1000;ctr.textContent=bleLastWu?(age<3?'live':'signal lost ('+age.toFixed(0)+'s)'):'awaiting wind…';}
+  wavgRender();
   // Live mode → push avg wind into the session (avg is stable; instant shown above)
   if(windMode==='live'||homeLive){
     // home-live uses the chosen source (avg/instant); wind-tab live uses avg
-    calypsoToSession(homeLive&&windMode!=='live'?bleWindVal():bleLastAvg);
-    if(windMode==='live'){const sp=document.getElementById('wd-spd'),di=document.getElementById('wd-dir');if(sp)sp.value=bleLastAvg.toFixed(1);if(di)di.value=S.wind.dir;}
+    calypsoLive(homeLive&&windMode!=='live'?homeWindSrc:'avg');
+    if(windMode==='live'){const sp=document.getElementById('wd-spd'),di=document.getElementById('wd-dir');if(sp)sp.value=bleAvgNow().s.toFixed(1);if(di)di.value=S.wind.dir;}
   }
 }
-function useBLEWind(){calypsoToSession(bleLastAvg);}
+function useBLEWind(){calypsoLive('avg');}
 function useChronoMV(){
   const mv=+document.getElementById('ch-mv').value;
   if(!mv){alert('Enter MV first.');return;}
@@ -3777,6 +3837,12 @@ const FX_ENV=()=>({rho:airDensity(20,1010,65),aS:sos(20)});
 const fxAt=(pts,r)=>pts.find(p=>Math.abs(p.range-r)<1e-6);
 const fxBerger=(m,oal,tw,C)=>calcSg(m,6.35,oal,tw*25.4,853*0.3048,C,10,986);
 const FORMULAS=[
+  {name:'Wind average (vector mean)',status:'ok',eq:'x̄ = Σ s·cos d / n, ȳ = Σ s·sin d / n → speed √(x̄²+ȳ²), direction atan2(ȳ, x̄); steadiness = speed / mean(s)',
+    src:'resultant (vector-averaged) wind — EPA-454/R-99-005 Meteorological Monitoring Guidance; anchors are exact trigonometry, random data reproduced independently in windavgtest.js — CALC-20',used:'Calypso average window → session wind',
+    anchors:[{l:'4 m/s at 350° + 10° → direction',got:()=>windMean([{t:0,s:4,d:350},{t:1000,s:4,d:10}],60,1000).dir,want:0,tol:0,u:'°'},
+             {l:'…speed = 4·cos 10°',got:()=>windMean([{t:0,s:4,d:350},{t:1000,s:4,d:10}],60,1000).spd,want:3.9392,tol:5e-5,u:'m/s'},
+             {l:'3 m/s at 90° + 270° cancel',got:()=>windMean([{t:0,s:3,d:90},{t:1000,s:3,d:270}],60,1000).spd,want:0,tol:1e-9,u:'m/s'},
+             {l:'60° ↔ 120° swing → steadiness cos 30°',got:()=>windMean([{t:0,s:4,d:60},{t:1000,s:4,d:120}],60,1000).steady,want:0.8660,tol:5e-5,u:''}]},
   {name:'Moist-air density (Magnus)',status:'ok',eq:'ρ = (P−e)/(R_d·T) + e/(R_v·T), e = RH·6.1078·10^(7.5t/(237.3+t))',
     src:'Magnus vapour pressure; R_d 287.058, R_v 461.495 J/(kg·K) — skill §5A; ICAO standard atmosphere',used:'every trajectory, truing',
     anchors:[{l:'Everyday default 20 °C / 1010 hPa / 65 %',got:()=>airDensity(20,1010,65),want:1.1934,tol:5e-4,u:'kg/m³'},
@@ -4013,10 +4079,10 @@ function syncBearingFields(){
   const n=document.getElementById('tb-src');
   if(n)n.textContent=S.tgtBrg==null?'not set':'source: '+(BRG_SRC[APP.tgtBrgSrc]||'typed');
 }
-function calypsoToSession(speed){
-  if(APP.calMount==null){Bus.setWind(speed,bleLastDir,'calypso');return;}
+function calypsoToSession(speed,dir=bleLastDir){
+  if(APP.calMount==null){Bus.setWind(speed,dir,'calypso');return;}
   if(S.tgtBrg==null){calNote('Set the target bearing on Home — the Calypso is on a fixed bearing, so the angle to the target needs it.');return;}
-  Bus.setWindFrom(speed,bleLastDir+APP.calMount,'calypso');
+  Bus.setWindFrom(speed,dir+APP.calMount,'calypso');
 }
 function calNote(t){const n=document.getElementById('cal-mount-note');if(n)n.textContent=t;}
 function setCalMount(v,src){
@@ -4185,6 +4251,7 @@ reticleMag=APP.retMag??null;document.documentElement.style.setProperty('--ret-px
 turretElevMode=APP.turretMode||'match';
 {const el=document.getElementById('sv-lat');if(el&&APP.lat!=null)el.value=APP.lat;}
 homeWindSrc=APP.homeWindSrc||'avg';{const a=document.getElementById('home-src-avg'),i=document.getElementById('home-src-inst');if(a&&i){a.classList.toggle('on',homeWindSrc==='avg');i.classList.toggle('on',homeWindSrc==='inst');}}
+wavgRender();
 /* V1.15.0: restore persisted compass bearings (speed is session-only, not persisted) — prefill
    only, do NOT push session wind on boot (S.wind is not persisted; user re-enters speed). */
 {const wb=document.getElementById('hm-wbrg'),tb=document.getElementById('hm-tbrg');if(wb&&APP.hmWindBrg!=null)wb.value=APP.hmWindBrg;if(tb&&APP.hmTgtBrg!=null)tb.value=APP.hmTgtBrg;homeManWindLock();}

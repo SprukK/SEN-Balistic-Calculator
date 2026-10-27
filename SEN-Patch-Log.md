@@ -7,6 +7,28 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.28.0 — minor — Wind average window: the app averages the Calypso itself, over 10 s to 2 h (CALC-20)
+
+**Problem.** "avg" wind used the Calypso's own average field from `:WU`. Its window is set inside the unit and unknown, so the number couldn't be checked (§20A) or chosen. The direction sent to the session was always the instant vane reading, so an averaged speed was paired with a momentary direction.
+
+**Fix.**
+- Every `:WU` instant reading (speed + direction) goes into an in-memory buffer with a time stamp (2 h kept). The unit's own average field is no longer used anywhere.
+- Average = vector mean of the wind arrows over the chosen window: x̄ = Σ s·cos d / n, ȳ = Σ s·sin d / n → speed √(x̄²+ȳ²), direction atan2(ȳ, x̄). Speed and direction come from the same average; calm readings with the vane pointing anywhere carry almost no weight; a wind swinging left↔right cancels the way its push on the slug does.
+- Window: 10 s · 1 · 5 · 15 · 30 · 60 min, or custom minutes (1–120) on the Sensors card; default 1 min; saved in settings (`APP.windAvgS`, clamped on load).
+- Home live bar: avg / instant plus the window picker; the live state names the window. Instant mode = last instant speed and direction (unchanged).
+- Sensors card: average speed and direction, mean speed, lull / gust, steadiness (vector ÷ scalar mean, 100 % = constant direction), window fill ("1:39 of 15:00 (filling)"), reading count, ⚠ gap flag when readings stop for more than 5 s (e.g. Android pausing Bluetooth with the screen off). Reset average button (after moving the Calypso: the whole window must share one orientation). Readings from a different unit start a fresh window.
+- Used everywhere "avg" was: Home live, Wind tab live, "Use wind → session", and the fixed-bearing mount (wind from = averaged direction + mount bearing).
+- New entry in the Formulas page: "Wind average (vector mean)" with four exact anchors.
+
+**Files:**
+- `index.html`: `WAVG_*`, `wavgPush`, `windAvg`, `windMean`, `bleAvgNow`, `calypsoLive`, `setWavgWin`, `wavgReset`, `wavgRender`, `homeLiveState`; `calypsoParse` buffers instant readings (`bleLastAvg` removed); `calypsoToSession(speed, dir)`; Home live bar + Sensors card markup; FORMULAS entry; 5 live version strings.
+- `sw.js`: CACHE → `sen-ballistics-v1.28.0`.
+- New `tests/windavgtest.js` (28 checks); `windtest.js` helper no longer sets the removed `bleLastAvg`; `tests/README.md` now seventeen suites.
+
+**Verify:** `node --check` clean · `runtests.js` 33/33 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · `calypsotest.js` 18/18 · **`windavgtest.js` 28/28** · real Chromium at 412 px and 780 px: Home live bar and Sensors card fit, no sideways scroll · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.28.0.html`. No trajectory or drift physics changed; only what wind the session receives in avg mode. On-device check with the Calypso pending.
+
+---
+
 ## V1.27.1 — patch — Calypso unit #2 streams: per-unit unlock code; battery from the battery service (LAB-02)
 
 **Problem.** The second Calypso (WDOT-E2896A) connected but never showed wind. The handshake's first sentence, `:DU,1668647648,A7`, was captured from unit #1 in June and treated as a clock-set. An Anemotracker HCI snoop of unit #2 (2026-10-26, Sony Xperia 1 VI) showed it is a **fixed per-unit unlock code**: unit #2 gets `:DU,1802347072,AF` in every session. Until a unit gets its own code it answers `:NA` to `:DU` and to the `:CC` keepalive and never streams `:WU`. Separately, the battery tile read `:GK` field 2, which unit #2 sends as `BD`, so it showed `NaN%`.

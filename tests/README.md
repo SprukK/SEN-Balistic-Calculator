@@ -1,8 +1,8 @@
 # SEN regression tests
 
-Run all sixteen before every release. All must be fully green.
+Run all seventeen before every release. All must be fully green.
 
-| File | What it checks | Expected on V1.27.1 |
+| File | What it checks | Expected on V1.28.0 |
 |---|---|---|
 | `runtests.js` (+ `harness.js`) | 33 numeric physics anchors: air density, speed of sound, SD, Berger Sg (Queen, King, LRAI-35), unit conversions, RK4 trajectory, firing solution; **V1.24.2:** standard G1/G7 table values, trajectories reproduced against py-ballisticcalc (G7 and G1) and the owner's Element Ballistics table to 1000 m | PASS 33 / FAIL 0 |
 | `domtest.js` | Real-DOM (jsdom) click test: bottom nav, More sheet, act-bar pickers, Home disclosures, zero uncaught errors | PASS 14 / FAIL 0 |
@@ -19,9 +19,10 @@ Run all sixteen before every release. All must be fully green.
 | `homelayouttest.js` | Home layouts (V1.26.0, CORE-16): seeded layouts (five from V1.27.0), Default identical to the previous release's Home, switching from the Home sheet, Benchrest 50/100 m modules equal to the solver (wind offset now, 1–5 table in the display unit), chrono → vertical spread, card timer, editor (rename, ▲▼, on/off, settings, duplicate, delete, new from template, last one protected), restart, fold rail, imperial, escaping, garbage normalised | PASS 31 / FAIL 0 |
 | `courserunnertest.js` | Course runner (V1.27.0, CORE-16 part 2): PRS and Big bore layouts run a dope card's course on Home — guidance without a course, targets' dial/wind equal Home's solution, per-target wind from bearings, tap → session distance, Hit/Miss through shots → targets → stages, 300 m beyond Home's default range, hits, stage timer, restart resumes, course switch resets, imperial, escaping | PASS 20 / FAIL 0 |
 | `calypsotest.js` | Calypso connect (V1.27.1, LAB-02): simulated units that only accept their own `:DU` unlock code — unit #2 and unit #1 each send only their own code and then the unchanged handshake, live wind on the Sensors card, battery from `0x2A19` (not `:GK` field 2), an unlisted unit falls back through the known codes, a locked unit stops with the capture hint and no keepalive, no battery service still gives wind | PASS 18 / FAIL 0 |
+| `windavgtest.js` | Wind average window (V1.28.0, CALC-20): the app's own vector mean of the Calypso's instant readings — known cases (steady, 350°/10° wrap, opposite winds cancel, calm readings carry no weight, swing → steadiness cos 30°), 900 random readings reproduced independently, window boundaries, fill and gap flags, 2 h buffer limit, selectors + custom minutes + clamping + restart, live stream ignores the unit's own average field, Home avg vs instant, Wind tab live, "Use wind → session", fixed-bearing mount, reset, unit switch, no HTML sinks | PASS 28 / FAIL 0 |
 | `swtest.js` | Service worker (V1.25.1, CORE-09): runs the real `sw.js` against a simulated CacheStorage — activating a release deletes only Main's old caches (`sen-ballistics-*`, legacy `sen-calc-*`) and never the Lab probe's (`sen-ble-probe-*`, `sen-lab-*`) or anyone else's | PASS 6 / FAIL 0 |
 
-`domtest.js`, `layouttest.js` and `rendertest.js` are mandatory for any change to navigation, sheets, event wiring, page layout or page-wide CSS (V7 §21.4). `windtest.js` and `calypsotest.js` are mandatory for any change to wind, bearings or the Calypso path. `unittest.js` is mandatory for any change that adds or edits a number field or prints a value with a unit. `storagetest.js`, `importtest.js`, `sharetest.js`, `coursetest.js` and `bcmigtest.js` are mandatory for any change to loading, saving, import/export or the data schema. Any change to the drag engine, tables or truing needs `runtests.js` anchors reproduced against an independent solver (§20A). Any change to `sw.js` runs `swtest.js`; any change to the storage names or snapshot shape also breaks the Lab app's reader (storage contract next to `IDB_NAME` in `index.html`). Any new or changed formula also gets an entry with anchors in the app's `FORMULAS` registry, and `formulatest.js` must stay green. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
+`domtest.js`, `layouttest.js` and `rendertest.js` are mandatory for any change to navigation, sheets, event wiring, page layout or page-wide CSS (V7 §21.4). `windtest.js`, `calypsotest.js` and `windavgtest.js` are mandatory for any change to wind, bearings or the Calypso path. `unittest.js` is mandatory for any change that adds or edits a number field or prints a value with a unit. `storagetest.js`, `importtest.js`, `sharetest.js`, `coursetest.js` and `bcmigtest.js` are mandatory for any change to loading, saving, import/export or the data schema. Any change to the drag engine, tables or truing needs `runtests.js` anchors reproduced against an independent solver (§20A). Any change to `sw.js` runs `swtest.js`; any change to the storage names or snapshot shape also breaks the Lab app's reader (storage contract next to `IDB_NAME` in `index.html`). Any new or changed formula also gets an entry with anchors in the app's `FORMULAS` registry, and `formulatest.js` must stay green. `runtests.js` alone cannot see click handlers — that gap let the V1.17.0 More-button bug ship.
 
 ## How to run
 
@@ -79,6 +80,9 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 
 # 16. Calypso connect test (per-unit unlock code, battery, locked unit)
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node calypsotest.js ../index.html)
+
+# 17. wind average window test (CALC-20)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node windavgtest.js ../index.html)
 ```
 
 ## Provenance
