@@ -7,6 +7,33 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.31.0 — minor — Shot angle and head/tailwind solved inside the trajectory; sea-level (QNH) pressure
+
+**Problem.**
+1. **Shot angle** used the Rifleman's rule on the drop from the line of sight. That rule is an approximation, and applied to the LOS drop (which includes sight height and zero) it is badly off for slow projectiles: Queen at 30° uphill, 100 m slant, read 2.53 mrad; the trajectory solved on the slope needs 2.06 mrad (0.47 mrad, ≈ 47 mm too much).
+2. **Head/tailwind** was ignored — only the crosswind component was used.
+3. **Pressure** was always treated as station pressure. Weather apps and many watches give sea-level (QNH) pressure; at 300 m that is ≈ 35 hPa too high → air density ≈ 3.5 % too high.
+
+**Fix.**
+- `rk4traj` takes an optional `flight = {look, head, zHead}` and integrates in the line-of-sight frame: gravity (−g·sin α, −g·cos α), horizontal wind rotated into the frame, drag on the velocity relative to the air. Zero pass level (rifle sighted in on the level) with the zero session's head/tailwind. Without `flight` the integration is bit-identical to before.
+- Trajectories carry `recalc(look, head, zHead)` (cached). `solveShot` re-solves when the shot has an angle or the wind has an along-the-line component; distance is then the slant range and drop is from the sloped LOS. Level shots in a pure crosswind take the old path unchanged.
+- The sight stays perpendicular to the bore on a slope (rigid scope). py-ballisticcalc places it vertically above the bore instead; the two differ by h·(1−cos α) (5.9 mm at 30°, 44 mm sight).
+- Weather profiles: "Pressure reading is: Station / Sea level (QNH)". Sea level needs the altitude and is converted with the ICAO standard atmosphere P = QNH·(1 − 2.25577e-5·h)^5.25588. Shown as "QNH" in lists; kept through restart, export and import (`presType` whitelisted). Existing profiles stay "station" — nothing changes until you mark one.
+- Formulas page: Shot angle, Head/tailwind, Station pressure from QNH, each with its anchor. Solver note and angle flag no longer mention the Rifleman's rule.
+
+**§20A.** py-ballisticcalc 3.1.1, Queen G7 0.128 @ 260 m/s, zero 50 m, sight height 0: look 15°/30°/−20° at 100 and 200 m slant within 0.02–0.5 mm; 5 m/s headwind −387.98 / −2434.57 vs −387.99 / −2434.64 mm; 30° + 5 m/s tailwind within 0.8 mm at 200 m. ISA: 1013.25 hPa at 1000 m → 898.75 (ISA table 898.76).
+
+**Finding for a ruling (not changed).** The seeded weather profiles (e.g. "Everyday Default 20 °C · 1010 hPa · 298 m") and the rifles' default zero pressure (1010 hPa) are almost certainly sea-level values: 1010 hPa as *station* pressure at 298 m would need a QNH of about 1046 hPa, which doesn't happen. Read as QNH, 1010 hPa at 298 m is 974.8 hPa at the station and the everyday density is 1.1516, not 1.1934 kg/m³ (−3.5 %). The skill's everyday default (ρ 1.1934) has the same issue.
+
+**Files:**
+- `index.html`: `rk4traj` (flight frame, `recalc`), `solveShot`, `stationPres`, `wxPres` (zero conditions, session pull, Home, dope cards, Stability tab), weather form + list + import whitelist, Solver note/flag, FORMULAS; 5 live version strings.
+- `sw.js`: CACHE → `sen-ballistics-v1.31.0`.
+- `tests/runtests.js` +14 anchors (76), new `tests/flighttest.js` (13), `tests/README.md` (nineteen suites).
+
+**Verify:** `node --check` clean · `runtests.js` 76/76 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · `calypsotest.js` 18/18 · `windavgtest.js` 28/28 · `stabtest.js` 12/12 · **`flighttest.js` 13/13** · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.31.0.html`.
+
+---
+
 ## V1.30.0 — minor — Built-in Miller/Berger stability; theoretical SEN designs removed from all calculations
 
 **Problem.**

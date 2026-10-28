@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.30.0</title>
+<title>SEN Ballistics V1.31.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -292,7 +292,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.30.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.31.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -651,7 +651,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Wind m/s</label><input type="number" id="sv-wind" step="0.1" value="0" oninput="solve()"></div>
       <div class="fld"><label>Wind dir °</label><input type="number" id="sv-wdir" step="5" value="90" oninput="solve()"></div>
     </div>
-    <div class="note">Clicks relative to zero range (zero = 0 by construction). Angle uses Rifleman's Rule: drop delta × cos θ. Wind clicks are the delta vs the wind already held at zero range.</div>
+    <div class="note">Clicks relative to zero range (zero = 0 by construction). Angle: the trajectory is re-solved along the slope (slant range); a head/tailwind component is integrated too. Wind clicks are the delta vs the wind already held at zero range.</div>
     <div class="btnrow"><button class="btn primary" onclick="solve()">Solve</button></div>
   </div>
   <div class="panel">
@@ -806,7 +806,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.30.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.31.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -831,6 +831,13 @@ function interp(T,x){
   if(x<=T[0][0])return T[0][1];if(x>=T[T.length-1][0])return T[T.length-1][1];
   for(let i=0;i<T.length-1;i++)if(x>=T[i][0]&&x<=T[i+1][0]){const t=(x-T[i][0])/(T[i+1][0]-T[i][0]);return T[i][1]+t*(T[i+1][1]-T[i][1]);}return T[T.length-1][1];
 }
+/* V1.31.0 — station pressure from a sea-level (QNH) reading. Air density needs the pressure where you
+   stand; weather apps and many watches show pressure reduced to sea level (QNH). QNH is defined by the
+   ICAO standard atmosphere: P = QNH·(1 − 2.25577e-5·h)^5.25588, h in m (ICAO Doc 7488). At 300 m a
+   reading of 1013 hPa QNH is 977.6 hPa at the station — 3.5 % less air than taking 1013 as-is.
+   Weather profiles say which kind they hold (presType 'sea' | anything else = station). */
+function stationPres(qnh,alt_m){return qnh*Math.pow(1-2.25577e-5*alt_m,5.25588);}
+const wxPres=w=>w?(w.presType==='sea'?stationPres(w.pres,+w.alt||0):w.pres):undefined;
 function airDensity(tC,hPa,rh){const TK=tC+273.15,P=hPa*100,es=6.1078*Math.pow(10,7.5*tC/(237.3+tC))*100,e=(rh/100)*es;return(P-e)/(287.058*TK)+e/(461.495*TK);}
 function sos(tC){return Math.sqrt(1.4*287.058*(tC+273.15));}
 function calcSD(mass_gr,d_mm){const d_in=d_mm/25.4;return mass_gr/(7000*d_in*d_in);}
@@ -838,7 +845,7 @@ function calcSg(mass_gr,d_mm,oal_mm,twist_mm,mv_ms,C,tC,hPa){
   const d_in=d_mm/25.4,oal_in=oal_mm/25.4,tw_in=twist_mm/25.4,L=oal_in/d_in,mv_fps=mv_ms/0.3048,TF=tC*9/5+32,P_inHg=hPa/33.8639;
   return C*mass_gr/(tw_in*tw_in*d_in*d_in*d_in*L*(1+L*L))*Math.pow(mv_fps/2800,1/3)*(TF+460)/519*29.92/P_inHg;
 }
-function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1,bands,zeroEnv){
+function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1,bands,zeroEnv,flight){
   /* FIX-10 two-pass zero (§11I: BC is density-independent; ρ belongs in the drag term only).
      Pass 1 solves the launch angle in the ZERO atmosphere (zeroEnv: {rho, aS, bc7, bc1} —
      the conditions and Sg-penalised BC in effect when the rifle was sighted in).
@@ -852,14 +859,23 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
     const bcSiAt=bands&&bands.length?(v=>(bandBC(bands,v)||(drag==='g7'?b7:b1))*LB2KGM2):(()=>bcFix);
     return{rho:rhoX,aS:aSX,bcSiAt};
   };
-  const cur=mkEnv(rho,aS,bc_g7,bc_g1);
-  const zen=zeroEnv?mkEnv(zeroEnv.rho,zeroEnv.aS,zeroEnv.bc7??bc_g7,zeroEnv.bc1??bc_g1):cur;
+  /* V1.31.0 — shot angle and head/tailwind inside the integration (flight = {look°, head, zHead};
+     head = wind along the line of fire, m/s, + = tailwind). The state is integrated in the line-of-sight
+     frame: x along the LOS (slant range), y perpendicular to it, so drop is measured from the LOS
+     directly. Gravity in that frame = (−g·sin look, −g·cos look); a horizontal wind h becomes
+     (h·cos look, −h·sin look) and drag acts on the velocity relative to the air. The zero pass stays
+     level (the rifle was sighted in on the level) with the zero session's head/tailwind; the flight pass
+     uses the shot's angle and wind. flight omitted → gravity (0, −g), no wind: bit-identical to before.
+     Verified against py-ballisticcalc 3.1.1 (look_angle, Wind) — runtests.js. */
+  const fl=flight||{},lk=(fl.look||0)*Math.PI/180,hd=fl.head||0;
+  const cur={...mkEnv(rho,aS,bc_g7,bc_g1),gx:lk?-G*Math.sin(lk):0,gy:lk?-G*Math.cos(lk):-G,wx:lk?hd*Math.cos(lk):hd,wy:lk?-hd*Math.sin(lk):0};
+  const zen={...(zeroEnv?mkEnv(zeroEnv.rho,zeroEnv.aS,zeroEnv.bc7??bc_g7,zeroEnv.bc1??bc_g1):cur),gx:0,gy:-G,wx:fl.zHead||0,wy:0};
   /* V1.24.2 — drag deceleration = (π/8)·ρ·v²·Cd / BC, i.e. (π/4)·ρv²Cd / (2·BC_si). The small-arms BC
      (§9H: m/(i·d²), no π/4) omits the reference area's π/4, so the drag term must restore it:
      F = ½ρv²·Cd·(πd²/4) → a = (π/8)ρv²Cd·d²/m. Without it every trajectory had 4/π = 27.3% too much
      drag. Verified: first principles · py-ballisticcalc (constant 2.08551e-4 = (π/8)·ρ₀/144, reproduced to
      0.01 m/s) · owner's Element Ballistics table (Queen G1 0.245, 285 m/s) within 0.2% to 1000 m. */
-  function D(vx,vy,env){const v=Math.sqrt(vx*vx+vy*vy),m=v/env.aS,cd=interp(DT,m),dec=Math.PI/4*(env.rho*v*v*cd)/(2*env.bcSiAt(v));return[-(dec/v)*vx,-(dec/v)*vy-G];}
+  function D(vx,vy,env){const rx=vx-env.wx,ry=vy-env.wy,v=Math.sqrt(rx*rx+ry*ry),m=v/env.aS,cd=interp(DT,m),dec=Math.PI/4*(env.rho*v*v*cd)/(2*env.bcSiAt(v));return[-(dec/v)*rx+env.gx,-(dec/v)*ry+env.gy];}
   function step(x,y,vx,vy,h,env){
     const[k1ax,k1ay]=D(vx,vy,env);const[k2ax,k2ay]=D(vx+h*k1ax/2,vy+h*k1ay/2,env);const[k3ax,k3ay]=D(vx+h*k2ax/2,vy+h*k2ay/2,env);const[k4ax,k4ay]=D(vx+h*k3ax,vy+h*k3ay,env);
     // V1.29.1: position advances by the RK4 average of the four stage velocities (skill §7), not the
@@ -907,6 +923,11 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
       next+=stepOut;
     }
   }
+  // Same trajectory for another shot angle / head-tailwind (solveShot), cached per rounded key.
+  if(!flight){const A=[mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1,bands,zeroEnv],cache=new Map();
+    out.recalc=(look,head,zHead)=>{const k=[look,head,zHead].map(x=>(+x||0).toFixed(3)).join('|');
+      if(!cache.has(k)){if(cache.size>=24)cache.delete(cache.keys().next().value);cache.set(k,rk4traj(...A,{look:+look||0,head:+head||0,zHead:+zHead||0}));}
+      return cache.get(k);};}
   return out;
 }
 /* V1.30.0 — built-in Miller twist rule (= Berger's twist-rate calculator). Miller (Courtney & Miller,
@@ -1013,7 +1034,13 @@ function finiteGuard(obj){ // returns first non-finite key, or '' if all finite
    applied at every name→HTML sink. */
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,click,zeroWind,zeroWindDir,field){
-  const zp=nearest(pts,zero_m),tp=nearest(pts,dist_m);
+  /* V1.31.0: a shot angle or a head/tailwind component re-solves the trajectory with them inside the
+     integration (pts.recalc); dist_m is then the slant range and drop is from the sloped line of sight.
+     Without recalc (or level, pure crosswind) the old path is used unchanged. */
+  const head0=v=>Math.abs(v)<1e-6?0:v;
+  const head=head0(-(wind_ms||0)*Math.cos((windDir_deg||0)*Math.PI/180)),zHead=head0(-(zeroWind||0)*Math.cos((zeroWindDir||0)*Math.PI/180));
+  const P=pts.recalc&&(angle_deg||head||zHead)?pts.recalc(angle_deg||0,head,zHead):pts;
+  const zp=nearest(pts,zero_m),tp=nearest(P,dist_m);
   if(!zp||!tp)return null;
   const cosd=Math.cos(angle_deg*Math.PI/180);
   // FIX-10b — ABSOLUTE elevation convention (user's mechanical-zero workflow + Element cross-check):
@@ -1021,7 +1048,7 @@ function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,cl
   // measured from the LINE OF SIGHT. With matched atmospheres drop(zero)=0 so this is identical
   // to the old relative form; with mismatched atmospheres the dial correctly INCLUDES the zero
   // shift (Element does the same: its mismatched table shows U 0.1 mrad at the zero range).
-  const dropAbs=tp.drop*cosd;
+  const dropAbs=P===pts?tp.drop*cosd:tp.drop;
   const mrElev=(-dropAbs)/dist_m, clElev=mrElev/click;
   // Windage = drift at target in CURRENT wind, minus the drift baked into the zero.
   // Crosswind is SIGNED: sin(θ) keeps which SIDE the wind is on. θ is measured from the
@@ -1031,13 +1058,13 @@ function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,cl
   const crossSigned=wind_ms*Math.sin(windDir_deg*Math.PI/180);
   const zCrossSigned=(zeroWind||0)*Math.sin((zeroWindDir||0)*Math.PI/180);
   // CORE-17: a crosswind field (two or more stations) replaces the single wind for the drift at the target.
-  const wf=field?windDriftField(pts,dist_m,field):null;
+  const wf=field?windDriftField(P,dist_m,field):null;
   const wd=wf!=null?wf:windDrift(tp.tof,dist_m,mv,crossSigned);
   const wdZeroBaked=windDrift(zp.tof,zero_m,mv,zCrossSigned);
   const wdNet=wd-wdZeroBaked;
   const mrWind=wdNet/dist_m, clWind=mrWind/click;
   const cross=Math.abs(crossSigned); // magnitude for display ("crosswind 6.3 m/s")
-  return{tp,zp,mrElev,clElev,mrWind,clWind,cross,crossSigned,cosd,windDriftMm:wd,windNetMm:wdNet};
+  return{tp,zp,mrElev,clElev,mrWind,clWind,cross,crossSigned,cosd,windDriftMm:wd,windNetMm:wdNet,head,sloped:P!==pts};
 }
 function windDrift(tof,range,mv,wind){return wind*(tof-range/mv)*1000;}
 /* ═════ CORE-17 solver core (V1.29.0) — crosswind that changes along the flight ═════
@@ -1740,7 +1767,7 @@ function zeroConds(rifle,rangeOverride){
   return{
     range:rangeOverride!=null?rangeOverride:S.zero_m,
     temp:r&&r.zTemp!=null?r.zTemp:(zw?zw.temp:20),
-    pres:r&&r.zPres!=null?r.zPres:(zw?zw.pres:1010),
+    pres:r&&r.zPres!=null?r.zPres:(zw?wxPres(zw):1010),
     rh:r&&r.zRH!=null?r.zRH:(zw?zw.rh:65),
     wSpd:r&&r.zwSpd!=null?r.zwSpd:0,
     wDir:r&&r.zwDir!=null?r.zwDir:90
@@ -1789,7 +1816,7 @@ const Bus={
       if(f==='sight'&&r){S.sight_mm=r.sight;S.src.sight='profile';}
       if(f==='bc'&&p){S.bc=S.drag==='g7'?p.bcg7:p.bcg1;S.src.bc='profile';}
       if(f==='ct'&&w){S.ct=w.temp;S.src.ct='profile';}
-      if(f==='cp'&&w){S.cp=w.pres;S.src.cp='profile';}
+      if(f==='cp'&&w){S.cp=wxPres(w);S.src.cp='profile';}
       if(f==='crh'&&w){S.crh=w.rh;S.src.crh='profile';}
     });
   },
@@ -1881,7 +1908,7 @@ function pickSheet(kind){
     projSheetList();
   }else if(kind==='wx'){
     openSheet('<h3>Current weather</h3><div class="slist">'+favSort(DB.weathers).map(w=>sItem('wx',w.id,favMark(w)+esc(w.name),
-      ut('temp',w.temp)+' · '+ut('pres',w.pres)+' · '+w.rh+'%',w.id===S.curWxId)).join('')+'</div>');
+      ut('temp',w.temp)+' · '+ut('pres',w.pres)+(w.presType==='sea'?' QNH':'')+' · '+w.rh+'%',w.id===S.curWxId)).join('')+'</div>');
   }else if(kind==='dist'){
     openSheet('<h3>Target distance</h3><div class="fld"><label>Distance</label><input type="number" id="sh-num" data-q="range" step="5" value="'+S.dist_m+'"></div>'+
       '<div class="btnrow"><button class="btn primary" onclick="sheetSetNum(\'dist\')">Set</button><button class="btn" onclick="closeSheet()">Cancel</button></div>');
@@ -1896,7 +1923,7 @@ function pickSheet(kind){
 function sessionSg(){
   const r=getRifle(),p=getProj(),cw=getWx(S.curWxId);
   if(!r||!p||S.mv==null||p.type==='pellet'||r.twistDir==='smooth')return null;
-  const ct=S.ct??cw?.temp,cp=S.cp??cw?.pres;
+  const ct=S.ct??cw?.temp,cp=S.cp??wxPres(cw);
   if(ct==null||cp==null)return null;
   const cInfo=projC(p);
   if(!cInfo.valid)return null;
@@ -1910,7 +1937,7 @@ function homeTraj(maxOver){  // V1.14.0: maxOver lets the Holds page extend the 
   const r=getRifle(),p=getProj(),cw=getWx(S.curWxId);
   if(!r||!p||S.mv==null)return null;
   const z=zeroConds();
-  const ct=S.ct??cw?.temp, cp=S.cp??cw?.pres, crh=S.crh??cw?.rh;
+  const ct=S.ct??cw?.temp, cp=S.cp??wxPres(cw), crh=S.crh??cw?.rh;
   if(ct==null||cp==null||crh==null)return null;
   if(finiteGuard({mv:S.mv,ct,cp,crh,zr:z.range,sight:S.sight_mm??r.sight??44})||S.mv<=0||z.range<=0)return null;
   const rhoZ=airDensity(z.temp,z.pres,z.rh),rhoC=airDensity(ct,cp,crh),aS=sos(ct);
@@ -2518,7 +2545,7 @@ function stabFromActive(){
   document.getElementById('st-diam').value=p.diam;document.getElementById('st-mass').value=p.mass;
   document.getElementById('st-oal').value=p.oal;document.getElementById('st-c').value=p.c||0;
   document.getElementById('st-twist').value=(r.twist/25.4).toFixed(2);document.getElementById('st-mv').value=S.mv||r.mv;
-  const w=getWx(S.curWxId);if(w){document.getElementById('st-temp').value=w.temp;document.getElementById('st-pres').value=w.pres;}
+  const w=getWx(S.curWxId);if(w){document.getElementById('st-temp').value=w.temp;document.getElementById('st-pres').value=+wxPres(w).toFixed(1);}
   stabKind={pellet:p.type==='pellet',hp:isHollowPoint(p)};
   document.getElementById('st-name').textContent=p.name+' · '+r.name;calcStab();
 }
@@ -2647,7 +2674,7 @@ function solve(){
   // solveShot works in mrad; pass clickStep (mrad) so click counts are unit-correct
   const sol=solveShot(pts,nearestPt,zc.range,tdist,angle,wspd,wdir,mv,clickStep,zc.wSpd,zc.wDir);
   if(!sol){document.getElementById('sv-outs').innerHTML='<div class="sc"><div class="sv" style="font-size:13px;color:var(--warn)">Target or zero outside the computed range.</div></div>';return;}
-  const{tp,cosd}=sol;
+  const{tp}=sol;
   /* V1.14.0 Layer-3 corrections. Sign convention: a POSITIVE impact shift (right/high) needs a
      NEGATIVE dial correction (−shift/dist). Coriolis is exact and enters the dial when ON;
      spin drift is Litz-EST — it also enters the dial when ON but stays loudly flagged. */
@@ -2682,7 +2709,7 @@ function solve(){
     else if(pct>=80)fl+=`<div class="flag warn">▲ ${pct.toFixed(0)}% of ${dialingUp?'up':'down'} travel used — near limit.</div>`;
   }else{document.getElementById('sv-travel-note').textContent='No scope on active rifle — assign one in its profile.';}
   if(au==='moa')fl+=`<div class="flag info">MOA scope: solution shown in MOA &amp; clicks (1 click = ${scope.click} MOA = ${(scope.clickStepMrad).toFixed(4)} mrad).</div>`;
-  if(angle!==0)fl+=`<div class="flag info">Angle ${angle}° · Rifleman's Rule cosine ${cosd.toFixed(4)} applied to drop delta.</div>`;
+  if(angle!==0)fl+=`<div class="flag info">Angle ${angle}° · trajectory solved along the slope (gravity and wind in the line-of-sight frame); distance is the slant range.</div>`;
   if(APP.solverCor)fl+=`<div class="flag info">Coriolis @ lat ${lat}° az ${az}°: impact ${coH>=0?'R':'L'} ${uq('drop',Math.abs(coH))} · ${coV>=0?'HIGH':'LOW'} ${uq('drop',Math.abs(coV))} → dial ${(-coH/tdist).toFixed(3)} / ${(-coV/tdist).toFixed(3)} mrad (included above).</div>`;
   if(APP.solverSpin)fl+=sdMm!=null
     ?`<div class="flag warn">Spin drift (Litz EST ⚠ unvalidated subsonic): Sg ${sgI.sg.toFixed(2)}${sgI.est?' (C EST)':''} → impact ${sdMm>=0?'R':'L'} ${uq('drop',Math.abs(sdMm))} → dial ${(-sdMm/tdist).toFixed(2)} mrad (included above).</div>`
@@ -2795,14 +2822,15 @@ function computeCardTraj(c){
   const r=DB.rifles.find(x=>x.id===c.rifleId);
   // Option A: zero conditions (range, wind, atmosphere) read LIVE from the card's rifle.
   const z=zeroConds(r,c.zero);
-  if(finiteGuard({mv:c.mv,zr:z.range,ctemp:cw.temp,cpres:cw.pres,crh:cw.rh})||c.mv<=0||z.range<=0)return null;
-  const rhoZ=airDensity(z.temp,z.pres,z.rh),rhoC=airDensity(cw.temp,cw.pres,cw.rh),aS=sos(cw.temp);
+  const cwp=wxPres(cw);
+  if(finiteGuard({mv:c.mv,zr:z.range,ctemp:cw.temp,cpres:cwp,crh:cw.rh})||c.mv<=0||z.range<=0)return null;
+  const rhoZ=airDensity(z.temp,z.pres,z.rh),rhoC=airDensity(cw.temp,cwp,cw.rh),aS=sos(cw.temp);
   const drag=p.type==='pellet'?'g1':'g7';
   const bcBase=drag==='g7'?p.bcg7:p.bcg1;
   if(!(bcBase>0))return{bcPending:true,projName:p.name};
   let sgP=1,sgPZ=1;
   if(r&&r.twistDir!=='smooth'){const cInfo=projC(p);if(cInfo.valid){
-    const sg=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,cw.temp,cw.pres);if(sg<1.5)sgP=bcEffSg(1,sg);
+    const sg=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,cw.temp,cwp);if(sg<1.5)sgP=bcEffSg(1,sg);
     const sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,z.temp,z.pres);if(sgZ<1.5)sgPZ=bcEffSg(1,sgZ);
   }}
   // FIX-10: BC unscaled (density-independent); zero angle solved in the rifle's zero atmosphere.
@@ -2850,7 +2878,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.30.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.31.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -2884,7 +2912,7 @@ function renderProfiles(){
     const sc=getScope(r.scopeId);
     return item(r,`${r.cal} · ${r.twistDir==='smooth'?'smooth bore':'1:'+(r.twist/25.4).toFixed(0)+'″ '+(r.twistDir==='left'?'LH':'RH')} · MV ${ut('vel',r.mv)} · ${sc?sc.sku||sc.name:'no scope'} · SH ${ut('sight',r.sight)}${r.railOn?' · rail +'+r.railMrad+'mrad':''}`,'r',r.id===S.rifleId);
   }).join('')||'<div class="note">No rifles.</div>';
-  document.getElementById('pl-wx').innerHTML=favSort(DB.weathers).map(w=>item(w,`${ut('temp',w.temp)} · ${ut('pres',w.pres)} · ${w.rh}% · ${ut('alt',w.alt)}`,'w',false)).join('');
+  document.getElementById('pl-wx').innerHTML=favSort(DB.weathers).map(w=>item(w,`${ut('temp',w.temp)} · ${ut('pres',w.pres)}${w.presType==='sea'?' QNH':''} · ${w.rh}% · ${ut('alt',w.alt)}`,'w',false)).join('');
   const scl=document.getElementById('pl-scopes');
   if(scl)scl.innerHTML=favSort(DB.scopes).map(s=>{const ret=getReticle(s.reticleId);return item(s,`${s.sku||'—'} · ${s.click} ${s.adjUnit==='moa'?'MOA':'mrad'}/clk · elev ${s.elev} · ${ret?ret.name:'no reticle'}${ret&&!ret.verified?' ⚠':''}`,'s',false);}).join('')||'<div class="note">No scopes.</div>';
   const rtl=document.getElementById('pl-reticles');
@@ -3297,13 +3325,13 @@ function openWxForm(id){
   const w=DB.weathers.find(x=>x.id===id)||{name:'',temp:20,pres:1010,rh:65,alt:298,notes:''};
   openModal(`<h3>${id?'Edit':'New'} weather</h3><div class="fgrid">
     ${fldHtml('wf-name','Name',w.name)}${fldHtml('wf-temp','Temp °C',w.temp,0.5)}
-    ${fldHtml('wf-pres','Pressure hPa',w.pres,1)}${fldHtml('wf-rh','RH %',w.rh,1)}
+    ${fldHtml('wf-pres','Pressure hPa',w.pres,1)}<div class="fld"><label>Pressure reading is</label><select id="wf-ptype"><option value="station"${w.presType==='sea'?'':' selected'}>Station (where you stand)</option><option value="sea"${w.presType==='sea'?' selected':''}>Sea level (QNH, weather apps)</option></select></div>${fldHtml('wf-rh','RH %',w.rh,1)}
     ${fldHtml('wf-alt','Altitude m',w.alt,1)}${fldHtml('wf-notes','Notes',w.notes)}</div>
     <div class="btnrow"><button class="btn primary" onclick="saveWx('${id||''}')">Save</button><button class="btn" onclick="closeModal()">Cancel</button></div>`);
 }
 function saveWx(id){
   const v=i=>document.getElementById(i).value;
-  const obj={name:v('wf-name').trim(),temp:+v('wf-temp'),pres:+v('wf-pres'),rh:+v('wf-rh'),alt:+v('wf-alt'),notes:v('wf-notes')};
+  const obj={name:v('wf-name').trim(),temp:+v('wf-temp'),pres:+v('wf-pres'),presType:v('wf-ptype')==='sea'?'sea':'station',rh:+v('wf-rh'),alt:+v('wf-alt'),notes:v('wf-notes')};
   const err=vchk([
     [obj.name,'Name',{req:true,str:true}],
     [obj.temp,'Temperature',{min:-60,max:60,req:true}],
@@ -3311,12 +3339,13 @@ function saveWx(id){
     [obj.rh,'RH',{min:0,max:100,req:true}],
     [obj.alt,'Altitude',{min:-500,max:9000}]
   ]);
+  if(!err&&obj.presType==='sea'&&!(obj.alt>0)){alert('Sea-level (QNH) pressure needs the altitude of the place to convert it to station pressure.');return;}
   if(err){alert(err);return;}
   if(id){Object.assign(DB.weathers.find(x=>x.id===id),obj);}else{DB.weathers.push({id:uid(),...obj});}
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.30.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.31.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3340,7 +3369,7 @@ const IMPORT_FIELDS={
   scopes:{id:'s',name:'s',sku:'s',adjUnit:'s',click:'n',elev:'n',wind:'n',cpr:'n',magMin:'n',magMax:'n',reticleId:'s0',source:'s',notes:'s',fav:'b'},
   reticles:{id:'s',name:'s',fp:'s',renderer:'s',dotMrad:'n',hashStep:'n',hashMark:'n',hashes:'nums',windHashes:'nums',treeRows:'nums',verified:'b',confNote:'s',notes:'s',fav:'b'},
   projectiles:{id:'s',name:'s',cal:'s',mfg:'s',type:'s',diam:'n',mass:'n',oal:'n',bcg7:'n',bcg1:'n',c:'n',ff:'n',notes:'s',fav:'b'},
-  weathers:{id:'s',name:'s',temp:'n',pres:'n',rh:'n',alt:'n',notes:'s',fav:'b'},
+  weathers:{id:'s',name:'s',temp:'n',pres:'n',presType:'s',rh:'n',alt:'n',notes:'s',fav:'b'},
   dopeCards:{id:'s',name:'s',rifleId:'s0',projId:'s0',cwxId:'s0',mv:'n',zero:'n',notes:'s',stages:'stages',fav:'b'}
 };
 const IMPORT_REQUIRED={scopes:['click'],projectiles:['diam','mass']};
@@ -3941,6 +3970,14 @@ const FORMULAS=[
     anchors:[{l:'uniform 3 m/s, 100 m (pbc 37.22 mm)',got:()=>{const e=FX_ENV();return windDriftField(rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),100,crossField([{x:0,cross:3}]));},want:37.22,tol:0.1,u:'mm'},
              {l:'nearest: 10 m +4 / 120 m −2 m/s, 200 m (pbc 61.95 mm)',got:()=>{const e=FX_ENV();return windDriftField(rk4traj(260,0.128,60,50,200,0.044,e.rho,e.aS,1,'g7',0.245,null),200,crossField([{x:10,cross:4},{x:120,cross:-2}],'nearest'));},want:61.95,tol:1.5,u:'mm'},
              {l:'blend: same stations, 200 m (pbc 54.32 mm)',got:()=>{const e=FX_ENV();return windDriftField(rk4traj(260,0.128,60,50,200,0.044,e.rho,e.aS,1,'g7',0.245,null),200,crossField([{x:10,cross:4},{x:120,cross:-2}],'blend'));},want:54.32,tol:1.5,u:'mm'}]},
+  {name:'Shot angle (uphill / downhill)',status:'ok',eq:'integrated in the line-of-sight frame: g = (−g·sin α, −g·cos α); zero solved level; distance = slant range',
+    src:'replaces the Rifleman\'s rule (V1.31.0); py-ballisticcalc 3.1.1 look_angle (sight height 0 — pbc puts the sight vertically above the bore on a slope, the app keeps the rigid-scope geometry)',used:'Home, Solver, dope cards, course runner',
+    anchors:[{l:'Queen 260 m/s, 30° up, slant 100 m (pbc −288.67 mm)',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,150,0,e.rho,e.aS,1,'g7',0.245,null);return -solveShot(p,nearestPt,50,100,30,0,90,260,0.1,0,90).mrElev*100;},want:-288.67,tol:0.2,u:'mm'}]},
+  {name:'Head / tailwind',status:'ok',eq:'drag on the velocity relative to the air: v_rel = v − w·(cos α, −sin α), w = −W·cos θ',
+    src:'py-ballisticcalc 3.1.1 Wind (V1.31.0); previously ignored',used:'every solution with a wind not exactly across',
+    anchors:[{l:'5 m/s headwind, 100 m (pbc −387.99 mm, sight 0)',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,150,0,e.rho,e.aS,1,'g7',0.245,null);return -solveShot(p,nearestPt,50,100,0,5,0,260,0.1,0,90).mrElev*100;},want:-387.99,tol:0.2,u:'mm'}]},
+  {name:'Station pressure from sea-level (QNH)',status:'ok',eq:'P = QNH·(1 − 2.25577e-5·h)^5.25588',src:'ICAO standard atmosphere — QNH is defined by it (V1.31.0)',used:'weather profiles marked "sea level"',
+    anchors:[{l:'1013.25 hPa at 1000 m (ISA 898.76 hPa)',got:()=>stationPres(1013.25,1000),want:898.76,tol:0.05,u:'hPa'}]},
   {name:'Angular units',status:'ok',eq:'mrad = mm/m · 1 MOA = 0.290888 mrad',src:'exact definitions — skill §10',used:'every dial and hold',
     anchors:[{l:'100 mm at 100 m',got:()=>toMOA(100,100),want:3.43775,tol:1e-5,u:'MOA'},{l:'¼ MOA click',got:()=>clickMrad(0.25,'moa'),want:0.072722,tol:1e-6,u:'mrad'}]},
   {name:'Unit conversions',status:'ok',eq:'1 yd = 0.9144 m · 1 ft = 0.3048 m · 1 in = 25.4 mm',src:'international yard and pound (1959), exact',used:'every displayed value',

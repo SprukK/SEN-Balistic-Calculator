@@ -58,6 +58,23 @@ chk('Element: drop500 = 1533.8 cm (±0.5%)', -atR(el,500).drop/10, 1533.8, 7.7);
 chk('Element: drop1000 = 8636.8 cm (±0.5%)', -atR(el,1000).drop/10, 8636.8, 43.2);
 chk('Element: v1000 = 165 m/s (±1)', atR(el,1000).v, 165, 1);
 
+console.log('\n=== V1.31.0 SHOT ANGLE + HEAD/TAILWIND IN THE INTEGRATION, STATION PRESSURE (§20A) ===');
+// py-ballisticcalc 3.1.1, Queen G7 0.128 @ 260 m/s, zero 50 m (level), 20 °C / 1010 hPa / 65 %, sight height 0
+// (pbc places the sight vertically above the bore on a slope; the app keeps it perpendicular to the bore —
+// rigid scope — so the two differ by h·(1−cos look); with h = 0 they must agree). Values: drop from the LOS, mm.
+const s0=rk4traj(260,0.128,60,50,250,0.044*0,env.rho,env.aS,1,'g7',0.245,null);
+const dropAt=(d,ang,w,dir)=>-solveShot(s0,nearestPt,50,d,ang,w,dir,260,0.1,0,90).mrElev*d;
+for(const [lk,d,want] of [[15,100,-362.84],[15,200,-2335.27],[30,100,-288.67],[30,200,-2035.55],[-20,100,-338.10],[-20,200,-2202.00]])
+  chk('look '+lk+'°, slant '+d+' m: drop '+want+' mm (pbc)', dropAt(d,lk,0,90), want, d>150?1.0:0.2);
+chk('5 m/s headwind (0°), 100 m: -387.99 mm (pbc)', dropAt(100,0,5,0), -387.99, 0.2);
+chk('5 m/s headwind (0°), 200 m: -2434.64 mm (pbc)', dropAt(200,0,5,0), -2434.64, 1.0);
+chk('look 30° + 5 m/s tailwind (180°), 200 m: -2149.73 mm (pbc)', dropAt(200,30,5,180), -2149.73, 1.0);
+chk('pure crosswind (90°) and level: no re-solve, identical to before', solveShot(s0,nearestPt,50,150,0,5,90,260,0.1,0,90).sloped?1:0, 0);
+chk('sight 44 mm, look 30°, 100 m: app − pbc (−238.64) = −h·(1−cos30°) = −5.9 mm (rigid scope vs pbc\'s vertical offset)', -solveShot(q7,nearestPt,50,100,30,0,90,260,0.1,0,90).mrElev*100-(-238.64), -44*(1-Math.cos(Math.PI/6)), 0.3);
+chk('ISA: 1013.25 hPa QNH at 1000 m = 898.76 hPa station', stationPres(1013.25,1000), 898.76, 0.05);
+chk('ISA: 1013 hPa QNH at 300 m = 977.5 hPa station', stationPres(1013,300), 1013*Math.pow(1-2.25577e-5*300,5.25588), 1e-9);
+chk('weather profile: sea-level type converts, station type unchanged', wxPres({pres:1013,presType:'sea',alt:300})<978&&wxPres({pres:1013,alt:300})===1013?1:0, 1);
+
 console.log('\n=== V1.29.1 RK4 POSITION UPDATE (§20A vs py-ballisticcalc 3.1.1) ===');
 // Fails on ≤ V1.29.0 (position advanced with the start-of-step velocity): TOF 0.396957, drift 37.026.
 chk('Queen G7 0.128 @260: TOF100 = 0.397025 s (pbc)', atR(q7,100).tof, 0.397025, 2e-5);
