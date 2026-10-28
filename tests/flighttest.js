@@ -40,7 +40,13 @@ chk('Home 5 m/s headwind: more elevation than calm, = re-solved trajectory',txt(
 w.eval(`Bus.setWind(5,90,'manual');Bus.notify()`);await wait(30);
 chk('pure crosswind: elevation unchanged from calm, no re-solve',txt(w,'home-elev')===level&&!sol(0,5,90).sl);
 w.eval(`Bus.setWind(0,90,'manual');Bus.notify()`);
-// 3. Dope card: per-target angle.
+// 2b. Cant (V1.32.0): status warns with the shift, dial unchanged.
+const lvl=txt(w,'home-elev');typeIn(w,'home-cant',2);await wait(30);
+const cx=J(w,`(()=>{const tr=homeTraj(),z=zeroConds();return solveShot(tr.pts,nearestPt,z.range,100,0,0,90,S.mv,0.1,z.wSpd,z.wDir,null,2).cantX})()`);
+chk('Home cant 2° right: status shows the sideways shift, dial unchanged',txt(w,'home-elev')===lvl&&/cant 2° R → impact .* right, .* low — level the rifle/.test(txt(w,'home-status'))&&cx>20&&cx<30,txt(w,'home-status').slice(-90));
+typeIn(w,'home-cant',0);await wait(30);
+chk('cant 0 → no warning',!/cant/.test(txt(w,'home-status')));
+
 w.eval(`newDope();const c=DB.dopeCards[0];c.stages[0].dists=[{id:'a',range:100,angle:0,wind:0,wdir:90,label:'',brg:null,size:null,pos:'',shots:1},{id:'b',range:100,angle:30,wind:0,wdir:90,label:'',brg:null,size:null,pos:'',shots:1}];saveDB();`);
 const dc=J(w,`(()=>{const c=DB.dopeCards[0],tr=computeCardTraj(c);const z=zeroConds(tr.r,c.zero);return c.stages[0].dists.map(d=>solveShot(tr.pts,nearestPt,z.range,d.range,d.angle,0,90,c.mv,tr.click,z.wSpd,z.wDir).mrElev)})()`);
 chk('dope card: the 30° target gets the sloped solution, the level one is unchanged',Math.abs(dc[1]-s30.mr)<0.05&&Math.abs(dc[0]-dc[1])>0.5,JSON.stringify(dc));
@@ -62,6 +68,8 @@ const r=await open(w.localStorage.getItem(SK));
 chk('survives a restart',J(r,`DB.weathers.find(x=>x.name==='Ljubljana QNH').presType`)==='sea');
 r.eval(`importData(${JSON.stringify({weathers:[{id:'x1',name:'Imported QNH',temp:10,pres:1020,presType:'sea',rh:50,alt:400,notes:''}]})})`);await wait(20);
 chk('import keeps the pressure type',J(r,`DB.weathers.find(x=>x.name==='Imported QNH')?.presType`)==='sea');
+w.eval(`gotoPage('solver');document.getElementById('sv-cant').value='-1';solve()`);await wait(30);
+chk('Solver: cant sensitivity + current cant left',/Cant: each 1° moves the impact .* sideways .* now 1° left → .* left/.test(w.document.getElementById('sv-flags')?.textContent||w.document.body.textContent));
 // 5. Solver page note.
 chk('Solver note no longer claims the Rifleman\'s rule',!/Angle uses Rifleman/.test(w.document.body.innerHTML)&&/re-solved along the slope/.test(w.document.body.textContent));
 const errs=all.flatMap(x=>x.errs);chk('ZERO uncaught errors',errs.length===0,errs.slice(0,3).join(' / '));

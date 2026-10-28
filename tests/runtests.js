@@ -58,6 +58,16 @@ chk('Element: drop500 = 1533.8 cm (±0.5%)', -atR(el,500).drop/10, 1533.8, 7.7);
 chk('Element: drop1000 = 8636.8 cm (±0.5%)', -atR(el,1000).drop/10, 8636.8, 43.2);
 chk('Element: v1000 = 165 m/s (±1)', atR(el,1000).v, 165, 1);
 
+console.log('\n=== V1.32.0 CANT (§20A: py-ballisticcalc 3.1.1 cant_angle, level dial applied) ===');
+// Queen G7 0.128 @ 260 m/s, zero 50 m, sight 44 mm, 20 °C / 1010 hPa / 65 %; pbc relative_angle = the level correction.
+const cq=rk4traj(260,0.128,60,50,250,0.044,env.rho,env.aS,1,'g7',0.245,null);
+const CS=(d,c)=>solveShot(cq,nearestPt,50,d,0,0,90,260,0.1,0,90,null,c);
+for(const [d,c,xw,yw] of [[100,5,65.97,-2.9],[100,-5,-65.97,-2.9],[100,10,131.44,-11.52],[200,5,275.55,-12.51],[50,5,16.14,-0.7]]){
+  chk('cant '+c+'° at '+d+' m: '+xw+' mm sideways (pbc)', CS(d,c).cantX, xw, 0.1);
+  chk('cant '+c+'° at '+d+' m: '+yw+' mm low (pbc'+(d>=200?'; second-order flight-time effect ±0.6':'')+')', CS(d,c).cantY, yw, d>=200?0.6:0.1);}
+chk('no cant → no shift, dial unchanged', CS(100,0).cantX===0&&CS(100,0).mrElev===CS(100,5).mrElev?1:0, 1);
+chk('1° sensitivity at 100 m ≈ 13.2 mm', CS(100,0).cantPerDeg, 756.93*Math.sin(Math.PI/180), 0.05);
+
 console.log('\n=== V1.31.0 SHOT ANGLE + HEAD/TAILWIND IN THE INTEGRATION, STATION PRESSURE (§20A) ===');
 // py-ballisticcalc 3.1.1, Queen G7 0.128 @ 260 m/s, zero 50 m (level), 20 °C / 1010 hPa / 65 %, sight height 0
 // (pbc places the sight vertically above the bore on a slope; the app keeps it perpendicular to the bore —

@@ -7,6 +7,24 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.32.0 — minor — Cant: impact shift from a tilted rifle (CALC-06)
+
+**Problem.** Cant wasn't modelled. Slow airgun slugs fall a long way below the bore line, so a small tilt moves the impact a lot: Queen at 260 m/s, zero 50 m, 100 m — **13.2 mm sideways per degree**; 5° → 66 mm.
+
+**Fix.**
+- `cantShift`: rotating the rifle by φ about the line of sight rotates everything fixed to the scope (bore line and the dialled/held correction) but not gravity. With S = the gravity drop below the bore line at the target, the impact moves S·sin φ sideways (right for a right cant) and S·(cos φ − 1) low.
+- Trajectories expose `za` (zero angle) and `sight`; `solveShot(..., cant)` returns `cantX`, `cantY` and `cantPerDeg`. **Display only** — the dial is not changed; the fix for cant is to level the rifle (and later the FX chrono / rifle unit will report it, CALC-19 / CALC-12).
+- Home: "Cant ° (+ right)" input; the status line warns "cant 2° R → impact 22.8 mm right, 0.4 mm low — level the rifle". Solver: cant input and a flag with the 1° sensitivity at the target distance.
+- Formulas page: new "Cant" entry with a py-ballisticcalc anchor.
+
+**§20A.** py-ballisticcalc 3.1.1 `cant_angle` with the dial set to the level correction (Queen, zero 50 m): 5° at 50 / 100 / 200 m → 16.14 / 65.97 / 275.55 mm sideways — reproduced to 0.01 mm; vertical −0.70 / −2.88 / −12.03 vs −0.70 / −2.90 / −12.51 mm (0.5 mm at 200 m is pbc's second-order flight-time effect of the tilted launch; immaterial next to the sideways shift).
+
+**Files:** `index.html` (`cantShift`, `rk4traj` za/sight, `solveShot`, Home + Solver inputs and messages, FORMULAS, units exemptions; 5 live version strings) · `sw.js` CACHE → `sen-ballistics-v1.32.0` · `tests/runtests.js` +12 (88) · `tests/flighttest.js` +3 (16) · `tests/README.md`.
+
+**Verify:** `node --check` clean · `runtests.js` 88/88 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · `calypsotest.js` 18/18 · `windavgtest.js` 28/28 · `stabtest.js` 12/12 · `flighttest.js` 16/16 · `pressuretest.js` 12/12 · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.32.0.html`. No dope change.
+
+---
+
 ## V1.31.1 — patch — Default pressures are sea-level (QNH): seeded profiles and rifle zero converted
 
 **Problem.** The owner's Garmin Fenix shows barometric pressure reduced to mean sea level (Garmin forum; the watch read 1022 hPa at 304 m, which can only be QNH). The seeded weather profiles (1010 / 1008 / 1015 hPa at 298 m) and the rifles' zero pressure came from it, but were used as station pressure — about 35 hPa, 3.5 % too much air on every default profile.

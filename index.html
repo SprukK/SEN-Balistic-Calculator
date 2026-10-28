@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.31.1</title>
+<title>SEN Ballistics V1.32.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -292,7 +292,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.31.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.32.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -447,6 +447,7 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="fgrid3">
       <div class="fld"><label>Distance</label><input type="number" id="home-dist" step="5" oninput="homeInput('dist',+this.value)"></div>
       <div class="fld"><label>Angle °</label><input type="number" id="home-angle" step="1" value="0" oninput="homeInput('angle',+this.value)"></div>
+      <div class="fld"><label>Cant ° (+ right)</label><input type="number" id="home-cant" step="0.5" value="0" oninput="homeInput('angle',+this.value)"></div>
       <div class="fld"><label>Muzzle velocity</label><input type="number" id="home-mv" step="0.1" oninput="homeInput('mv',+this.value)"></div>
     </div>
     <div class="note" id="home-status"></div>
@@ -650,6 +651,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Shot angle °</label><input type="number" id="sv-angle" step="1" value="0" oninput="solve()"></div>
       <div class="fld"><label>Wind m/s</label><input type="number" id="sv-wind" step="0.1" value="0" oninput="solve()"></div>
       <div class="fld"><label>Wind dir °</label><input type="number" id="sv-wdir" step="5" value="90" oninput="solve()"></div>
+      <div class="fld"><label>Cant ° (+ right)</label><input type="number" id="sv-cant" step="0.5" value="0" oninput="solve()"></div>
     </div>
     <div class="note">Clicks relative to zero range (zero = 0 by construction). Angle: the trajectory is re-solved along the slope (slant range); a head/tailwind component is integrated too. Wind clicks are the delta vs the wind already held at zero range.</div>
     <div class="btnrow"><button class="btn primary" onclick="solve()">Solve</button></div>
@@ -923,6 +925,7 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
       next+=stepOut;
     }
   }
+  out.za=za;out.sight=sight_m; // V1.32.0: bore-line geometry for cant
   // Same trajectory for another shot angle / head-tailwind (solveShot), cached per rounded key.
   if(!flight){const A=[mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1,bands,zeroEnv],cache=new Map();
     out.recalc=(look,head,zHead)=>{const k=[look,head,zHead].map(x=>(+x||0).toFixed(3)).join('|');
@@ -1033,7 +1036,7 @@ function finiteGuard(obj){ // returns first non-finite key, or '' if all finite
    places — a crafted import JSON was stored XSS with localStorage access. One escape helper,
    applied at every name→HTML sink. */
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,click,zeroWind,zeroWindDir,field){
+function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,click,zeroWind,zeroWindDir,field,cant_deg){
   /* V1.31.0: a shot angle or a head/tailwind component re-solves the trajectory with them inside the
      integration (pts.recalc); dist_m is then the slant range and drop is from the sloped line of sight.
      Without recalc (or level, pure crosswind) the old path is used unchanged. */
@@ -1064,9 +1067,24 @@ function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,cl
   const wdNet=wd-wdZeroBaked;
   const mrWind=wdNet/dist_m, clWind=mrWind/click;
   const cross=Math.abs(crossSigned); // magnitude for display ("crosswind 6.3 m/s")
-  return{tp,zp,mrElev,clElev,mrWind,clWind,cross,crossSigned,cosd,windDriftMm:wd,windNetMm:wdNet,head,sloped:P!==pts};
+  const cs=cantShift(P,tp,dist_m,cant_deg||0),cs1=cantShift(P,tp,dist_m,1);
+  return{tp,zp,mrElev,clElev,mrWind,clWind,cross,crossSigned,cosd,windDriftMm:wd,windNetMm:wdNet,head,sloped:P!==pts,
+    cantX:cs&&cs.x,cantY:cs&&cs.y,cantPerDeg:cs1&&cs1.x};
 }
 function windDrift(tof,range,mv,wind){return wind*(tof-range/mv)*1000;}
+/* V1.32.0 — cant. With the rifle rotated by φ about the line of sight (+ = clockwise / right, seen
+   from behind), everything fixed to the scope rotates: the bore line, and with it the elevation the
+   shooter dialled or held. Gravity does not. The bore-line part of the path that the correction cancels
+   is S = −G, where G is the gravity drop below the bore line at the target (y − (−h + R·tan θ0)).
+   Impact moves  x = S·sin φ (right for a right cant)  and  y = S·(cos φ − 1) (always low).
+   Verified: py-ballisticcalc 3.1.1 cant_angle with the dial set to the level correction (Queen
+   260 m/s, zero 50 m: 5° at 100 m → 65.97 mm right, 2.9 mm low). Display only — the dial is not
+   changed; the fix for cant is to level the rifle. Returns mm, or null without the geometry. */
+function cantShift(P,tp,range,deg){
+  if(!P||!tp||!(P.za!=null)||!(range>0))return null;
+  const S=-(tp.drop/1000-(-P.sight+range*Math.tan(P.za))),f=deg*Math.PI/180;
+  return{x:S*Math.sin(f)*1000,y:S*(Math.cos(f)-1)*1000};
+}
 /* ═════ CORE-17 solver core (V1.29.0) — crosswind that changes along the flight ═════
    Point mass, small crosswind: the sideways motion feels the same drag factor k = dec/v as the
    horizontal motion, so  dvx/dt = −k·vx  and  dvz/dt = −k·(vz − w(x)).  With slowness
@@ -2005,6 +2023,7 @@ function renderQuick(){
   const setv=(id,v)=>{const e=document.getElementById(id);if(e&&document.activeElement!==e)e.value=(v==null?'':v);};
   setv('home-dist',S.dist_m);setv('home-mv',S.mv);
   const ang=document.getElementById('home-angle');const angle=ang?+ang.value||0:0;
+  const cnt=document.getElementById('home-cant');const cant=cnt?+cnt.value||0:0;
   ['home-dist','home-mv'].forEach(id=>{const e=document.getElementById(id);if(e&&e._uq)unitSecNote(e);});
   renderRailHead();
   const cross=S.wind.speed*Math.abs(Math.sin(S.wind.dir*Math.PI/180));
@@ -2043,7 +2062,7 @@ function renderQuick(){
     updateTurretUI(null);
   }else{
     const z=zeroConds();
-    const sol=solveShot(tr.pts,nearestPt,z.range,S.dist_m,angle,S.wind.speed,S.wind.dir,S.mv,clickStep,z.wSpd,z.wDir);
+    const sol=solveShot(tr.pts,nearestPt,z.range,S.dist_m,angle,S.wind.speed,S.wind.dir,S.mv,clickStep,z.wSpd,z.wDir,null,cant);
     if(!sol){
       document.getElementById('home-elev').textContent='OOR';document.getElementById('home-wind').textContent='OOR';
       document.getElementById('home-elev-u').textContent='out of range';document.getElementById('home-wind-u').textContent='—';
@@ -2064,7 +2083,8 @@ function renderQuick(){
       document.getElementById('home-elev-u').textContent=angInUnit(Math.abs(sol.mrElev),au).toFixed(2)+' '+aLbl;
       document.getElementById('home-wind').textContent=(sol.clWind>=0?'→':'←')+Math.abs(sol.clWind).toFixed(0);
       document.getElementById('home-wind-u').textContent=angInUnit(Math.abs(sol.mrWind),au).toFixed(2)+' '+aLbl;
-      statusMsg=`${getProj().name} · ${U.velRaw(sol.tp.v)} ${lab('vel',UNITS.vel)} @ ${uq('range',S.dist_m)} · M ${sol.tp.mach.toFixed(2)}`+(!tr.cValid?(tr.cWhy==='pellet'?'':` · ⚠ Sg not computed (${tr.cWhy==='ld'?'L/D < 2.0':'no length'})`):(tr.sgP<1?` · Sg ${tr.sg.toFixed(2)} BC×${tr.sgP.toFixed(3)}`:''));
+      statusMsg=`${getProj().name} · ${U.velRaw(sol.tp.v)} ${lab('vel',UNITS.vel)} @ ${uq('range',S.dist_m)} · M ${sol.tp.mach.toFixed(2)}`+(!tr.cValid?(tr.cWhy==='pellet'?'':` · ⚠ Sg not computed (${tr.cWhy==='ld'?'L/D < 2.0':'no length'})`):(tr.sgP<1?` · Sg ${tr.sg.toFixed(2)} BC×${tr.sgP.toFixed(3)}`:''))
+        +(cant&&sol.cantX!=null?` · ⚠ cant ${Math.abs(cant)}° ${cant>0?'R':'L'} → impact ${uq('drop',Math.abs(sol.cantX))} ${sol.cantX>=0?'right':'left'}, ${uq('drop',Math.abs(sol.cantY))} low — level the rifle`:'');
       if(scope&&scope.railOn){
         const dialingUp=sol.clElev>=0, avail=dialingUp?scope.upClicks:scope.downClicks;
         document.getElementById('home-rail-note').innerHTML=`Solution needs ${Math.abs(sol.clElev).toFixed(0)} clicks ${dialingUp?'UP':'DOWN'} (avail ${avail}). Rail offset ${homeRailOff} ${angLabel(scope.railUnit)} pre-dialed → reticle shows remaining ${angInUnit(remElevMrad,au).toFixed(2)} ${aLbl} hold.`;
@@ -2688,7 +2708,8 @@ function solve(){
   document.getElementById('sv-dist').textContent=uq('range',tdist);
   document.getElementById('sv-zero-lbl').textContent='zero '+uq('zrange',zc.range)+(zc.wSpd>0?' · in '+uq('wind',zc.wSpd)+' wind':'');
   // solveShot works in mrad; pass clickStep (mrad) so click counts are unit-correct
-  const sol=solveShot(pts,nearestPt,zc.range,tdist,angle,wspd,wdir,mv,clickStep,zc.wSpd,zc.wDir);
+  const cant=+document.getElementById('sv-cant').value||0;
+  const sol=solveShot(pts,nearestPt,zc.range,tdist,angle,wspd,wdir,mv,clickStep,zc.wSpd,zc.wDir,null,cant);
   if(!sol){document.getElementById('sv-outs').innerHTML='<div class="sc"><div class="sv" style="font-size:13px;color:var(--warn)">Target or zero outside the computed range.</div></div>';return;}
   const{tp}=sol;
   /* V1.14.0 Layer-3 corrections. Sign convention: a POSITIVE impact shift (right/high) needs a
@@ -2726,6 +2747,7 @@ function solve(){
   }else{document.getElementById('sv-travel-note').textContent='No scope on active rifle — assign one in its profile.';}
   if(au==='moa')fl+=`<div class="flag info">MOA scope: solution shown in MOA &amp; clicks (1 click = ${scope.click} MOA = ${(scope.clickStepMrad).toFixed(4)} mrad).</div>`;
   if(angle!==0)fl+=`<div class="flag info">Angle ${angle}° · trajectory solved along the slope (gravity and wind in the line-of-sight frame); distance is the slant range.</div>`;
+  if(sol.cantPerDeg!=null)fl+=`<div class="flag ${cant?'warn':'info'}">Cant: each 1° moves the impact ${uq('drop',Math.abs(sol.cantPerDeg))} sideways at ${uq('range',tdist)}${cant?` · now ${Math.abs(cant)}° ${cant>0?'right':'left'} → ${uq('drop',Math.abs(sol.cantX))} ${sol.cantX>=0?'right':'left'}, ${uq('drop',Math.abs(sol.cantY))} low (dial unchanged — level the rifle)`:''}.</div>`;
   if(APP.solverCor)fl+=`<div class="flag info">Coriolis @ lat ${lat}° az ${az}°: impact ${coH>=0?'R':'L'} ${uq('drop',Math.abs(coH))} · ${coV>=0?'HIGH':'LOW'} ${uq('drop',Math.abs(coV))} → dial ${(-coH/tdist).toFixed(3)} / ${(-coV/tdist).toFixed(3)} mrad (included above).</div>`;
   if(APP.solverSpin)fl+=sdMm!=null
     ?`<div class="flag warn">Spin drift (Litz EST ⚠ unvalidated subsonic): Sg ${sgI.sg.toFixed(2)}${sgI.est?' (C EST)':''} → impact ${sdMm>=0?'R':'L'} ${uq('drop',Math.abs(sdMm))} → dial ${(-sdMm/tdist).toFixed(2)} mrad (included above).</div>`
@@ -2894,7 +2916,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.31.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.32.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3364,7 +3386,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.31.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.32.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3997,6 +4019,8 @@ const FORMULAS=[
     anchors:[{l:'5 m/s headwind, 100 m (pbc −387.99 mm, sight 0)',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,150,0,e.rho,e.aS,1,'g7',0.245,null);return -solveShot(p,nearestPt,50,100,0,5,0,260,0.1,0,90).mrElev*100;},want:-387.99,tol:0.2,u:'mm'}]},
   {name:'Station pressure from sea-level (QNH)',status:'ok',eq:'P = QNH·(1 − 2.25577e-5·h)^5.25588',src:'ICAO standard atmosphere — QNH is defined by it (V1.31.0)',used:'weather profiles marked "sea level"',
     anchors:[{l:'1013.25 hPa at 1000 m (ISA 898.76 hPa)',got:()=>stationPres(1013.25,1000),want:898.76,tol:0.05,u:'hPa'}]},
+  {name:'Cant',status:'ok',eq:'S = −(y − (−h + R·tan θ0)); impact x = S·sin φ, y = S·(cos φ − 1)',src:'rotation of the scope-fixed bore line and correction about the LOS, gravity fixed (V1.32.0); py-ballisticcalc 3.1.1 cant_angle with the level dial applied',used:'Home status, Solver (display; dial unchanged)',
+    anchors:[{l:'Queen 260 m/s, zero 50 m, 5° right at 100 m (pbc 65.97 mm)',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,150,0.044,e.rho,e.aS,1,'g7',0.245,null);return solveShot(p,nearestPt,50,100,0,0,90,260,0.1,0,90,null,5).cantX;},want:65.97,tol:0.05,u:'mm'}]},
   {name:'Angular units',status:'ok',eq:'mrad = mm/m · 1 MOA = 0.290888 mrad',src:'exact definitions — skill §10',used:'every dial and hold',
     anchors:[{l:'100 mm at 100 m',got:()=>toMOA(100,100),want:3.43775,tol:1e-5,u:'MOA'},{l:'¼ MOA click',got:()=>clickMrad(0.25,'moa'),want:0.072722,tol:1e-6,u:'mrad'}]},
   {name:'Unit conversions',status:'ok',eq:'1 yd = 0.9144 m · 1 ft = 0.3048 m · 1 in = 25.4 mm',src:'international yard and pound (1959), exact',used:'every displayed value',
@@ -4110,7 +4134,7 @@ const UNIT_FIELDS={
   bullet:['bc-diam','bc-oal','st-diam','st-oal','pf-diam','pf-oal','rf-blen'],
   alt:['wf-alt','rf-zalt'],
   '-':['home-railoff','hm-tbrg','hm-wbrg','home-angle','tr-bc','tr-crh','tu-rh','bc-mass','bc-ff','bc-g1',
-       'st-mass','st-twist','st-c','wd-dir','wd-xf','sv-angle','sv-wdir','sv-lat','sv-az','cal-m-brg','mw-dir',
+       'st-mass','st-twist','st-c','wd-dir','wd-xf','sv-angle','sv-cant','home-cant','sv-wdir','sv-lat','sv-az','cal-m-brg','mw-dir',
        'rf-downclicks','rf-reg1','rf-reg2','rf-twist','rf-railmrad','rf-zwdir','rf-zrh','rf-dwell',
        'sc-click','sc-elev','sc-wind','sc-cpr','sc-magmin','sc-magmax','rt-dot',
        'pf-mass','pf-c','pf-bcg7','pf-bcg1','pf-ff','wf-rh']
