@@ -7,6 +7,27 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.31.1 — patch — Default pressures are sea-level (QNH): seeded profiles and rifle zero converted
+
+**Problem.** The owner's Garmin Fenix shows barometric pressure reduced to mean sea level (Garmin forum; the watch read 1022 hPa at 304 m, which can only be QNH). The seeded weather profiles (1010 / 1008 / 1015 hPa at 298 m) and the rifles' zero pressure came from it, but were used as station pressure — about 35 hPa, 3.5 % too much air on every default profile.
+
+**Fix.**
+- Seeded weather profiles (Everyday Default, Summer Hot, Winter Local, Global Worst-Case) → "Sea level (QNH)" at their stored altitude; the Everyday note now reads 1010 hPa QNH = 974.8 hPa at 298 m, ρ 1.1516 kg/m³. New weather profiles default to sea level.
+- Other existing profiles → "Station" with a note to change it if the value came from a weather app or the Garmin.
+- Rifle zero conditions: new "Zero pressure is: Sea level (QNH, Garmin) / Station" and "Zero altitude m"; existing rifles → sea level at 300 m. Zero conditions are converted with the same ICAO formula. Zero-condition lines say "station".
+- `migratePressureType` runs once per record (type set); import keeps `zPresType` / `zAlt` (whitelisted). Global worst case is at 0 m, so 1013 hPa is unchanged.
+
+**Dope change (Queen 60 gr, Mora .25 1:20″, 280 m/s, Everyday Default):** ρ 1.1934 → 1.1516; Sg 1.22 → 1.26 (BC_eff 0.1177 → 0.1194); drop at 300 m 5321 → 5276 mm (−45 mm, ≈ 0.15 mrad); wind 3 m/s at 200 m 157 → 149 mm, at 300 m 359 → 340 mm (≈ −5 %).
+
+**Files:**
+- `index.html`: weather seeds, `migratePressureType`, `zeroConds`, rifle seed/form/save/whitelist, weather form default, zero-condition display; 5 live version strings.
+- `sw.js`: CACHE → `sen-ballistics-v1.31.1`.
+- New `tests/pressuretest.js` (12); `tests/stabtest.js` (expected Sg uses the station pressure); `tests/homelayouttest.js` (sanity bands follow the lower density; equality with the solver unchanged); `tests/README.md` (twenty suites).
+
+**Verify:** `node --check` clean · `runtests.js` 76/76 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · `calypsotest.js` 18/18 · `windavgtest.js` 28/28 · `stabtest.js` 12/12 · `flighttest.js` 13/13 · **`pressuretest.js` 12/12** · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.31.1.html`.
+
+---
+
 ## V1.31.0 — minor — Shot angle and head/tailwind solved inside the trajectory; sea-level (QNH) pressure
 
 **Problem.**

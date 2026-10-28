@@ -37,7 +37,7 @@ chk('upgrade: design constant 2.699 cleared, user\'s own C 2.5 kept',proj(w,/^TE
 // 3. Home: Queen in the Mora 1:20″ at the session MV uses Miller.
 w.eval(`Bus.setRifle(DB.rifles.find(r=>/\\.25/.test(r.name)).id);Bus.setProj(DB.projectiles.find(p=>/^Altaros ATP Queen/.test(p.name)).id);Bus.setWx('cur',DB.weathers[0].id);Bus.setWx('zero',DB.weathers[0].id);S.mv=280;Bus.notify();`);await wait(30);
 const tr=J(w,'(()=>{const t=homeTraj();return{sg:t.sg,sgP:t.sgP,why:t.cWhy}})()'),wx=J(w,'getWx(S.curWxId)');
-const want=J(w,`calcSg(60,6.35,12.9,508,280,30*Math.pow(6.35/25.4,2),${wx.temp},${wx.pres})`);
+const want=J(w,`calcSg(60,6.35,12.9,508,280,30*Math.pow(6.35/25.4,2),${wx.temp},${J(w,'wxPres(getWx(S.curWxId))')})`);
 chk('Home: Queen Sg = Miller (C 1.875), BC penalty applied from it',Math.abs(tr.sg-want)<1e-12&&tr.why==='miller'&&Math.abs(tr.sgP-J(w,`bcEffSg(1,${want})`))<1e-12&&tr.sg<1.5,JSON.stringify(tr));
 // 4. Import of an old export with C 2.283 → cleared.
 const snap=JSON.parse(w.eval('snapshotJSON()'));

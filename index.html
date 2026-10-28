@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.31.0</title>
+<title>SEN Ballistics V1.31.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -292,7 +292,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.31.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.31.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -806,7 +806,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.31.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.31.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1649,6 +1649,22 @@ function migrateScopes(){
   DB.rifles.forEach(r=>{if(r.scope&&!r.scopeId){r.scopeId=findOrAdd(r.scope);r.sight=r.sight??r.scope.sight??44;r.railOn=(r.scope.rail||0)>0;r.railMrad=r.scope.rail||0;r.railUnit='mil';r.downClicks='';delete r.scope;}});
   saveDB();
 }
+/* V1.31.1 — pressure type backfill (owner, 2026-10-28: the Garmin shows sea-level pressure, and the
+   seeded 1010/1008/1015 hPa defaults came from it). Seeded weather profiles → sea level (QNH) at their
+   altitude; any other profile without a type → station, with a note to check it. Rifle zero conditions
+   → sea level at 300 m (they were typed from the same watch). Runs once per record (type set). */
+const SEEDED_WX=['Everyday Default (20°C)','Summer Hot (30°C)','Winter Local (0°C)','Global Worst-Case (sea level)'];
+function migratePressureType(){
+  let changed=false;
+  DB.weathers.forEach(w=>{
+    if(w.presType)return;
+    if(SEEDED_WX.includes(w.name)){w.presType='sea';if(w.notes==='§6A trajectory default · ρ 1.1934 kg/m³ · Vs 343.24 m/s')w.notes='§6A trajectory default · 1010 hPa sea level (QNH) = 974.8 hPa at 298 m · ρ 1.1516 kg/m³ · Vs 343.24 m/s';}
+    else{w.presType='station';w.notes=((w.notes||'')+' · V1.31.1: pressure treated as station pressure — if it came from a weather app or the Garmin, edit and choose Sea level (QNH)').replace(/^ · /,'');}
+    changed=true;
+  });
+  DB.rifles.forEach(r=>{if(!r.zPresType){r.zPresType='sea';if(!(r.zAlt>=0))r.zAlt=300;changed=true;}});
+  if(changed)saveDB();
+}
 /* Backfill zero-condition + regulator fields on rifles from earlier versions. */
 function migrateZeroFields(){
   let changed=false;
@@ -1683,9 +1699,9 @@ function migrateReticlesAndMag(){
 function migrateWeatherSeeds(){
   let changed=false;
   const upd=(name,t,p,rh,nu)=>{const w=DB.weathers.find(x=>x.name===name&&x.temp===t&&x.pres===p&&x.rh===rh);if(w){Object.assign(w,nu);changed=true;}};
-  upd('Ljubljana Default (10°C)',10,985,75,{name:'Everyday Default (20°C)',temp:20,pres:1010,rh:65,alt:298,notes:'§6A trajectory default · ρ 1.1934 kg/m³ · Vs 343.24 m/s'});
-  upd('Ljubljana Hot (30°C)',30,980,60,{name:'Summer Hot (30°C)',temp:30,pres:1008,rh:65,alt:298,notes:'Hot session · low drag'});
-  upd('Ljubljana Winter (2°C)',2,987,85,{name:'Winter Local (0°C)',temp:0,pres:1015,rh:80,alt:298,notes:'Cold session · high drag'});
+  upd('Ljubljana Default (10°C)',10,985,75,{name:'Everyday Default (20°C)',temp:20,pres:1010,presType:'sea',rh:65,alt:298,notes:'§6A trajectory default · 1010 hPa sea level (QNH) = 974.8 hPa at 298 m · ρ 1.1516 kg/m³ · Vs 343.24 m/s'});
+  upd('Ljubljana Hot (30°C)',30,980,60,{name:'Summer Hot (30°C)',temp:30,pres:1008,presType:'sea',rh:65,alt:298,notes:'Hot session · low drag'});
+  upd('Ljubljana Winter (2°C)',2,987,85,{name:'Winter Local (0°C)',temp:0,pres:1015,presType:'sea',rh:80,alt:298,notes:'Cold session · high drag'});
   upd('Global Worst-Case (sea level)',-5,1013,90,{rh:80,notes:'§6A stability worst-case · RTI barrel spec'});
   const referenced=id=>S.curWxId===id||S.zeroWxId===id||DB.dopeCards.some(c=>c.cwxId===id||c.zwxId===id);
   for(const old of[{n:'Ljubljana Summer (20°C)',t:20,p:983,r:70},{n:'Ljubljana Cold (−5°C)',t:-5,p:990,r:90}]){
@@ -1730,7 +1746,7 @@ function seedDefaults(){
   seedReticles();seedScopes();
   const scff30=DB.scopes.find(s=>s.sku==='SCFF-30')?.id,scff70=DB.scopes.find(s=>s.sku==='SCFF-70')?.id;
   if(!DB.rifles.length){
-    const z={zwSpd:0,zwDir:90,zTemp:20,zPres:1010,zRH:65,reg1:'',reg2:'',ssj:false,regDelta:'',dwell:''};
+    const z={zwSpd:0,zwDir:90,zTemp:20,zPres:1010,zPresType:'sea',zAlt:300,zRH:65,reg1:'',reg2:'',ssj:false,regDelta:'',dwell:''};
     DB.rifles=[
       {id:uid(),name:'RTI Mora .25 (1:20")',cal:'.25',twist:508,blen:700,sight:44,mv:255,zero:50,notes:'Standard RPB barrel',scopeId:scff30,railOn:false,railMrad:0,railUnit:'mil',downClicks:'',...z},
       {id:uid(),name:'RTI Mora .30 (1:20")',cal:'.30',twist:508,blen:700,sight:44,mv:255,zero:50,notes:'Standard RPB barrel',scopeId:scff70,railOn:false,railMrad:0,railUnit:'mil',downClicks:'',...z},
@@ -1747,10 +1763,10 @@ function seedDefaults(){
   }
   if(!DB.weathers.length){
     DB.weathers=[
-      {id:uid(),name:'Everyday Default (20°C)',temp:20,pres:1010,rh:65,alt:298,notes:'§6A trajectory default · ρ 1.1934 kg/m³ · Vs 343.24 m/s'},
-      {id:uid(),name:'Summer Hot (30°C)',temp:30,pres:1008,rh:65,alt:298,notes:'Hot session · low drag'},
-      {id:uid(),name:'Winter Local (0°C)',temp:0,pres:1015,rh:80,alt:298,notes:'Cold session · high drag'},
-      {id:uid(),name:'Global Worst-Case (sea level)',temp:-5,pres:1013,rh:80,alt:0,notes:'§6A stability worst-case · RTI barrel spec'}
+      {id:uid(),name:'Everyday Default (20°C)',temp:20,pres:1010,presType:'sea',rh:65,alt:298,notes:'§6A trajectory default · 1010 hPa sea level (QNH) = 974.8 hPa at 298 m · ρ 1.1516 kg/m³ · Vs 343.24 m/s'},
+      {id:uid(),name:'Summer Hot (30°C)',temp:30,pres:1008,presType:'sea',rh:65,alt:298,notes:'Hot session · low drag'},
+      {id:uid(),name:'Winter Local (0°C)',temp:0,pres:1015,presType:'sea',rh:80,alt:298,notes:'Cold session · high drag'},
+      {id:uid(),name:'Global Worst-Case (sea level)',temp:-5,pres:1013,presType:'sea',rh:80,alt:0,notes:'§6A stability worst-case · RTI barrel spec'}
     ];
   }
   saveDB();
@@ -1767,7 +1783,7 @@ function zeroConds(rifle,rangeOverride){
   return{
     range:rangeOverride!=null?rangeOverride:S.zero_m,
     temp:r&&r.zTemp!=null?r.zTemp:(zw?zw.temp:20),
-    pres:r&&r.zPres!=null?r.zPres:(zw?wxPres(zw):1010),
+    pres:r&&r.zPres!=null?(r.zPresType==='sea'?stationPres(r.zPres,+r.zAlt||0):r.zPres):(zw?wxPres(zw):1010),
     rh:r&&r.zRH!=null?r.zRH:(zw?zw.rh:65),
     wSpd:r&&r.zwSpd!=null?r.zwSpd:0,
     wDir:r&&r.zwDir!=null?r.zwDir:90
@@ -2294,7 +2310,7 @@ function syncTrajInputs(){
   ['mv','bc','sight','ct','cp','crh'].forEach(markSrc);
   const z=zeroConds();
   const zdisp=document.getElementById('tr-zero-disp');
-  if(zdisp)zdisp.innerHTML=getRifle()?`${uq('zrange',z.range)} · ${uq('temp',z.temp)} · ${uq('pres',z.pres)} · ${z.rh}% RH · wind ${uq('wind',z.wSpd)} @ ${z.wDir}°`:'— select a rifle —';
+  if(zdisp)zdisp.innerHTML=getRifle()?`${uq('zrange',z.range)} · ${uq('temp',z.temp)} · ${uq('pres',z.pres)} station · ${z.rh}% RH · wind ${uq('wind',z.wSpd)} @ ${z.wDir}°`:'— select a rifle —';
   if(S.ct!=null){
     const rz=airDensity(z.temp,z.pres,z.rh),rc=airDensity(S.ct,S.cp,S.crh);
     document.getElementById('tr-atmo-note').textContent=`ρ zero ${rz.toFixed(4)} · ρ current ${rc.toFixed(4)} kg/m³ · zero shift computed by two-pass solve (BC unscaled — §11I)`;
@@ -2755,7 +2771,7 @@ function renderDopeZero(){
   const el=document.getElementById('dc-zero-disp');if(!el)return;
   if(!r){el.innerHTML='— select a rifle —';return;}
   const z=zeroConds(r,c.zero);
-  el.innerHTML=`${uq('zrange',z.range)} · ${uq('temp',z.temp)} · ${uq('pres',z.pres)} · ${z.rh}% RH · wind ${uq('wind',z.wSpd)} @ ${z.wDir}°`+(z.wSpd>0?' <span style="color:var(--gold)">(zeroed in wind)</span>':'');
+  el.innerHTML=`${uq('zrange',z.range)} · ${uq('temp',z.temp)} · ${uq('pres',z.pres)} station · ${z.rh}% RH · wind ${uq('wind',z.wSpd)} @ ${z.wDir}°`+(z.wSpd>0?' <span style="color:var(--gold)">(zeroed in wind)</span>':'');
 }
 function dopeFromSession(){
   const c=getCard();if(!c)return;
@@ -2878,7 +2894,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.31.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.31.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -2985,7 +3001,7 @@ function closeModal(){document.getElementById('modal').classList.remove('open');
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
 
 function openRifleForm(id){
-  const r=DB.rifles.find(x=>x.id===id)||{name:'',cal:'.25',twist:508,twistDir:'right',blen:700,sight:44,mv:255,notes:'',scopeId:DB.scopes[0]?.id,railOn:false,railMrad:0,railUnit:'mil',downClicks:'',zero:50,zwSpd:0,zwDir:90,zTemp:20,zPres:1010,zRH:65,reg1:'',reg2:'',ssj:false,regDelta:'',dwell:''};
+  const r=DB.rifles.find(x=>x.id===id)||{name:'',cal:'.25',twist:508,twistDir:'right',blen:700,sight:44,mv:255,notes:'',scopeId:DB.scopes[0]?.id,railOn:false,railMrad:0,railUnit:'mil',downClicks:'',zero:50,zwSpd:0,zwDir:90,zTemp:20,zPres:1010,zPresType:'sea',zAlt:300,zRH:65,reg1:'',reg2:'',ssj:false,regDelta:'',dwell:''};
   const twd=r.twistDir||'right';
   const scopeOpts=favSort(DB.scopes).map(s=>`<option value="${s.id}" ${s.id===r.scopeId?'selected':''}>${favMark(s)}${esc(s.name)}${s.sku?' ('+esc(s.sku)+')':''}</option>`).join('');
   const ru=r.railUnit||'mil';
@@ -3024,7 +3040,9 @@ function openRifleForm(id){
       ${fldHtml('rf-zwspd','Zero wind m/s',r.zwSpd??0,0.1)}
       ${fldHtml('rf-zwdir','Zero wind dir °',r.zwDir??90,5)}
       ${fldHtml('rf-ztemp','Zero temp °C',r.zTemp??10,0.5)}
-      ${fldHtml('rf-zpres','Zero pressure hPa',r.zPres??985,1)}
+      ${fldHtml('rf-zpres','Zero pressure hPa',r.zPres??1010,1)}
+      <div class="fld"><label>Zero pressure is</label><select id="rf-zptype"><option value="sea"${r.zPresType==='station'?'':' selected'}>Sea level (QNH, Garmin)</option><option value="station"${r.zPresType==='station'?' selected':''}>Station</option></select></div>
+      ${fldHtml('rf-zalt','Zero altitude m',r.zAlt??300,1)}
       ${fldHtml('rf-zrh','Zero RH %',r.zRH??75,1)}
     </div>
     <div class="note">These define the conditions the rifle was zeroed in. Wind defaults to 0 (calm zero). Windage and air-density corrections are computed against these.</div>
@@ -3065,7 +3083,7 @@ function saveRifle(id){
   const reg1raw=toBar(v('rf-reg1')), reg2=toBar(v('rf-reg2'));
   const obj={name:v('rf-name').trim(),cal:v('rf-cal'),twist:+v('rf-twist')*25.4,twistDir:v('rf-twdir')||'right',blen:+v('rf-blen'),sight:+v('rf-sight'),mv:+v('rf-mv'),
     scopeId:v('rf-scope'),railOn,railMrad:railOn?+v('rf-railmrad'):0,railUnit,downClicks:dc===''?'':+dc,
-    zero:+v('rf-zero'),zwSpd:+v('rf-zwspd'),zwDir:+v('rf-zwdir'),zTemp:+v('rf-ztemp'),zPres:+v('rf-zpres'),zRH:+v('rf-zrh'),
+    zero:+v('rf-zero'),zwSpd:+v('rf-zwspd'),zwDir:+v('rf-zwdir'),zTemp:+v('rf-ztemp'),zPres:+v('rf-zpres'),zPresType:v('rf-zptype')==='station'?'station':'sea',zAlt:+v('rf-zalt'),zRH:+v('rf-zrh'),
     ssj,reg1:ssj?'':reg1raw,regDelta:ssj?reg1raw:'',reg2,dwell:v('rf-dwell').trim()===''?'':+v('rf-dwell')};
   const err=vchk([
     [obj.name,'Name',{req:true,str:true}],
@@ -3077,6 +3095,7 @@ function saveRifle(id){
     [obj.zwDir,'Zero wind dir',{min:0,max:360}],
     [obj.zTemp,'Zero temp',{min:-60,max:60}],
     [obj.zPres,'Zero pressure',{gt:0,max:1100}],
+    [obj.zAlt,'Zero altitude',{min:-500,max:9000}],
     [obj.zRH,'Zero RH',{min:0,max:100}],
     [railOn?+v('rf-railmrad'):0,'Rail elevation',{min:0,max:200}],
     [dc===''?0:+dc,'Down-clicks',{min:0,int:true}]
@@ -3322,7 +3341,7 @@ function saveProj(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function openWxForm(id){
-  const w=DB.weathers.find(x=>x.id===id)||{name:'',temp:20,pres:1010,rh:65,alt:298,notes:''};
+  const w=DB.weathers.find(x=>x.id===id)||{name:'',temp:20,pres:1010,presType:'sea',rh:65,alt:298,notes:''};
   openModal(`<h3>${id?'Edit':'New'} weather</h3><div class="fgrid">
     ${fldHtml('wf-name','Name',w.name)}${fldHtml('wf-temp','Temp °C',w.temp,0.5)}
     ${fldHtml('wf-pres','Pressure hPa',w.pres,1)}<div class="fld"><label>Pressure reading is</label><select id="wf-ptype"><option value="station"${w.presType==='sea'?'':' selected'}>Station (where you stand)</option><option value="sea"${w.presType==='sea'?' selected':''}>Sea level (QNH, weather apps)</option></select></div>${fldHtml('wf-rh','RH %',w.rh,1)}
@@ -3345,7 +3364,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.31.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.31.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3365,7 +3384,7 @@ function importAll(input){
 const IMPORT_ORDER=['reticles','scopes','rifles','projectiles','weathers','dopeCards'];
 const IMPORT_LABEL={reticles:'Reticle',scopes:'Scope',rifles:'Rifle',projectiles:'Projectile',weathers:'Weather',dopeCards:'Dope card'};
 const IMPORT_FIELDS={
-  rifles:{id:'s',name:'s',cal:'s',twist:'n',twistDir:'s',blen:'n',sight:'n',mv:'n',zero:'n',notes:'s',scopeId:'s',railOn:'b',railMrad:'n',railUnit:'s',downClicks:'ns',zwSpd:'n',zwDir:'n',zTemp:'n',zPres:'n',zRH:'n',reg1:'ns',reg2:'ns',ssj:'b',regDelta:'ns',dwell:'ns',fav:'b',mvt:'mvt'},
+  rifles:{id:'s',name:'s',cal:'s',twist:'n',twistDir:'s',blen:'n',sight:'n',mv:'n',zero:'n',notes:'s',scopeId:'s',railOn:'b',railMrad:'n',railUnit:'s',downClicks:'ns',zwSpd:'n',zwDir:'n',zTemp:'n',zPres:'n',zPresType:'s',zAlt:'n',zRH:'n',reg1:'ns',reg2:'ns',ssj:'b',regDelta:'ns',dwell:'ns',fav:'b',mvt:'mvt'},
   scopes:{id:'s',name:'s',sku:'s',adjUnit:'s',click:'n',elev:'n',wind:'n',cpr:'n',magMin:'n',magMax:'n',reticleId:'s0',source:'s',notes:'s',fav:'b'},
   reticles:{id:'s',name:'s',fp:'s',renderer:'s',dotMrad:'n',hashStep:'n',hashMark:'n',hashes:'nums',windHashes:'nums',treeRows:'nums',verified:'b',confNote:'s',notes:'s',fav:'b'},
   projectiles:{id:'s',name:'s',cal:'s',mfg:'s',type:'s',diam:'n',mass:'n',oal:'n',bcg7:'n',bcg1:'n',c:'n',ff:'n',notes:'s',fav:'b'},
@@ -4089,7 +4108,7 @@ const UNIT_FIELDS={
   pres:['tr-cp','tu-pres','st-pres','rf-zpres','wf-pres'],
   sight:['tr-sight','rf-sight'],
   bullet:['bc-diam','bc-oal','st-diam','st-oal','pf-diam','pf-oal','rf-blen'],
-  alt:['wf-alt'],
+  alt:['wf-alt','rf-zalt'],
   '-':['home-railoff','hm-tbrg','hm-wbrg','home-angle','tr-bc','tr-crh','tu-rh','bc-mass','bc-ff','bc-g1',
        'st-mass','st-twist','st-c','wd-dir','wd-xf','sv-angle','sv-wdir','sv-lat','sv-az','cal-m-brg','mw-dir',
        'rf-downclicks','rf-reg1','rf-reg2','rf-twist','rf-railmrad','rf-zwdir','rf-zrh','rf-dwell',
@@ -4340,7 +4359,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ═════════ boot ═════════ */
 Bus.on(()=>{renderActBar();syncTrajInputs();refreshSelects();if(homeVisible())renderQuick();autoTraj();});
 async function boot(){
-await loadDB();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();migrateMillerC();
+await loadDB();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();migrateMillerC();migratePressureType();
 DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (V1.13.2): legacy free-text cleanup
 /* V1.12.5 (C3): saveDB persists profile IDs but not the derived overridables (mv/bc/sight/ct/cp/crh)
    — they were left null on relaunch, so Home showed "select rifle…" despite restored chips.
