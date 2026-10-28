@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.32.0</title>
+<title>SEN Ballistics V1.33.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -292,7 +292,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.32.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.33.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -531,6 +531,20 @@ details.disc .dbody{padding:0 14px 14px}
     <div id="tu-result-body"></div>
     <div class="btnrow"><button class="btn primary" onclick="tuApply()">Apply to projectile profile</button></div>
     <div class="note" id="tu-apply-note"></div>
+  </div>
+  <div class="panel" id="td-panel">
+    <div class="ph"><h2>True BC from impacts</h2><span class="psub">CALC-04 · the dial that actually hit at a far distance</span></div>
+    <div class="note" id="td-ctx" style="margin-top:0"></div>
+    <div class="fgrid3">
+      <div class="fld"><label>Distance</label><input type="number" id="td-dist" data-q="range" step="1" value="150"></div>
+      <div class="fld"><label>Shot angle °</label><input type="number" id="td-angle" step="1" value="0"></div>
+      <div class="fld"><label>Dial that centred the group</label><input type="number" id="td-dial" step="0.1"></div>
+      <div class="fld"><label>Dial unit</label><select id="td-unit"><option value="click">clicks</option><option value="mrad">mrad</option><option value="moa">MOA</option></select></div>
+      <div class="fld"><label>Group centre above aim (+) / below (−)</label><input type="number" id="td-off" data-q="drop" step="1" value="0"></div>
+    </div>
+    <div class="note">Dial up from the turret zero, as the turret reads. Shoot at least one 5-shot group at a distance well beyond the zero (2–3× or more): the farther, the more the drop says about BC. MV, zero and air must be right — they come from the current session.</div>
+    <div class="btnrow"><button class="btn primary" onclick="tdSolve()">True BC from impacts</button></div>
+    <div id="td-result"></div>
   </div>
   <div class="outcard">
     <div class="ot"><span>BC / SD · <span id="bc-name">—</span></span><span id="bc-type-lbl"></span></div>
@@ -977,6 +991,20 @@ function trueBCsingle(mv,mass_gr,d_m,vMeas,rho,aS,drag){
   const bc=(lo+hi)/2;
   return{bc,vModel:velAtDist(mv,bc,mass_gr,d_m,rho,aS,drag)};
 }
+/* V1.33.0 (CALC-04) — BC from where the shots land. solveAt(bc) returns the elevation (mrad from the
+   turret zero) the model needs at the target for that BC; it falls as BC rises. Bisection finds the BC
+   whose dial equals the one that actually centred the group. The BC that comes out is the BC the
+   slug really flies with — stability loss, drag-model mismatch and all — so it is stored as trued
+   and the Sg penalty is not applied on top of it. Returns {bc} or {bc:null, flag}. */
+function trueBCdrop(solveAt,needMrad){
+  let lo=0.01,hi=1.5;const flo=solveAt(lo),fhi=solveAt(hi);
+  if(!(isFinite(flo)&&isFinite(fhi)))return{bc:null,flag:'the trajectory does not reach that distance'};
+  if(needMrad>flo)return{bc:null,flag:'needs more elevation than any BC above 0.01 gives — check the dial, MV and conditions'};
+  if(needMrad<fhi)return{bc:null,flag:'needs less elevation than any BC below 1.5 gives — check the dial, MV and conditions'};
+  for(let i=0;i<60;i++){const m=(lo+hi)/2;solveAt(m)>needMrad?lo=m:hi=m;}
+  return{bc:(lo+hi)/2};
+}
+const bcIsTrued=(p,drag)=>!!(p&&p.bcTrued&&String(p.bcTrued).includes('·'+drag+'·'));
 /* Solve a velocity-banded BC from N≥3 points: [{d,v}] sorted by distance ascending, plus mv at d=0.
    Each segment between consecutive measured points gets its own BC, solved over that segment using
    the entry velocity as the segment muzzle velocity. Returns bands keyed by the velocity at segment
@@ -1967,7 +1995,7 @@ function sessionSg(){
    Auto-computes a trajectory from the active session (rifle/proj/weather) so the
    home screen is useful without visiting Trajectory first. Reuses the same physics
    path as A3 (atmosphere-corrected BC + Sg penalty) and the shared solveShot. */
-function homeTraj(maxOver){  // V1.14.0: maxOver lets the Holds page extend the computed range
+function homeTraj(maxOver,bcOverride){  // V1.14.0: maxOver lets the Holds page extend the computed range
   const r=getRifle(),p=getProj(),cw=getWx(S.curWxId);
   if(!r||!p||S.mv==null)return null;
   const z=zeroConds();
@@ -1980,14 +2008,17 @@ function homeTraj(maxOver){  // V1.14.0: maxOver lets the Holds page extend the 
   // H1 (V1.13.1): honour bus overrides — BC from S.bc (manual/trued) and sight from S.sight_mm.
   // Mirrors runTraj exactly: a MANUAL BC is taken as-is (Sg still shown, but no penalty applied),
   // so Home and the Trajectory tab can no longer produce different dope from the same session.
-  const bcManual=S.src.bc==='manual';
+  const drag0=S.drag||(p.type==='pellet'?'g1':'g7');
+  // A manual BC, a measured (trued) BC and a truing trial BC are taken as-is: they already are what the
+  // slug flies with, so the Sg penalty would count stability loss twice (V1.33.0 for trued).
+  const bcManual=S.src.bc==='manual'||bcOverride!=null||bcIsTrued(p,drag0);
   let sgP=1,sgPZ=1,sg=null,cInfo=projC(p);
   if(cInfo.valid&&r.twistDir!=='smooth'){
     sg=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,cInfo.c,ct,cp);if(sg<1.5&&!bcManual)sgP=bcEffSg(1,sg);
     const sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,cInfo.c,z.temp,z.pres);if(sgZ<1.5&&!bcManual)sgPZ=bcEffSg(1,sgZ);
   }
   const drag=S.drag||(p.type==='pellet'?'g1':'g7');
-  const bcBase=(S.bc!=null&&S.bc>0)?S.bc:(drag==='g7'?p.bcg7:p.bcg1);
+  const bcBase=bcOverride!=null?bcOverride:(S.bc!=null&&S.bc>0)?S.bc:(drag==='g7'?p.bcg7:p.bcg1);
   if(!(bcBase>0))return{bcPending:true,projName:p.name};
   const bcEff=bcBase*sgP;
   const bc7=drag==='g7'?bcEff:p.bcg7, bc1=drag==='g1'?bcEff:p.bcg1;
@@ -2426,7 +2457,7 @@ function runTraj(silent){
   // conditions for the flight, zero conditions for the zero solve. No density scaling of BC.
   let sgPenalty=1, sgPenaltyZ=1, sgNote='';
   const r=getRifle();
-  if(r&&S.src.bc!=='manual'){
+  if(r&&S.src.bc!=='manual'&&!bcIsTrued(p,S.drag)){
     if(r.twistDir==='smooth'){
       sgNote=` · smooth bore — no spin stabilisation (Sg n/a)`;
     }else{
@@ -2868,8 +2899,9 @@ function computeCardTraj(c){
   if(!(bcBase>0))return{bcPending:true,projName:p.name};
   let sgP=1,sgPZ=1;
   if(r&&r.twistDir!=='smooth'){const cInfo=projC(p);if(cInfo.valid){
-    const sg=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,cw.temp,cwp);if(sg<1.5)sgP=bcEffSg(1,sg);
-    const sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,z.temp,z.pres);if(sgZ<1.5)sgPZ=bcEffSg(1,sgZ);
+    const noPen=bcIsTrued(p,drag);
+    const sg=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,cw.temp,cwp);if(sg<1.5&&!noPen)sgP=bcEffSg(1,sg);
+    const sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,z.temp,z.pres);if(sgZ<1.5&&!noPen)sgPZ=bcEffSg(1,sgZ);
   }}
   // FIX-10: BC unscaled (density-independent); zero angle solved in the rifle's zero atmosphere.
   const bc7=p.bcg7*sgP, bc1=p.bcg1*sgP;
@@ -2916,7 +2948,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.32.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.33.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3261,7 +3293,7 @@ function tuInit(){
   sel.innerHTML=favSort(DB.projectiles).map(p=>`<option value="${p.id}">${favMark(p)}${esc(p.name)}</option>`).join('');
   if(S.projId)sel.value=S.projId;
   if(!tuPoints.length)tuPoints=[{d:23,v:''}];
-  tuLoadProj();tuRenderPoints();
+  tuLoadProj();tuRenderPoints();tdContext();
 }
 function tuLoadProj(){
   const p=DB.projectiles.find(x=>x.id===document.getElementById('tu-proj').value);
@@ -3330,6 +3362,56 @@ function tuApply(){
   saveDB();Bus.notify();
   alert('Trued BC applied to '+p.name+'.');
 }
+/* V1.33.0 (CALC-04) — True BC from impacts, on the session (rifle, projectile, MV, zero, current air). */
+let tdLast=null;
+function tdContext(){
+  const r=getRifle(),p=getProj(),el=document.getElementById('td-ctx');if(!el)return;
+  const drag=S.drag||(p&&p.type==='pellet'?'g1':'g7');
+  el.textContent=r&&p?`Session: ${r.name} · ${p.name} · MV ${ut('vel',S.mv)} · zero ${ut('zrange',zeroConds().range)} · ${drag.toUpperCase()} · current air ${ut('temp',S.ct)} / ${ut('pres',S.cp)} station / ${S.crh??'—'} %`:'Select a rifle, projectile and weather first.';
+}
+function tdNeedMrad(dial,unit,offMm,d){
+  const r=getRifle(),click=rifleScope(r)?.clickStepMrad||0.1;
+  const m=unit==='click'?dial*click:unit==='moa'?dial*0.290888:dial;
+  return{need:m-offMm/d,click};
+}
+function tdSolve(){
+  tdContext();
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const d=+document.getElementById('td-dist').value,angle=+document.getElementById('td-angle').value||0;
+  const dialIn=document.getElementById('td-dial').value,unit=document.getElementById('td-unit').value,off=+document.getElementById('td-off').value||0;
+  const out=document.getElementById('td-result');out.textContent='';
+  const p=getProj(),tr0=homeTraj(d+25);
+  const msg=(t,cls)=>out.appendChild(el('div','flag '+(cls||'warn'),t));
+  if(!p||!tr0){msg('Select a rifle, projectile and weather (Home) first.');return;}
+  if(!(d>0)||dialIn===''||!isFinite(+dialIn)){msg('Enter the distance and the dial that centred the group.');return;}
+  const z=zeroConds(),drag=S.drag||(p.type==='pellet'?'g1':'g7');
+  const {need,click}=tdNeedMrad(+dialIn,unit,off,d);
+  const at=bc=>{const tr=homeTraj(d+25,bc);const s=tr&&tr.pts?solveShot(tr.pts,nearestPt,z.range,d,angle,0,90,S.mv,0.1,z.wSpd,z.wDir):null;return s?s.mrElev:NaN;};
+  const sol=trueBCdrop(at,need);
+  if(sol.bc==null){msg('No BC fits: '+sol.flag+'.');tdLast=null;return;}
+  // How much the answer moves for ±½ click of reading error and ±1 m/s of MV error.
+  const half=click/2,bLo=trueBCdrop(at,need+half).bc,bHi=trueBCdrop(at,need-half).bc;
+  const mv0=S.mv;let bMv=null;try{S.mv=mv0+1;bMv=trueBCdrop(at,need).bc;}finally{S.mv=mv0;}
+  const maker=drag==='g7'?p.bcg7:p.bcg1,pct=maker>0?(sol.bc/maker-1)*100:null;
+  tdLast={pid:p.id,drag,bc:sol.bc,d};
+  const scs=el('div','scs');
+  const card=(lbl,val,sub,cls)=>{const c=el('div','sc'+(cls?' '+cls:''));c.append(el('div','sl',lbl),el('div','sv',val),el('div','su',sub));return c;};
+  scs.append(card('Trued BC '+drag.toUpperCase(),sol.bc.toFixed(4),'lb/in² · '+(sol.bc*LB2KGM2).toFixed(1)+' kg/m²','accent'),
+    card('Profile BC',maker>0?maker.toFixed(4):'—',pct!=null?(pct>=0?'+':'')+pct.toFixed(1)+' % trued vs profile':''),
+    card('Needed dial',need.toFixed(2)+' mrad','at '+ut('range',d)+(angle?' · '+angle+'°':'')));
+  out.appendChild(scs);
+  msg(`Sensitivity: ±½ click (${half.toFixed(3)} mrad) → BC ${bLo!=null&&bHi!=null?Math.min(bLo,bHi).toFixed(4)+'–'+Math.max(bLo,bHi).toFixed(4):'out of range'}; MV +1 m/s → BC ${bMv!=null?bMv.toFixed(4):'—'}. A far distance and a well-measured MV make this tight.`,(bLo!=null&&bHi!=null&&Math.abs(bHi-bLo)/sol.bc>0.05)?'warn':'info');
+  msg('Applying stores this as a measured BC: the stability penalty is no longer applied to it (it already contains any stability loss).','info');
+  const b=el('button','btn primary','Apply to '+p.name);b.onclick=tdApply;const row=el('div','btnrow');row.append(b);out.appendChild(row);
+}
+function tdApply(){
+  if(!tdLast)return;const p=DB.projectiles.find(x=>x.id===tdLast.pid);if(!p)return;
+  const key=tdLast.drag==='g7'?'bcg7':'bcg1';
+  p[key]=+tdLast.bc.toFixed(4);p.bcBands=null;
+  p.bcTrued='drops·'+tdLast.drag+'·'+new Date().toISOString().slice(0,10)+'·'+tdLast.d+'m';
+  if(S.projId===p.id)Bus.pullFromProfiles(['bc']);
+  saveDB();Bus.notify();alert('Trued BC '+p[key]+' applied to '+p.name+'.');
+}
 function openProjForm(id){
   const p=DB.projectiles.find(x=>x.id===id)||{name:'',cal:(getRifle()?.cal||'.25'),mfg:'',type:'slug',diam:6.35,mass:50,oal:12,bcg7:0.1,bcg1:0.2,c:0,ff:1.07,notes:''};
   const calOpts=['.177','.20','.22','.25','.30','.35','.457','.495','.58'].map(c=>`<option value="${c}" ${p.cal===c?'selected':''}>${c}</option>`).join('');
@@ -3386,7 +3468,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.32.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.33.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4021,6 +4103,8 @@ const FORMULAS=[
     anchors:[{l:'1013.25 hPa at 1000 m (ISA 898.76 hPa)',got:()=>stationPres(1013.25,1000),want:898.76,tol:0.05,u:'hPa'}]},
   {name:'Cant',status:'ok',eq:'S = −(y − (−h + R·tan θ0)); impact x = S·sin φ, y = S·(cos φ − 1)',src:'rotation of the scope-fixed bore line and correction about the LOS, gravity fixed (V1.32.0); py-ballisticcalc 3.1.1 cant_angle with the level dial applied',used:'Home status, Solver (display; dial unchanged)',
     anchors:[{l:'Queen 260 m/s, zero 50 m, 5° right at 100 m (pbc 65.97 mm)',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,150,0.044,e.rho,e.aS,1,'g7',0.245,null);return solveShot(p,nearestPt,50,100,0,0,90,260,0.1,0,90,null,5).cantX;},want:65.97,tol:0.05,u:'mm'}]},
+  {name:'BC from impacts (drop truing)',status:'ok',eq:'bisection on BC until the solved dial at the target = the dial that centred the group',src:'inverse of the verified trajectory (V1.33.0, CALC-04); py-ballisticcalc 3.1.1 dial for a known BC recovered',used:'Truing tab → trued BC (no Sg penalty on top)',
+    anchors:[{slow:true,l:'pbc dial 7.42095 mrad at 150 m for G7 0.110 → BC',got:()=>{const e=FX_ENV();return trueBCdrop(bc=>{const p=rk4traj(260,bc,60,50,175,0.044,e.rho,e.aS,1,'g7',0.245,null);return solveShot(p,nearestPt,50,150,0,0,90,260,0.1,0,90).mrElev;},7.42095).bc;},want:0.110,tol:0.0005,u:'lb/in²'}]},
   {name:'Angular units',status:'ok',eq:'mrad = mm/m · 1 MOA = 0.290888 mrad',src:'exact definitions — skill §10',used:'every dial and hold',
     anchors:[{l:'100 mm at 100 m',got:()=>toMOA(100,100),want:3.43775,tol:1e-5,u:'MOA'},{l:'¼ MOA click',got:()=>clickMrad(0.25,'moa'),want:0.072722,tol:1e-6,u:'mrad'}]},
   {name:'Unit conversions',status:'ok',eq:'1 yd = 0.9144 m · 1 ft = 0.3048 m · 1 in = 25.4 mm',src:'international yard and pound (1959), exact',used:'every displayed value',
@@ -4134,7 +4218,7 @@ const UNIT_FIELDS={
   bullet:['bc-diam','bc-oal','st-diam','st-oal','pf-diam','pf-oal','rf-blen'],
   alt:['wf-alt','rf-zalt'],
   '-':['home-railoff','hm-tbrg','hm-wbrg','home-angle','tr-bc','tr-crh','tu-rh','bc-mass','bc-ff','bc-g1',
-       'st-mass','st-twist','st-c','wd-dir','wd-xf','sv-angle','sv-cant','home-cant','sv-wdir','sv-lat','sv-az','cal-m-brg','mw-dir',
+       'st-mass','st-twist','st-c','wd-dir','wd-xf','sv-angle','sv-cant','home-cant','td-angle','td-dial','sv-wdir','sv-lat','sv-az','cal-m-brg','mw-dir',
        'rf-downclicks','rf-reg1','rf-reg2','rf-twist','rf-railmrad','rf-zwdir','rf-zrh','rf-dwell',
        'sc-click','sc-elev','sc-wind','sc-cpr','sc-magmin','sc-magmax','rt-dot',
        'pf-mass','pf-c','pf-bcg7','pf-bcg1','pf-ff','wf-rh']

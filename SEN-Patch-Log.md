@@ -7,6 +7,28 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.33.0 — minor — True BC from impacts (CALC-04, option A); trued BCs no longer get the Sg penalty twice
+
+**Problem.**
+1. BC could only be trued from downrange *velocity* (LabRadar, real data only to ~23 m). The common field method — the dial that actually hit at a far distance — wasn't possible.
+2. **Bug:** a trued BC (from velocity) was still multiplied by the under-stabilisation penalty. A measured BC already contains any stability loss, so it was counted twice. (My note at V1.30.0 that trued BCs were unaffected was wrong; this release makes it true.)
+
+**Fix.**
+- Truing tab → new panel **True BC from impacts**: distance, shot angle, the dial that centred the group (clicks, mrad or MOA, from the turret zero) and the group centre's offset (+ high / − low). Uses the live session: rifle, projectile, MV, zero conditions, current air, drag model.
+- `trueBCdrop`: bisection on BC until the solved dial at the target equals the needed dial (= dial − offset/distance). `homeTraj(max, bcOverride)` runs the session model with a trial BC.
+- Result: trued BC (lb/in² and kg/m²), profile BC and the % difference, needed dial, and **sensitivity** — the BC range for ±½ click and the BC for MV +1 m/s. Example (Queen, 280 m/s, 150 m): ±½ click ≈ ±8 % BC, MV +1 m/s ≈ −7 % BC — so shoot far, average several groups and use a well-measured MV.
+- Apply stores it like velocity truing (`bcTrued = drops·g7·date·150m`, bands cleared).
+- `bcIsTrued`: Home, Trajectory and dope cards skip the Sg penalty for a BC trued for the drag model in use (velocity or drops); a manual BC already skipped it.
+- Formulas page: "BC from impacts (drop truing)" with a py-ballisticcalc anchor.
+
+**§20A.** py-ballisticcalc 3.1.1 dial for a known BC (Queen geometry, 260 m/s, zero 50 m, 20 °C / 1010 hPa / 65 %): 7.42095 mrad at 150 m → 0.10997 (true 0.110); 3.46512 mrad at 100 m → 0.10998; 11.33227 mrad at 200 m (BC 0.140) → 0.13996. Own-model round trip exact.
+
+**Files:** `index.html` (`trueBCdrop`, `bcIsTrued`, `homeTraj` override + trued no-penalty, runTraj / dope penalty guard, Truing panel `tdContext`/`tdSolve`/`tdApply`, FORMULAS, unit exemptions; 5 live version strings) · `sw.js` CACHE → `sen-ballistics-v1.33.0` · `tests/runtests.js` +5 (93) · new `tests/truedroptest.js` (14) · `tests/README.md` (twenty-one suites).
+
+**Verify:** `node --check` clean · `runtests.js` 93/93 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · `calypsotest.js` 18/18 · `windavgtest.js` 28/28 · `stabtest.js` 12/12 · `flighttest.js` 16/16 · `pressuretest.js` 12/12 · **`truedroptest.js` 14/14** · real Chromium at 412 / 780 px: no sideways scroll · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.33.0.html`. Dope changes only for projectiles with a trued BC (penalty no longer doubled).
+
+---
+
 ## V1.32.0 — minor — Cant: impact shift from a tilted rifle (CALC-06)
 
 **Problem.** Cant wasn't modelled. Slow airgun slugs fall a long way below the bore line, so a small tilt moves the impact a lot: Queen at 260 m/s, zero 50 m, 100 m — **13.2 mm sideways per degree**; 5° → 66 mm.

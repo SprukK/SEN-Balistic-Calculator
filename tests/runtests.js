@@ -58,6 +58,16 @@ chk('Element: drop500 = 1533.8 cm (±0.5%)', -atR(el,500).drop/10, 1533.8, 7.7);
 chk('Element: drop1000 = 8636.8 cm (±0.5%)', -atR(el,1000).drop/10, 8636.8, 43.2);
 chk('Element: v1000 = 165 m/s (±1)', atR(el,1000).v, 165, 1);
 
+console.log('\n=== V1.33.0 BC FROM IMPACTS (§20A: py-ballisticcalc 3.1.1 dial for a known BC, recovered) ===');
+// pbc: Queen geometry, G7 BC b, 260 m/s, zero 50 m, sight 44 mm, 20 °C / 1010 hPa / 65 %; dial = −height/R.
+const TD=(d,need)=>trueBCdrop(bc=>{const p=rk4traj(260,bc,60,50,d+25,0.044,env.rho,env.aS,1,'g7',0.245,null);return solveShot(p,nearestPt,50,d,0,0,90,260,0.1,0,90).mrElev;},need).bc;
+chk('pbc dial 7.42095 mrad @150 m → BC 0.110', TD(150,7.42095), 0.110, 0.0005);
+chk('pbc dial 3.46512 mrad @100 m → BC 0.110', TD(100,3.46512), 0.110, 0.0010);
+chk('pbc dial 11.33227 mrad @200 m → BC 0.140', TD(200,11.33227), 0.140, 0.0005);
+{const own=(()=>{const p=rk4traj(260,0.123,60,50,175,0.044,env.rho,env.aS,1,'g7',0.245,null);return solveShot(p,nearestPt,50,150,0,0,90,260,0.1,0,90).mrElev;})();
+ chk('round trip: own dial for BC 0.123 @150 m → 0.123', TD(150,own), 0.123, 1e-6);}
+chk('impossible dial (more drop than BC 0.01) → no BC, reason', trueBCdrop(()=>1,5).bc===null&&/more elevation/.test(trueBCdrop(bc=>10-bc,20).flag)?1:0, 1);
+
 console.log('\n=== V1.32.0 CANT (§20A: py-ballisticcalc 3.1.1 cant_angle, level dial applied) ===');
 // Queen G7 0.128 @ 260 m/s, zero 50 m, sight 44 mm, 20 °C / 1010 hPa / 65 %; pbc relative_angle = the level correction.
 const cq=rk4traj(260,0.128,60,50,250,0.044,env.rho,env.aS,1,'g7',0.245,null);
