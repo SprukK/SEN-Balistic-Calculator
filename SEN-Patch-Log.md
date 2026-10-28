@@ -7,6 +7,33 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.30.0 — minor — Built-in Miller/Berger stability; theoretical SEN designs removed from all calculations
+
+**Problem.**
+- Sg needed a per-calibre constant C typed in from Berger's website. The fallback table mixed real benchmarks with values from SEN designs that don't exist yet (LR-25 1.877, .30 2.699, .35 3.822), and those fed the BC under-stabilisation penalty — so a real .30/.35 slug could get its dope changed by a theoretical design's constant.
+- Berger's calculator is the Miller twist rule. With twist in inches Miller's 30 becomes C = 30·d² — a unit conversion. King (1.886), .30 and .35 were already that; **Queen 2.283 was not**: the owner re-ran Berger on 2026-10-28 with the real 0.508″ length and got **Sg 1.18** (adjusted BC 0.221, −10 %), not 1.43. The old anchor came from a wrong-length run, so the Queen profile overstated stability and under-applied the BC penalty.
+
+**Fix.**
+- `millerC` (C = 30·d²) + `projC`: every slug gets a Miller Sg from its own mass, diameter, length, twist, MV, temperature and pressure. A C stored in a profile is an override.
+- Not computed: L/D < 2.0 (outside Miller's fitted range, as before) and **pellets** (drag-stabilised — the Stability tab says so; Home shows nothing instead of a warning; no BC penalty).
+- Hollow-point flag on the Stability tab (Miller assumes even density). Stability tab C field: "C override (0 = Miller 30·d²)".
+- Migration (`migrateMillerC`, at start-up and after every import): profiles holding exactly one of the C values the app handed out (2.283, 1.886, 1.877, 2.699, 3.822) go back to Miller, with a note; any other C is kept. Seeds: Queen and King C → 0.
+- Formulas page: "Miller twist rule (= Berger calculator)" anchored to Berger's own results (Queen 1.18, King 1.07 / 1.48 / 1.67, 978 ft ≈ 980 hPa); BC penalty checked against Berger's −9.8 % (ours −9.2 %); the EST "C lookup" entry is gone (4 EST formulas left).
+- Removed: the LRAI-35 test anchor, the LR-25 / .30 / .35 design constants, every code reference to SEN designs as data.
+
+**Dope change (Queen, Mora .25 1:20″, 280 m/s, Ljubljana default air).** Sg 1.48 → 1.22; effective BC G7 0.1274 → 0.1177 (−7.6 %); drop at 300 m +70 mm (≈ 0.23 mrad); wind drift 3 m/s at 200 m 144 → 157 mm. King barely moves. Profiles with a manual or trued BC are unaffected (no penalty on those, as before).
+
+**Docs.** `SEN-BALLISTICS-SKILL.md` V5.3: §8 rewritten around Miller (C = 30·d²), Berger anchors re-run, old Queen 1.43/1.98 rows and every SEN design row withdrawn, §1B/§1C/§8E cleaned, §12A marked as theoretical design hypotheses, McGyro noted as the next stability step.
+
+**Files:**
+- `index.html`: `millerC`, `projC`, `isHollowPoint`, `migrateMillerC`, Stability tab, Home/trajectory/dope/solver Sg paths, FORMULAS; seeds; 5 live version strings.
+- `sw.js`: CACHE → `sen-ballistics-v1.30.0`.
+- `tests/runtests.js` (62; Berger anchors, LRAI removed), new `tests/stabtest.js` (12), `tests/formulatest.js` (4 EST, Miller anchors), `tests/homelayouttest.js` (sanity bands follow the Queen's new BC penalty; equality with the solver unchanged), `tests/README.md` (eighteen suites).
+
+**Verify:** `node --check` clean · `runtests.js` 62/62 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · `calypsotest.js` 18/18 · `windavgtest.js` 28/28 · **`stabtest.js` 12/12** · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.30.0.html`.
+
+---
+
 ## V1.29.1 — patch — Trajectory position step is now full RK4: wind drift +0.5 %, matches py-ballisticcalc
 
 **Problem.** Found during the V1.29.0 verification. `rk4traj` updated velocity with RK4 but moved the slug with the velocity at the start of each 2 ms step (`x + h·vx`), not the RK4 average the skill (§7) specifies. The slug ran slightly ahead of where it should be, so time of flight was 0.016 % short. Lag-rule wind drift depends on t − R/V₀ and came out 0.5 % low (37.03 instead of 37.22 mm, 3 m/s at 100 m); drop was 0.8 mm short at 200 m.

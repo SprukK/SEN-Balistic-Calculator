@@ -10,9 +10,15 @@ console.log('=== STANDING REGRESSION ANCHORS ===');
 chk('rho(20/1010/65) = 1.1934',      airDensity(20,1010,65), 1.1934, 5e-4);
 chk('sos(20) = 343.24',              sos(20), 343.24, 0.02);
 chk('SD Queen .25 = 0.137',          calcSD(60,6.35), 0.137, 5e-4);
-chk("Sg Queen 1:20in = 1.43 (Berger 853fps/10C/986hPa)", calcSg(60,6.35,12.9,20*25.4,853*0.3048,2.283,10,986), 1.43, 0.005);
-chk("Sg King 1:20in = 1.07",         calcSg(66,6.35,13.9,20*25.4,853*0.3048,1.886,10,986), 1.07, 0.005);
-chk('Sg LRAI-35 1:16" = 1.719',      calcSg(212.4,8.89,25,16*25.4,691*0.3048,3.822,-5,1013), 1.719, 0.02);
+// V1.30.0: built-in Miller (C = 30·d²). Anchors = Berger's twist-rate calculator, 853 fps / 50 °F / 978 ft (≈ 980 hPa).
+chk("Miller C .25 = 30·0.25² = 1.875", millerC(6.35,12.9).c, 1.875, 1e-12);
+chk("Sg Queen 0.508in 1:20in = 1.18 (Berger, 2026-10-28)", calcSg(60,6.35,12.9,20*25.4,853*0.3048,millerC(6.35,12.9).c,10,980), 1.18, 0.005);
+chk("Sg King 0.547in 1:20in = 1.07 (Berger)", calcSg(66,6.35,13.9,20*25.4,853*0.3048,millerC(6.35,13.9).c,10,980), 1.07, 0.005);
+chk("Sg King 1:16in = 1.67 (Berger)", calcSg(66,6.35,13.9,16*25.4,853*0.3048,millerC(6.35,13.9).c,10,980), 1.67, 0.005);
+chk("BC penalty at Sg 1.18 ≈ Berger 0.221/0.245", bcEffSg(1,1.18), 0.221/0.245, 0.01);
+chk("L/D < 2.0 → Sg not computed", millerC(6.35,10.58).valid?1:0, 0);
+chk("pellet → Sg not computed", projC({type:'pellet',diam:5.5,oal:6,c:0}).valid?1:0, 0);
+chk("profile C overrides Miller", projC({type:'slug',diam:6.35,oal:12.9,c:2.0}).c, 2.0, 0);
 chk('toMOA identity = 1.0000',       toMOA(100,100)/3.43775, 1.0000, 1e-4);
 chk('clickMrad(0.25 MOA) = 0.0727',  clickMrad(0.25,'moa'), 0.0727, 5e-4);
 chk('toMrad(100mm@100m) = 1.0',      toMrad(100,100), 1.0, 1e-9);

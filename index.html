@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.29.1</title>
+<title>SEN Ballistics V1.30.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -292,7 +292,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.29.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.30.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -598,11 +598,11 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>OAL mm</label><input type="number" id="st-oal" step="0.1" value="12.9" oninput="calcStab()"></div>
       <div class="fld"><label>Twist (in/turn)</label><input type="number" id="st-twist" step="0.01" value="20" oninput="calcStab()"></div>
       <div class="fld"><label>MV m/s</label><input type="number" id="st-mv" step="1" value="255" oninput="calcStab()"></div>
-      <div class="fld"><label>C constant (0 = estimate)</label><input type="number" id="st-c" step="0.001" value="2.283" oninput="calcStab()"></div>
+      <div class="fld"><label>C override (0 = Miller 30·d²)</label><input type="number" id="st-c" step="0.001" value="0" oninput="calcStab()"></div>
       <div class="fld"><label>Temp °C</label><input type="number" id="st-temp" step="0.5" value="-5" oninput="calcStab()"></div>
       <div class="fld"><label>Pressure hPa</label><input type="number" id="st-pres" step="1" value="1013" oninput="calcStab()"></div>
     </div>
-    <div class="note">Berger/Miller Sg. C is geometry- &amp; calibre-specific — verify per design against the Berger Twist Rate Calculator; never transfer across calibres. Worst-case column uses <span data-uv="temp|-5">−5°C</span> · <span data-uv="pres|1013">1013 hPa</span> · <span data-uv="vel|229">229 m/s</span> (global barrel spec).</div>
+    <div class="note">Miller twist rule — the formula behind Berger's twist-rate calculator (matches it: Queen 1.18, King 1.07/1.48/1.67). Fitted on rifle bullets; not validated for airgun hollow points or below L/D 2.0. Pellets are drag-stabilised (no Sg). Worst-case column uses <span data-uv="temp|-5">−5°C</span> · <span data-uv="pres|1013">1013 hPa</span> · <span data-uv="vel|229">229 m/s</span> (global barrel spec).</div>
   </div>
   <div class="tablebox"><div class="ct">Twist recommender · min twist for Sg target at global worst-case</div><table><thead><tr><th>Sg target</th><th>Min twist (in)</th><th>= mm</th><th>This barrel</th></tr></thead><tbody id="st-twist-tbl"></tbody></table></div>
 </div>
@@ -806,7 +806,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.29.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.30.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -818,7 +818,7 @@ details.disc .dbody{padding:0 14px 14px}
 /* ═════════════════════════════════════════════════════════════
    D4 — PHYSICS CORE · ported VERBATIM from V3.2.2 (verified)
    Verification anchors: Queen .25 BC G7 0.128 lb/in² = 90.0 kg/m²,
-   Berger Sg anchors (Queen C=2.283, King C=1.886, LR-25 C=1.877)
+   Miller/Berger Sg (V1.30.0: C = 30·d², anchored to Berger's own calculator for the Queen and King)
    ═════════════════════════════════════════════════════════════ */
 const G=9.80665,GR2KG=0.00006479891,LB2KGM2=703.07;
 /* V1.24.2 — standard drag tables (Mach, Cd), BRL/McCoy, verbatim to Mach 5. Verified identical at every
@@ -909,25 +909,23 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
   }
   return out;
 }
-/* Verified per-calibre C constant (Berger). C is calibre-specific and non-interpolable
-   (§11E). Returns {c, est, valid}. valid:false → do NOT compute Sg (would be wrong).
-   .25 uses L/D anchors only within the verified range; .30 and .35 are class-verified. */
-function estimateC(d_mm,oal_mm){
-  if(Math.abs(d_mm-7.62)<0.1)return{c:2.699,est:true,valid:true};   // .30 class-verified
-  if(Math.abs(d_mm-9.0)<0.15)return{c:3.822,est:true,valid:true};   // .35 class-verified
-  if(Math.abs(d_mm-6.35)<0.1){                                       // .25 — Berger anchors only
-    /* M2 (V1.13.2): the old mid-bucket C=2.0 (L/D 2.1–2.5) was an invented interpolation —
-       §8B forbids interpolating C, and the Berger-verified King (L/D 2.189, C=1.886) sat
-       inside that bucket taking a 6% error. Nearest verified anchor instead, still EST:
-       Queen 2.031→2.283 · King 2.189→1.886 · SEN LR-25 3.084→1.877. */
-    const ld=oal_mm/d_mm;
-    if(ld<2.0||ld>3.1)return{c:0,est:true,valid:false};              // outside anchor range
-    const A=[[2.031,2.283],[2.189,1.886],[3.084,1.877]];
-    const a=A.reduce((b,x)=>Math.abs(x[0]-ld)<Math.abs(b[0]-ld)?x:b);
-    return{c:a[1],est:true,valid:true};
-  }
-  return{c:0,est:true,valid:false};                                  // calibre unverified
+/* V1.30.0 — built-in Miller twist rule (= Berger's twist-rate calculator). Miller (Courtney & Miller,
+   arXiv 1410.5340, Eq. 1): Sg = 30·m / (t²·d³·L·(1+L²)) · (V/2800)^⅓ · (T°F+460)/519 · 29.92/P, with
+   t and L in calibres. calcSg takes twist in inches (t = twist_in/d), which turns Miller's 30 into
+   C = 30·d_in² — a unit conversion, not a projectile property. Verified 2026-10-28 against Berger's page:
+   Queen 60 gr, 0.508″, 853 fps, 1:20″, 50 °F, 978 ft → Sg 1.18 (here 1.181 at 980 hPa); King 1:20/17/16
+   → 1.07/1.48/1.67. Fitted on rifle bullets; below L/D 2.0 → not computed. A C stored in a profile
+   overrides it. Pellets are drag-stabilised: no Sg. Returns {c, est, valid, why}. */
+function millerC(d_mm,oal_mm){
+  if(!(d_mm>0)||!(oal_mm>0))return{c:0,est:false,valid:false,why:'size'};
+  if(oal_mm/d_mm<2.0)return{c:0,est:false,valid:false,why:'ld'};
+  return{c:30*Math.pow(d_mm/25.4,2),est:false,valid:true,why:'miller'};
 }
+function projC(p){
+  if(p.type==='pellet')return{c:0,est:false,valid:false,why:'pellet'};
+  return(p.c&&p.c>=0.5)?{c:p.c,est:false,valid:true,why:'profile'}:millerC(p.diam,p.oal);
+}
+const isHollowPoint=p=>/hollow|\bHP\b/i.test((p.name||'')+' '+(p.notes||''));
 function twistForSg(sg,mass_gr,d_mm,oal_mm,mv_ms,C,tC,hPa){
   let lo=50,hi=2000;
   for(let i=0;i<60;i++){const m=(lo+hi)/2;calcSg(mass_gr,d_mm,oal_mm,m,mv_ms,C,tC,hPa)>sg?lo=m:hi=m;}
@@ -1686,6 +1684,21 @@ function migrateTruedBC(){
   });
   if(changed)saveDB();
 }
+/* V1.30.0 — stability C values the app itself handed out before the built-in Miller rule:
+   Queen 2.283 (from a Berger run with the wrong length; Berger gives Sg 1.18, not 1.43, at 0.508″),
+   King 1.886 (≈ Miller 1.875), and the class values from theoretical SEN designs (LR-25 1.877,
+   .30 2.699, .35 3.822). A profile holding exactly one of these goes back to Miller (c = 0); any
+   other C the user entered is kept as an override. Also runs after an import. */
+const OLD_SEEDED_C=[2.283,1.886,1.877,2.699,3.822];
+function migrateMillerC(){
+  let changed=false;
+  DB.projectiles.forEach(p=>{
+    if(!OLD_SEEDED_C.includes(+p.c))return;
+    p.notes=((p.notes||'')+' · C '+p.c+' cleared in V1.30.0 — Miller (30·d²) built in').replace(/^ · /,'');
+    p.c=0;changed=true;
+  });
+  if(changed)saveDB();
+}
 function seedDefaults(){
   seedReticles();seedScopes();
   const scff30=DB.scopes.find(s=>s.sku==='SCFF-30')?.id,scff70=DB.scopes.find(s=>s.sku==='SCFF-70')?.id;
@@ -1700,8 +1713,8 @@ function seedDefaults(){
   if(!DB.projectiles.length){
     DB.projectiles=[
       // ── Confirmed BC (seeded complete) ──
-      {id:uid(),name:'Altaros ATP Queen .25',cal:'.25',mfg:'Altaros',type:'slug',diam:6.35,mass:60,oal:12.9,bcg7:0.128,bcg1:0.245,c:2.283,ff:1.070,notes:'Benchmark slug · BC G7 0.128 verified (90.0 kg/m²)'},
-      {id:uid(),name:'Altaros ATP King .25',cal:'.25',mfg:'Altaros',type:'slug',diam:6.35,mass:66,oal:13.9,bcg7:0.127,bcg1:0.250,c:1.886,ff:1.070,notes:'Heavy benchmark slug · BC G1 0.250'},
+      {id:uid(),name:'Altaros ATP Queen .25',cal:'.25',mfg:'Altaros',type:'slug',diam:6.35,mass:60,oal:12.9,bcg7:0.128,bcg1:0.245,c:0,ff:1.070,notes:'Benchmark slug · BC G7 0.128 verified (90.0 kg/m²)'},
+      {id:uid(),name:'Altaros ATP King .25',cal:'.25',mfg:'Altaros',type:'slug',diam:6.35,mass:66,oal:13.9,bcg7:0.127,bcg1:0.250,c:0,ff:1.070,notes:'Heavy benchmark slug · BC G1 0.250'},
       {id:uid(),name:'AEA CP .25 — 33.9 gr',cal:'.25',mfg:'AEA',type:'pellet',diam:6.35,mass:33.9,oal:9.5,bcg7:0.061,bcg1:0.060,c:0,ff:1.290,notes:'Diabolo benchmark · BC G1 0.060 verified'}
     ];
   }
@@ -1878,14 +1891,14 @@ function pickSheet(kind){
   }else if(kind==='wind'){closeSheet();gotoPage('wind');}
 }
 /* V1.14.0: current-session Sg for the Solver's spin-drift row — same C policy as homeTraj
-   (verified per-projectile C first, estimateC anchors second; null for pellets, smooth bores,
-   missing conditions, or C outside its validated range). */
+   (profile C override first, else Miller 30·d²; null for pellets, smooth bores, missing
+   conditions, or L/D outside Miller's range). */
 function sessionSg(){
   const r=getRifle(),p=getProj(),cw=getWx(S.curWxId);
   if(!r||!p||S.mv==null||p.type==='pellet'||r.twistDir==='smooth')return null;
   const ct=S.ct??cw?.temp,cp=S.cp??cw?.pres;
   if(ct==null||cp==null)return null;
-  const cInfo=(p.c&&p.c>=0.5)?{c:p.c,est:false,valid:true}:estimateC(p.diam,p.oal);
+  const cInfo=projC(p);
   if(!cInfo.valid)return null;
   return{sg:calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,cInfo.c,ct,cp),est:cInfo.est,twistDir:r.twistDir};
 }
@@ -1907,7 +1920,7 @@ function homeTraj(maxOver){  // V1.14.0: maxOver lets the Holds page extend the 
   // Mirrors runTraj exactly: a MANUAL BC is taken as-is (Sg still shown, but no penalty applied),
   // so Home and the Trajectory tab can no longer produce different dope from the same session.
   const bcManual=S.src.bc==='manual';
-  let sgP=1,sgPZ=1,sg=null,cInfo=(p.c&&p.c>=0.5)?{c:p.c,est:false,valid:true}:estimateC(p.diam,p.oal);
+  let sgP=1,sgPZ=1,sg=null,cInfo=projC(p);
   if(cInfo.valid&&r.twistDir!=='smooth'){
     sg=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,cInfo.c,ct,cp);if(sg<1.5&&!bcManual)sgP=bcEffSg(1,sg);
     const sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,cInfo.c,z.temp,z.pres);if(sgZ<1.5&&!bcManual)sgPZ=bcEffSg(1,sgZ);
@@ -1920,7 +1933,7 @@ function homeTraj(maxOver){  // V1.14.0: maxOver lets the Holds page extend the 
   const zEnv={rho:rhoZ,aS:sos(z.temp),bc7:drag==='g7'?bcBase*sgPZ:p.bcg7,bc1:drag==='g1'?bcBase*sgPZ:p.bcg1};
   const maxR=Math.max(maxOver||0,S.dist_m+25,z.range+25,150);
   const pts=rk4traj(S.mv,bc7,p.mass,z.range,maxR,(S.sight_mm??r.sight??44)/1000,rhoC,aS,1,drag,bc1,projBands(p,drag),zEnv);
-  return{pts,click:rifleScope(r)?.click||0.1,sg,sgP,zrange:z.range,cEst:cInfo.est,cValid:cInfo.valid};
+  return{pts,click:rifleScope(r)?.click||0.1,sg,sgP,zrange:z.range,cValid:cInfo.valid,cWhy:cInfo.why};
 }
 let homeRailOff=0, reticleMag=null; // reticleMag = displayed magnification (× power); null → scope min
 const RET_PX_FIXED=420;
@@ -2008,7 +2021,7 @@ function renderQuick(){
       document.getElementById('home-elev-u').textContent=angInUnit(Math.abs(sol.mrElev),au).toFixed(2)+' '+aLbl;
       document.getElementById('home-wind').textContent=(sol.clWind>=0?'→':'←')+Math.abs(sol.clWind).toFixed(0);
       document.getElementById('home-wind-u').textContent=angInUnit(Math.abs(sol.mrWind),au).toFixed(2)+' '+aLbl;
-      statusMsg=`${getProj().name} · ${U.velRaw(sol.tp.v)} ${lab('vel',UNITS.vel)} @ ${uq('range',S.dist_m)} · M ${sol.tp.mach.toFixed(2)}`+(!tr.cValid?` · ⚠ Sg not computed (C unverified)`:(tr.sgP<1?` · Sg ${tr.sg.toFixed(2)} BC×${tr.sgP.toFixed(3)}${tr.cEst?' (C EST)':''}`:(tr.cEst&&tr.sg!=null?` · Sg ${tr.sg.toFixed(2)} (C EST)`:'')));
+      statusMsg=`${getProj().name} · ${U.velRaw(sol.tp.v)} ${lab('vel',UNITS.vel)} @ ${uq('range',S.dist_m)} · M ${sol.tp.mach.toFixed(2)}`+(!tr.cValid?(tr.cWhy==='pellet'?'':` · ⚠ Sg not computed (${tr.cWhy==='ld'?'L/D < 2.0':'no length'})`):(tr.sgP<1?` · Sg ${tr.sg.toFixed(2)} BC×${tr.sgP.toFixed(3)}`:''));
       if(scope&&scope.railOn){
         const dialingUp=sol.clElev>=0, avail=dialingUp?scope.upClicks:scope.downClicks;
         document.getElementById('home-rail-note').innerHTML=`Solution needs ${Math.abs(sol.clElev).toFixed(0)} clicks ${dialingUp?'UP':'DOWN'} (avail ${avail}). Rail offset ${homeRailOff} ${angLabel(scope.railUnit)} pre-dialed → reticle shows remaining ${angInUnit(remElevMrad,au).toFixed(2)} ${aLbl} hold.`;
@@ -2354,11 +2367,10 @@ function runTraj(silent){
     if(r.twistDir==='smooth'){
       sgNote=` · smooth bore — no spin stabilisation (Sg n/a)`;
     }else{
-    const cInfo=(p.c&&p.c>=0.5)?{c:p.c,est:false,valid:true}:estimateC(p.diam,p.oal);
+    const cInfo=projC(p);
     if(cInfo.valid){
       const sg=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,cInfo.c,S.ct,S.cp);
-      if(sg<1.5){sgPenalty=bcEffSg(1,sg);sgNote=` · Sg ${sg.toFixed(2)}<1.5 → BC ×${sgPenalty.toFixed(3)}${cInfo.est?' (C EST)':''}`;}
-      else if(cInfo.est)sgNote=` · Sg ${sg.toFixed(2)} (C EST)`;
+      if(sg<1.5){sgPenalty=bcEffSg(1,sg);sgNote=` · Sg ${sg.toFixed(2)}<1.5 → BC ×${sgPenalty.toFixed(3)}${cInfo.why==='profile'?' (profile C)':' (Miller)'}`;}
       const sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,cInfo.c,z.temp,z.pres);
       if(sgZ<1.5)sgPenaltyZ=bcEffSg(1,sgZ);
     }else{
@@ -2507,8 +2519,10 @@ function stabFromActive(){
   document.getElementById('st-oal').value=p.oal;document.getElementById('st-c').value=p.c||0;
   document.getElementById('st-twist').value=(r.twist/25.4).toFixed(2);document.getElementById('st-mv').value=S.mv||r.mv;
   const w=getWx(S.curWxId);if(w){document.getElementById('st-temp').value=w.temp;document.getElementById('st-pres').value=w.pres;}
+  stabKind={pellet:p.type==='pellet',hp:isHollowPoint(p)};
   document.getElementById('st-name').textContent=p.name+' · '+r.name;calcStab();
 }
+let stabKind={pellet:false,hp:false};
 function sgCol(sg){return sg>=1.7?'var(--green)':sg>=1.5?'var(--gold)':sg>=1.0?'var(--warn)':'var(--red)';}
 function calcStab(){
   const d=+document.getElementById('st-diam').value,m=+document.getElementById('st-mass').value,
@@ -2517,27 +2531,27 @@ function calcStab(){
   if(!d||!m||!oal||!twIn||!mv)return;
   const tw=twIn*25.4;  // canonical mm for calcSg
   const cIn=+document.getElementById('st-c').value;
-  let C,cEst,cValid;
-  if(cIn&&cIn>=0.5){C=cIn;cEst=false;cValid=true;}
-  else{const ci=estimateC(d,oal);C=ci.c;cEst=ci.est;cValid=ci.valid;}
+  let C,cValid;
+  if(cIn&&cIn>=0.5){C=cIn;cValid=true;}
+  else{const ci=stabKind.pellet?{c:0,valid:false}:millerC(d,oal);C=ci.c;cValid=ci.valid;}
   if(!cValid){
     // C cannot be verified for this calibre/geometry — do NOT show an Sg number (§11E, §20A).
-    document.getElementById('st-cmode').textContent='C unverified';
+    document.getElementById('st-cmode').textContent=stabKind.pellet?'pellet':'outside Miller range';
     const ld=(oal/d).toFixed(2);
     document.getElementById('st-outs').innerHTML=
-      `<div class="sc" style="--c:var(--warn)"><div class="sl">Sg muzzle</div><div class="sv" style="color:var(--warn);font-size:15px">not computed</div><div class="su">C unverified</div></div>`+
+      `<div class="sc" style="--c:var(--warn)"><div class="sl">Sg muzzle</div><div class="sv" style="color:var(--warn);font-size:15px">not computed</div><div class="su">${stabKind.pellet?'drag-stabilised':'L/D < 2.0'}</div></div>`+
       `<div class="sc"><div class="sl">Sg @ M0.80</div><div class="sv" style="font-size:15px">—</div><div class="su">subsonic floor</div></div>`+
       `<div class="sc"><div class="sl">Sg worst-case</div><div class="sv" style="font-size:15px">—</div><div class="su">${ut('temp',-5)} SL ${ut('vel',229)}</div></div>`+
       `<div class="sc gold"><div class="sl">Twist</div><div class="sv">1:${twIn.toFixed(1)}″</div><div class="su">L/D ${ld}</div></div>`;
     document.getElementById('st-sgbar').style.width='0%';
-    document.getElementById('st-flags').innerHTML=`<div class="flag warn">⚠ C unverified for this calibre/geometry — Sg not computed. The Berger C constant is calibre-specific and non-interpolable; enter a Berger-verified C for this projectile to compute stability.${(oal/d)<2.0?' (L/D < 2.0 — Berger model not validated below 2.0 either.)':''}</div>`;
-    document.getElementById('st-twist-tbl').innerHTML='<tr><td colspan="4" style="color:var(--warn)">Twist recommendation requires a verified C constant.</td></tr>';
+    document.getElementById('st-flags').innerHTML=stabKind.pellet?'<div class="flag info">Diabolo pellets are drag-stabilised (heavy head, hollow skirt). The Miller/Berger formula assumes a solid bullet of even density, so it gives no meaningful Sg for a pellet. Judge pellets by measured BC holding steady over distance, groups and yaw cards.</div>':`<div class="flag warn">⚠ L/D ${(oal/d).toFixed(2)} is below 2.0 — outside the range the Miller formula was fitted on, so Sg is not computed. Enter a measured or otherwise verified C to override.</div>`;
+    document.getElementById('st-twist-tbl').innerHTML='<tr><td colspan="4" style="color:var(--warn)">No twist recommendation without an Sg.</td></tr>';
     return;
   }
   const sg=calcSg(m,d,oal,tw,mv,C,tC,hPa),
         sgWC=calcSg(m,d,oal,tw,229,C,-5,1013),
         sgM08=calcSg(m,d,oal,tw,sos(tC)*0.8,C,tC,hPa);
-  document.getElementById('st-cmode').textContent=cEst?'C estimated (class)':'C = '+C.toFixed(3);
+  document.getElementById('st-cmode').textContent=(cIn&&cIn>=0.5?'C override = ':'Miller C = ')+C.toFixed(3);
   document.getElementById('st-outs').innerHTML=
     `<div class="sc" style="--c:${sgCol(sg)}"><div class="sl">Sg muzzle</div><div class="sv" style="color:${sgCol(sg)}">${sg.toFixed(2)}</div><div class="su">${sg>=1.5?'stable ✓':sg>=1.0?'marginal':'tumbles ✗'}</div></div>`+
     `<div class="sc"><div class="sl">Sg @ M0.80</div><div class="sv" style="color:${sgCol(sgM08)}">${sgM08.toFixed(2)}</div><div class="su">subsonic floor</div></div>`+
@@ -2545,7 +2559,7 @@ function calcStab(){
     `<div class="sc gold"><div class="sl">Twist</div><div class="sv">1:${twIn.toFixed(1)}″</div><div class="su">L/D ${(oal/d).toFixed(2)}</div></div>`;
   const bar=document.getElementById('st-sgbar');bar.style.width=Math.min(100,sg/3*100)+'%';bar.style.background=sgCol(sg);
   let fl='';
-  if(cEst)fl+=`<div class="flag info">C = ${C.toFixed(3)} is the class-verified constant for this calibre (Berger-anchored). Confirm against the Berger Twist Rate Calculator for this specific geometry before final barrel spec.</div>`;
+  if(stabKind.hp)fl+=`<div class="flag info">Hollow point: Miller assumes even density through the whole length; an air cavity breaks that (Courtney &amp; Miller). Treat this Sg as approximate and confirm with measured BC.</div>`;
   if(sgWC<1.0)fl+=`<div class="flag warn">✗ Tumbles at global worst-case with 1:${twIn.toFixed(1)}″. Faster twist required.</div>`;
   else if(sgWC<1.5)fl+=`<div class="flag warn">▲ Sg ${sgWC.toFixed(2)} at worst-case — below 1.5 accuracy threshold.</div>`;
   if(sg<1.5&&sg>=1.0)fl+=`<div class="flag info">Under-stabilised: BC penalty factor ${bcEffSg(1,sg).toFixed(3)} (×${(sg/1.5).toFixed(2)}^0.4 per §4D).</div>`;
@@ -2787,7 +2801,7 @@ function computeCardTraj(c){
   const bcBase=drag==='g7'?p.bcg7:p.bcg1;
   if(!(bcBase>0))return{bcPending:true,projName:p.name};
   let sgP=1,sgPZ=1;
-  if(r&&r.twistDir!=='smooth'){const cInfo=(p.c&&p.c>=0.5)?{c:p.c,est:false,valid:true}:estimateC(p.diam,p.oal);if(cInfo.valid){
+  if(r&&r.twistDir!=='smooth'){const cInfo=projC(p);if(cInfo.valid){
     const sg=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,cw.temp,cw.pres);if(sg<1.5)sgP=bcEffSg(1,sg);
     const sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,z.temp,z.pres);if(sgZ<1.5)sgPZ=bcEffSg(1,sgZ);
   }}
@@ -2836,7 +2850,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.29.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.30.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3302,7 +3316,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.29.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.30.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3404,6 +3418,7 @@ function applyImport(plan){
     rec.id=uid();rec.name=cloneName(rec.name,coll.map(x=>x.name));coll.push(rec);idMap[it.type][inId]=rec.id;n.copied++;
   });
   if(plan.prefs&&plan.prefs.choice==='take'){const p=plan.prefs.incoming;if(p.units)UNITS={...UNITS,...p.units};if(p.sunits)SUNITS={...SUNITS,...p.sunits};if(p.app2)APP={...APP,...p.app2};}
+  migrateMillerC();
   return n;
 }
 let IMP=null;
@@ -3880,7 +3895,7 @@ function renderCourse(tr){
    each formula's native units on purpose — they are reference constants, not field output. */
 const FX_ENV=()=>({rho:airDensity(20,1010,65),aS:sos(20)});
 const fxAt=(pts,r)=>pts.find(p=>Math.abs(p.range-r)<1e-6);
-const fxBerger=(m,oal,tw,C)=>calcSg(m,6.35,oal,tw*25.4,853*0.3048,C,10,986);
+const fxBerger=(m,oal,tw)=>calcSg(m,6.35,oal,tw*25.4,853*0.3048,millerC(6.35,oal).c,10,980); // Berger page: 853 fps, 50 °F, 978 ft ≈ 980 hPa
 const FORMULAS=[
   {name:'Wind average (vector mean)',status:'ok',eq:'x̄ = Σ s·cos d / n, ȳ = Σ s·sin d / n → speed √(x̄²+ȳ²), direction atan2(ȳ, x̄); steadiness = speed / mean(s)',
     src:'resultant (vector-averaged) wind — EPA-454/R-99-005 Meteorological Monitoring Guidance; anchors are exact trigonometry, random data reproduced independently in windavgtest.js — CALC-20',used:'Calypso average window → session wind',
@@ -3898,15 +3913,16 @@ const FORMULAS=[
     anchors:[{l:'Altaros Queen .25, 60 gr',got:()=>calcSD(60,6.35),want:0.137,tol:5e-4,u:'lb/in²'}]},
   {name:'BC unit conversion (§9H)',status:'ok',eq:'BC[kg/m²] = BC[lb/in²] × 703.07',src:'1 lb/in² = 703.0696 kg/m² — skill §2',used:'BC display, drag term',
     anchors:[{l:'Queen G7 0.128',got:()=>0.128*LB2KGM2,want:90.0,tol:0.05,u:'kg/m²'}]},
-  {name:'Berger gyroscopic stability',status:'ok',eq:'Sg = C·m / (t²·d³·L·(1+L²)) · (v/2800)^⅓ · (T_F+460)/519 · 29.92/P_inHg',
-    src:'Berger twist calculator (bergerbullets.com), reproduced at 853 fps / 10 °C / 986 hPa — skill §8. C verified for Queen 2.283 and King 1.886 only',used:'Stability, BC penalty, spin drift',
-    anchors:[{l:'Queen 1:20″ (C 2.283)',got:()=>fxBerger(60,12.9,20,2.283),want:1.43,tol:0.005,u:''},
-             {l:'Queen 1:17″',got:()=>fxBerger(60,12.9,17,2.283),want:1.98,tol:0.005,u:''},
-             {l:'King 1:20″ (C 1.886)',got:()=>fxBerger(66,13.9,20,1.886),want:1.07,tol:0.005,u:''},
-             {l:'King 1:17″',got:()=>fxBerger(66,13.9,17,1.886),want:1.48,tol:0.005,u:''},
-             {l:'King 1:16″',got:()=>fxBerger(66,13.9,16,1.886),want:1.67,tol:0.005,u:''}]},
-  {name:'Under-stabilisation BC penalty',status:'ok',eq:'BC_eff = BC·(Sg/1.5)^0.4 for 1.0 ≤ Sg < 1.5',src:'Berger-anchored — skill §4B',used:'every trajectory when Sg < 1.5',
-    anchors:[{l:'Queen 1:20″, Sg 1.43 → −2 %',got:()=>bcEffSg(1,1.43),want:0.98,tol:0.005,u:'×'},{l:'King 1:20″, Sg 1.07 → −13 %',got:()=>bcEffSg(1,1.07),want:0.87,tol:0.005,u:'×'}]},
+  {name:'Miller twist rule (= Berger calculator)',status:'ok',eq:'Sg = 30·m / (t²·d³·L·(1+L²)) · (v/2800)^⅓ · (T_F+460)/519 · 29.92/P_inHg  (t, L in calibres; with twist in inches C = 30·d²)',
+    src:'Miller (Courtney & Miller, arXiv 1410.5340 Eq. 1); Berger\'s twist-rate calculator uses it — reproduced on Berger\'s page 2026-10-28 (853 fps, 50 °F, 978 ft ≈ 980 hPa). Fitted on rifle bullets: not validated for airgun hollow points; not computed below L/D 2.0 or for pellets',used:'Stability, BC penalty, spin drift',
+    anchors:[{l:'Queen 60 gr, 0.508″, 1:20″ (Berger 1.18)',got:()=>fxBerger(60,12.9,20),want:1.18,tol:0.005,u:''},
+             {l:'King 66 gr, 0.547″, 1:20″ (Berger 1.07)',got:()=>fxBerger(66,13.9,20),want:1.07,tol:0.005,u:''},
+             {l:'King 1:17″ (Berger 1.48)',got:()=>fxBerger(66,13.9,17),want:1.48,tol:0.005,u:''},
+             {l:'King 1:16″ (Berger 1.67)',got:()=>fxBerger(66,13.9,16),want:1.67,tol:0.005,u:''},
+             {l:'C for .25 = 30·0.25²',got:()=>millerC(6.35,12.9).c,want:1.875,tol:1e-9,u:''},
+             {l:'L/D 1.66 (ZAN .25) → not computed',got:()=>millerC(6.35,10.58).valid?1:0,want:0,tol:0,u:''}]},
+  {name:'Under-stabilisation BC penalty',status:'ok',eq:'BC_eff = BC·(Sg/1.5)^0.4 for 1.0 ≤ Sg < 1.5',src:'skill §4B; checked against Berger\'s calculator (Queen Sg 1.18: Berger −9.8 %, this −9.2 %)',used:'every trajectory when Sg < 1.5',
+    anchors:[{l:'Queen 1:20″, Sg 1.18 → Berger 0.221/0.245 = ×0.902',got:()=>bcEffSg(1,1.18),want:0.902,tol:0.01,u:'×'},{l:'King 1:20″, Sg 1.07 → −13 %',got:()=>bcEffSg(1,1.07),want:0.87,tol:0.005,u:'×'}]},
   {name:'G7 / G1 drag tables',status:'ok',eq:'Cd(Mach), linear interpolation',src:'BRL / McCoy standard tables — ballistics-engine data/g1.csv, g7.csv = py-ballisticcalc drag_tables.py (V1.24.2)',used:'every trajectory',
     anchors:[{l:'G7 Mach 0.90',got:()=>interp(G7T,0.9),want:0.1464,tol:1e-9,u:'Cd'},{l:'G7 Mach 1.00',got:()=>interp(G7T,1),want:0.3803,tol:1e-9,u:'Cd'},
              {l:'G1 Mach 0.75',got:()=>interp(G1T,0.75),want:0.2313,tol:1e-9,u:'Cd'},{l:'G1 Mach 1.00',got:()=>interp(G1T,1),want:0.4805,tol:1e-9,u:'Cd'}]},
@@ -3935,9 +3951,6 @@ const FORMULAS=[
     anchors:[{slow:true,l:'Queen G7 0.128: true BC from its own 100 m velocity',got:()=>{const e=FX_ENV();return trueBCsingle(260,60,100,velAtDist(260,0.128,60,100,e.rho,e.aS,'g7'),e.rho,e.aS,'g7').bc;},want:0.128,tol:1e-4,u:'lb/in²'}]},
   {name:'Spin drift (Litz)',status:'est',eq:'drift_in = 1.25·(Sg+1.2)·t^1.83',src:'Litz empirical fit from supersonic rifle data — NOT validated for subsonic airgun slugs. Default off',used:'Solver (optional)',
     anchors:[{l:'formula reproduction: Sg 1.5, t 1.0 s',got:()=>spinDrift_mm(1.5,1.0,'right'),want:85.725,tol:1e-6,u:'mm'}]},
-  {name:'Stability constant C lookup',status:'est',eq:'nearest verified .25 anchor; .30 2.699 and .35 3.822 class values',
-    src:'.25 Queen/King Berger-verified; .30/.35 values come from theoretical SEN designs (not real projectiles) → ESTIMATE. Refused outside .25 L/D 2.0–3.1 and for other calibres',used:'Stability when a profile has no C',
-    anchors:[{l:'Queen geometry → 2.283',got:()=>estimateC(6.35,12.9).c,want:2.283,tol:1e-9,u:''},{l:'L/D 1.66 (ZAN .25) → not computed',got:()=>estimateC(6.35,10.58).valid?1:0,want:0,tol:0,u:''}]},
   {name:'G1 ≈ G7 / 0.509',status:'est',eq:'BC_G1 ≈ BC_G7 / 0.509',src:'Litz conversion factor, ±5–8 % — skill §4A',used:'BC / Truing estimate',
     anchors:[{l:'Queen G7 0.128',got:()=>0.128/0.509,want:0.2515,tol:1e-4,u:'lb/in²'}]},
   {name:'MV spread → vertical spread',status:'est',eq:'Δy ≈ g·t²·ΔV/V₀ (fixed launch angle, small ΔV)',src:'first-order from the point-mass equations; reproduced against py-ballisticcalc fixed-angle runs (V1.26.0) within 2.5 % to 100 m',used:'Home › Chrono module',
@@ -4290,7 +4303,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* ═════════ boot ═════════ */
 Bus.on(()=>{renderActBar();syncTrajInputs();refreshSelects();if(homeVisible())renderQuick();autoTraj();});
 async function boot(){
-await loadDB();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();
+await loadDB();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();migrateMillerC();
 DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (V1.13.2): legacy free-text cleanup
 /* V1.12.5 (C3): saveDB persists profile IDs but not the derived overridables (mv/bc/sight/ct/cp/crh)
    — they were left null on relaunch, so Home showed "select rifle…" despite restored chips.

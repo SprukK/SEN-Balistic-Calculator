@@ -47,7 +47,7 @@ chk('Benchrest modules shown in template order, turret/bearing/rail hidden',visi
 // 3. Wind modules are the solver's own numbers on Home's trajectory (physics anchored in runtests).
 const want=(w,ws)=>J(w,`(()=>{const tr=homeTraj(),z=zeroConds();return [${ws}].map(v=>{const s=solveShot(tr.pts,nearestPt,z.range,S.dist_m,0,v,90,S.mv,0.1,z.wSpd,z.wDir);return[Math.abs(s.windNetMm).toFixed(1),Math.abs(s.clWind).toFixed(1)];});})()`);
 const w3=want(w,'3')[0];
-chk('wind offset now = solver: →'+w3[1]+' clicks, '+w3[0]+' mm right (3 m/s from 90° at 50 m)',txt(w,'wo-clk')==='→'+w3[1]&&txt(w,'wo-mm').startsWith(w3[0]+' mm right · 3.0 m/s from 90° rel')&&+w3[0]>9&&+w3[0]<9.6,txt(w,'wo-clk')+' | '+txt(w,'wo-mm'));
+chk('wind offset now = solver: →'+w3[1]+' clicks, '+w3[0]+' mm right (3 m/s from 90° at 50 m)',txt(w,'wo-clk')==='→'+w3[1]&&txt(w,'wo-mm').startsWith(w3[0]+' mm right · 3.0 m/s from 90° rel')&&+w3[0]>9.9&&+w3[0]<10.7,txt(w,'wo-clk')+' | '+txt(w,'wo-mm'));
 const rows=[...w.document.querySelectorAll('#wt-body tr')].map(r=>[...r.children].map(c=>c.textContent));
 const tbl=want(w,'1,2,3,4,5');
 chk('wind table 1–5 m/s = solver (mm and clicks)',rows[0].slice(1).join()==='1.0 m/s,2.0 m/s,3.0 m/s,4.0 m/s,5.0 m/s'&&rows[1].slice(1).join()===tbl.map(x=>x[0]).join()&&rows[2].slice(1).join()===tbl.map(x=>x[1]).join(),JSON.stringify(rows));
@@ -55,12 +55,12 @@ chk('wind table 1–5 m/s = solver (mm and clicks)',rows[0].slice(1).join()==='1
 // 4. Benchrest 100 m.
 w.eval(`useLayout(APP.layouts[2].id)`);await wait(30);
 const t100=[...w.document.querySelectorAll('#wt-body tr')][1].children[1].textContent;
-chk('100 m: dial ↑36, ~12.5 mm per m/s = solver',txt(w,'home-elev')==='↑36'&&t100===want(w,'1')[0][0]&&Math.abs(+t100-12.5)<0.4,txt(w,'home-elev')+' '+t100);
+chk('100 m: dial ↑36, ~13.9 mm per m/s = solver (V1.30.0: Queen on Miller Sg, BC penalty)',txt(w,'home-elev')==='↑36'&&t100===want(w,'1')[0][0]&&Math.abs(+t100-13.9)<0.4,txt(w,'home-elev')+' '+t100);
 
 // 5. Chrono → vertical spread (EST formula, pbc-anchored).
 w.eval(`document.getElementById('ch-mv').value=255;document.getElementById('ch-es').value=5;document.getElementById('ch-sd').value=1.2;useChronoMV()`);
 w.eval(`useLayout(APP.layouts[1].id)`);await wait(30);
-chk('chrono: ES 5 at 50 m ≈ 7.6 mm vertical (pbc 7.54)',/^ES 5\.0 m\/s ≈ 7\.6 mm vertical spread at 50 m$/.test(txt(w,'cr-vert'))&&txt(w,'cr-sd')==='1.2 m/s',txt(w,'cr-vert'));
+chk('chrono: ES 5 at 50 m ≈ 7.7 mm vertical (pbc 7.54 at the unpenalised BC; V1.30.0 Miller Sg penalty)',/^ES 5\.0 m\/s ≈ 7\.7 mm vertical spread at 50 m$/.test(txt(w,'cr-vert'))&&txt(w,'cr-sd')==='1.2 m/s',txt(w,'cr-vert'));
 
 // 6. Card timer.
 const realNow=w.Date.now;let fake=realNow();w.Date.now=()=>fake;
