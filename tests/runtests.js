@@ -52,6 +52,13 @@ chk('Element: drop500 = 1533.8 cm (±0.5%)', -atR(el,500).drop/10, 1533.8, 7.7);
 chk('Element: drop1000 = 8636.8 cm (±0.5%)', -atR(el,1000).drop/10, 8636.8, 43.2);
 chk('Element: v1000 = 165 m/s (±1)', atR(el,1000).v, 165, 1);
 
+console.log('\n=== V1.29.1 RK4 POSITION UPDATE (§20A vs py-ballisticcalc 3.1.1) ===');
+// Fails on ≤ V1.29.0 (position advanced with the start-of-step velocity): TOF 0.396957, drift 37.026.
+chk('Queen G7 0.128 @260: TOF100 = 0.397025 s (pbc)', atR(q7,100).tof, 0.397025, 2e-5);
+chk('King G1 0.250 @260: TOF200 = 0.817182 s (pbc)', atR(k1,200).tof, 0.817182, 4e-5);
+chk('lag-rule drift 3 m/s @100 = 37.221 mm (pbc)', windDrift(atR(q7,100).tof,100,260,3), 37.221, 0.03);
+chk('lag-rule drift 3 m/s @200 = 151.601 mm (pbc)', windDrift(atR(q7,200).tof,200,260,3), 151.601, 0.08);
+
 console.log('\n=== V1.29.0 WIND CHANGING ALONG THE FLIGHT (CORE-17 core, §20A vs py-ballisticcalc 3.1.1) ===');
 // Queen G7 0.128 @ 260 m/s, zero 50 m, sight 44 mm, 20 °C / 1010 hPa / 65 %. pbc: per-zone Wind(until_distance),
 // drift = windage with wind − without; blend = 1 m zones at the blended value (pbc skips zones shorter than its step).

@@ -7,6 +7,34 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V1.29.1 — patch — Trajectory position step is now full RK4: wind drift +0.5 %, matches py-ballisticcalc
+
+**Problem.** Found during the V1.29.0 verification. `rk4traj` updated velocity with RK4 but moved the slug with the velocity at the start of each 2 ms step (`x + h·vx`), not the RK4 average the skill (§7) specifies. The slug ran slightly ahead of where it should be, so time of flight was 0.016 % short. Lag-rule wind drift depends on t − R/V₀ and came out 0.5 % low (37.03 instead of 37.22 mm, 3 m/s at 100 m); drop was 0.8 mm short at 200 m.
+
+**Fix.** Position advances by h·(v₁ + 2v₂ + 2v₃ + v₄)/6 using the four RK4 stage velocities (one line in `step()`).
+
+**Effect (Queen G7 0.128 @ 260 m/s unless noted; py-ballisticcalc 3.1.1 in brackets):**
+
+| | before | after | pbc |
+|---|---|---|---|
+| TOF 100 m | 0.396957 s | 0.397022 s | 0.397025 s |
+| Drift 3 m/s, 100 m | 37.03 mm | 37.22 mm | 37.22 mm |
+| Drift 3 m/s, 200 m | 151.17 mm | 151.58 mm | 151.60 mm |
+| Drop 200 m | −2287.75 mm | −2288.54 mm | −2288.62 mm |
+| King G1 0.250 drop 200 m | −2276.61 mm | −2277.36 mm | −2277.33 mm |
+| Velocity at 200 m | 229.410 m/s | 229.405 m/s | 229.399 m/s |
+
+All wind dope rises by about 0.5 %; elevation changes are below 0.01 mrad at airgun ranges. Trued BCs move by about 0.02 % (0.100632 → 0.100653 from a 100 m velocity) — far inside measurement error, so stored trued BCs are left as they are. The Element cross-check stays inside its ±0.5 % band (1000 m drop 8650.4 cm vs 8636.8). One station vs two equal stations (V1.29.0 field solver) now agree to 0.03 % instead of 0.5 %.
+
+**Files:**
+- `index.html`: `rk4traj` → `step()` position update; Formulas: lag-rule drift gets a py-ballisticcalc anchor (37.22 mm); 5 live version strings.
+- `sw.js`: CACHE → `sen-ballistics-v1.29.1`.
+- `tests/runtests.js` +4 anchors (57; all four fail on V1.29.0); `tests/README.md`.
+
+**Verify:** `node --check` clean · `runtests.js` 57/57 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · `calypsotest.js` 18/18 · `windavgtest.js` 28/28 · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V1.29.1.html`.
+
+---
+
 ## V1.29.0 — minor — Solver core for wind that changes along the flight (CORE-17, no UI yet)
 
 **Problem.** CORE-17 needs the solver to use several wind stations at once. The solver only knew one crosswind for the whole flight (Didion lag rule).

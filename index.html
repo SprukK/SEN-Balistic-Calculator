@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.29.0</title>
+<title>SEN Ballistics V1.29.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -292,7 +292,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.29.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V1.29.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -806,7 +806,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.29.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V1.29.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -862,7 +862,11 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
   function D(vx,vy,env){const v=Math.sqrt(vx*vx+vy*vy),m=v/env.aS,cd=interp(DT,m),dec=Math.PI/4*(env.rho*v*v*cd)/(2*env.bcSiAt(v));return[-(dec/v)*vx,-(dec/v)*vy-G];}
   function step(x,y,vx,vy,h,env){
     const[k1ax,k1ay]=D(vx,vy,env);const[k2ax,k2ay]=D(vx+h*k1ax/2,vy+h*k1ay/2,env);const[k3ax,k3ay]=D(vx+h*k2ax/2,vy+h*k2ay/2,env);const[k4ax,k4ay]=D(vx+h*k3ax,vy+h*k3ay,env);
-    return[x+h*vx,y+h*vy,vx+h*(k1ax+2*k2ax+2*k3ax+k4ax)/6,vy+h*(k1ay+2*k2ay+2*k3ay+k4ay)/6];
+    // V1.29.1: position advances by the RK4 average of the four stage velocities (skill §7), not the
+    // start-of-step velocity — that Euler update made TOF 0.016 % short and lag-rule drift 0.5 % low.
+    // Verified vs py-ballisticcalc 3.1.1: TOF to 3e-6 s, drop to 0.1 mm, drift 37.22 mm (3 m/s, 100 m).
+    const vxs=vx+2*(vx+h*k1ax/2)+2*(vx+h*k2ax/2)+(vx+h*k3ax),vys=vy+2*(vy+h*k1ay/2)+2*(vy+h*k2ay/2)+(vy+h*k3ay);
+    return[x+h*vxs/6,y+h*vys/6,vx+h*(k1ax+2*k2ax+2*k3ax+k4ax)/6,vy+h*(k1ay+2*k2ay+2*k3ay+k4ay)/6];
   }
   const dt=0.002;
   let lo=-0.1,hi=0.1;
@@ -2832,7 +2836,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.29.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.29.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3298,7 +3302,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.29.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.29.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3913,7 +3917,8 @@ const FORMULAS=[
              {l:'Queen G1 0.245 @ 285 m/s — drop at 1000 m (Element, ±0.5 %)',got:()=>-fxAt(rk4traj(285,0,60,100,1000,0.070,airDensity(27.5,1011,53),sos(27.5),1,'g1',0.245,null),1000).drop/10,want:8636.8,tol:43.2,u:'cm'},
              {l:'drop at the zero range',got:()=>{const e=FX_ENV();return fxAt(rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),50).drop;},want:0,tol:0.1,u:'mm'}]},
   {name:'Wind drift (lag time, signed crosswind)',status:'ok',eq:'drift = W·sin θ·(t − R/v₀)',src:'Didion / McCoy lag-time rule — skill §9; sign fix V1.8.2, headwind fix V1.23.0',used:'every solution',
-    anchors:[{l:'90° and 270° equal and opposite at 100 m',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),r=solveShot(p,nearestPt,50,100,0,4,90,260,0.1,0,90).mrWind,l=solveShot(p,nearestPt,50,100,0,4,270,260,0.1,0,90).mrWind;return Math.abs(r)>0.05?r+l:NaN;},want:0,tol:1e-9,u:'mrad'},
+    anchors:[{l:'3 m/s full cross, 100 m (py-ballisticcalc 37.22 mm)',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null);return windDrift(fxAt(p,100).tof,100,260,3);},want:37.22,tol:0.03,u:'mm'},
+             {l:'90° and 270° equal and opposite at 100 m',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),r=solveShot(p,nearestPt,50,100,0,4,90,260,0.1,0,90).mrWind,l=solveShot(p,nearestPt,50,100,0,4,270,260,0.1,0,90).mrWind;return Math.abs(r)>0.05?r+l:NaN;},want:0,tol:1e-9,u:'mrad'},
              {l:'0° headwind → no windage',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null);return solveShot(p,nearestPt,50,100,0,4,0,260,0.1,0,90).mrWind;},want:0,tol:1e-9,u:'mrad'}]},
   {name:'Wind drift — wind changing along the flight (CORE-17 core)',status:'ok',eq:'dvz/dt = −k·(vz − w(x)), k = drag/v → z(X) = ∫₀^X ∫ w du dx, u = 1/vx; stations → w(x) by nearest or linear blend',
     src:'point-mass lateral equation; uniform wind reduces to the Didion lag rule. Reproduced against py-ballisticcalc 3.1.1 per-zone winds (full 3-D) — not yet used for dope (needs the CORE-17 station UI)',used:'solveShot when given two or more stations',

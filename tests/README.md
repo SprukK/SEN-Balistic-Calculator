@@ -2,9 +2,9 @@
 
 Run all seventeen before every release. All must be fully green.
 
-| File | What it checks | Expected on V1.29.0 |
+| File | What it checks | Expected on V1.29.1 |
 |---|---|---|
-| `runtests.js` (+ `harness.js`) | 53 numeric physics anchors: air density, speed of sound, SD, Berger Sg (Queen, King, LRAI-35), unit conversions, RK4 trajectory, firing solution; **V1.24.2:** standard G1/G7 table values, trajectories reproduced against py-ballisticcalc (G7 and G1) and the owner's Element Ballistics table to 1000 m; **V1.29.0:** crosswind changing along the flight (CORE-17 core) — uniform and five two-station cases (nearest, blend) reproduced against py-ballisticcalc per-zone winds, station mapping, symmetry, near-muzzle weighting, `solveShot` unchanged without stations | PASS 53 / FAIL 0 |
+| `runtests.js` (+ `harness.js`) | 57 numeric physics anchors: air density, speed of sound, SD, Berger Sg (Queen, King, LRAI-35), unit conversions, RK4 trajectory, firing solution; **V1.24.2:** standard G1/G7 table values, trajectories reproduced against py-ballisticcalc (G7 and G1) and the owner's Element Ballistics table to 1000 m; **V1.29.0:** crosswind changing along the flight (CORE-17 core) — uniform and five two-station cases (nearest, blend) reproduced against py-ballisticcalc per-zone winds, station mapping, symmetry, near-muzzle weighting, `solveShot` unchanged without stations; **V1.29.1:** time of flight and lag-rule drift against py-ballisticcalc (fail on the old Euler position update) | PASS 57 / FAIL 0 |
 | `domtest.js` | Real-DOM (jsdom) click test: bottom nav, More sheet, act-bar pickers, Home disclosures, zero uncaught errors | PASS 14 / FAIL 0 |
 | `storagetest.js` | IndexedDB storage (V1.18.0): migration of real previous-release data from localStorage, rollback safety, reload, fallback, schema guard, save-failure warning, factory reset, iOS install hint | PASS 22 / FAIL 0 |
 | `importtest.js` | Import (V1.19.0): own export round-trip, same content under other ids, field whitelist, rejects, review sheet with Overwrite / Save as copy / Skip / apply-to-all / Cancel, reference remap, preferences row, schema guard, single dope card, escaping | PASS 28 / FAIL 0 |
