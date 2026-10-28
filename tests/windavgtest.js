@@ -114,8 +114,8 @@ L.eval("setWindMode('manual');setTargetBearing(200,'manual');setCalMount(30);use
 chk('fixed-bearing mount: wind from = averaged direction + mount bearing',sw.from===(ex.dir+30)%360,JSON.stringify(sw));
 chk('Sensors card shows the average line with lull/gust and steadiness',/^Average 1 min: .* · lull .* \/ gust .* · steadiness \d+ %/.test(txt(L,'ble-avg-stats')),txt(L,'ble-avg-stats'));
 L.eval('wavgReset()');chk('Reset average empties the window',J(L,'wavgBuf.length')===0&&/waiting for readings/.test(txt(L,'ble-avg-stats')));
-await send(L,u,wu(1,1,10));L.eval('wavgUnit="WDOT-OTHER"');await send(L,u,wu(2,2,20));
-chk('readings from another unit start a fresh window',J(L,'wavgBuf.length')===1&&J(L,'wavgBuf[0].s')===2);
+await send(L,u,wu(1,1,10));await send(L,u,wu(2,2,20));
+chk('V2.0.0: the window is the session unit\'s own buffer (each Calypso keeps its own)',J(L,'CALS.length===1&&CALS[0].buf===wavgBuf&&wavgBuf.length===2&&wavgBuf[1].s===2'));
 
 // 6. Safety.
 const html=fs.readFileSync(FILE,'utf8'),eng=html.slice(html.indexOf('CALC-20 (V1.28.0)'),html.indexOf('function calypsoParse'));

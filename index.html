@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V1.34.0</title>
+<title>SEN Ballistics V2.0.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -105,6 +105,10 @@ input.man{border-color:var(--gold);border-style:dashed;background:var(--src-man)
 .btn.primary{background:var(--accent);color:#0a0b0e;border-color:var(--accent);font-weight:600;flex:1}
 .btn.danger{color:var(--warn);border-color:rgba(224,122,95,.35)}
 .btn-xs{font-family:var(--mono);font-size:10px;padding:5px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text2)}
+.cal-unit{display:grid;grid-template-columns:14px 1fr auto;grid-template-areas:"dot pick batt" ". info x";align-items:center;gap:4px 8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.cal-unit .ble-dot{grid-area:dot}.cal-unit .cal-pick{grid-area:pick;display:flex;align-items:center;gap:6px;min-width:0}
+.cal-unit .cal-pick input[type=radio]{width:16px;height:16px;flex:0 0 auto;margin:0;padding:0}
+.cal-unit .cal-info{grid-area:info;font-family:var(--mono)}.cal-unit .cal-batt{grid-area:batt;font-family:var(--mono);color:var(--text3)}.cal-unit button{grid-area:x}
 .flag{font-family:var(--mono);font-size:10px;padding:9px 12px;border-radius:6px;margin-top:8px;line-height:1.6}
 .flag.warn{background:rgba(224,122,95,.08);border:1px solid rgba(224,122,95,.28);color:var(--warn)}
 .flag.ok{background:rgba(122,184,122,.06);border:1px solid rgba(122,184,122,.22);color:var(--green)}
@@ -292,7 +296,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V1.34.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.0.0 · major<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -755,6 +759,9 @@ details.disc .dbody{padding:0 14px 14px}
       <span><span class="ble-dot" id="ble-dot"></span><span style="font-family:var(--mono);font-size:11px" id="ble-status-text">Disconnected</span></span>
       <button class="btn-xs" id="ble-btn" onclick="toggleBLE()" style="margin-left:auto">Connect</button>
     </div>
+    <div id="cal-units"></div>
+    <div class="btnrow" id="cal-add" style="display:none;margin-top:4px"><button class="btn-xs" onclick="calAdd()">+ Connect another Calypso</button></div>
+    <div class="note" style="margin-top:2px">The unit marked “feeds session” supplies the session wind (Home, Wind, Solver). Any others stream alongside — placing them as stations along the lane comes with CORE-17. Values below are the session unit's.</div>
     <div id="ble-live-wrap" style="display:none">
       <div class="scs">
         <div class="sc accent"><div class="sl">Speed (instant)</div><div class="sv" id="ble-speed">—</div><div class="su" data-ul="wind">m/s</div></div>
@@ -817,7 +824,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V1.31.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.0.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -2943,7 +2950,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V1.34.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.0.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3505,7 +3512,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V1.34.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.0.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3665,9 +3672,9 @@ const CALYPSO_SVC='49535343-fe7d-4ae5-8fa9-9fafd205e455';
 const CALYPSO_UNLOCK={'WDOT-B1F9A6':':DU,1668647648,A7','WDOT-E2896A':':DU,1802347072,AF'};
 const CALYPSO_HANDSHAKE=[':GK',':PS,1,1,9F',':WU,5',':WU,6',':VR']; // after the unlock
 const CALYPSO_KEEPALIVE=':CC,6,86';
-let bleDevice=null, bleFFF1Char=null, bleFFF2Char=null;
-let bleRxBuf='', bleKaTimer=null, bleLastWu=0, bleReply=null;
-let bleLastSpd=0, bleLastDir=0, bleLastBatt=null;
+/* Mirrors of the PRIMARY Calypso (the one that feeds the session wind until CORE-17 places stations).
+   Kept as plain globals so every existing reader (Home, Wind tab, Solver) is untouched. */
+let bleDevice=null, bleLastWu=0, bleLastSpd=0, bleLastDir=0, bleLastBatt=null;
 /* ═════ CALC-20 (V1.28.0) — wind average over a chosen window ═════
    The app averages the Calypso's INSTANT readings itself, over the window the user picks
    (APP.windAvgS, seconds). The :WU average field is not used: its window is set inside the unit
@@ -3680,13 +3687,13 @@ let bleLastSpd=0, bleLastDir=0, bleLastBatt=null;
    Equal weight per reading (the unit streams at a steady rate). History is in memory only —
    a restart starts the window again; switching to another unit clears it. */
 const WAVG_WINS=[10,60,300,900,1800,3600], WAVG_MAX_S=7200, WAVG_GAP_S=5;
-let wavgBuf=[], wavgUnit=null;
+let wavgBuf=[]; // the PRIMARY unit's buffer (each Calypso keeps its own, V2.0.0)
 const wavgWin=()=>Math.min(WAVG_MAX_S,Math.max(10,Math.round(+APP.windAvgS||60)));
 const wavgLabel=w=>w<60?w+' s':(w%60?(w/60).toFixed(1):w/60)+' min';
 const fmtMS=sec=>Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');
-function wavgPush(t,s,d){
-  wavgBuf.push({t,s,d});
-  const cut=t-WAVG_MAX_S*1000;let i=0;while(i<wavgBuf.length&&wavgBuf[i].t<cut)i++;if(i)wavgBuf.splice(0,i);
+function wavgPush(t,s,d,buf=wavgBuf){
+  buf.push({t,s,d});
+  const cut=t-WAVG_MAX_S*1000;let i=0;while(i<buf.length&&buf[i].t<cut)i++;if(i)buf.splice(0,i);
 }
 function windAvg(winS,now){
   const from=now-winS*1000,pts=wavgBuf.filter(p=>p.t>from&&p.t<=now);return pts.length?windMean(pts,winS,now):null;
@@ -3703,7 +3710,7 @@ function windMean(pts,winS,now){
 function bleAvgNow(){const a=windAvg(wavgWin(),Date.now());return a?{s:a.spd,d:a.dir==null?bleLastDir:a.dir}:{s:bleLastSpd,d:bleLastDir};}
 function calypsoLive(src){const w=src==='inst'?{s:bleLastSpd,d:bleLastDir}:bleAvgNow();calypsoToSession(w.s,w.d);}
 function setWavgWin(sec){APP.windAvgS=Math.min(WAVG_MAX_S,Math.max(10,Math.round(+sec)||60));saveDB();wavgRender();homeLiveState();if(bleLastWu)updateBleDisplay();}
-function wavgReset(){wavgBuf=[];wavgRender();}
+function wavgReset(){wavgBuf=[];const d=calPrimary();if(d)d.buf=wavgBuf;wavgRender();}
 function wavgRender(){
   const win=wavgWin(),opts=WAVG_WINS.includes(win)?WAVG_WINS:[...WAVG_WINS,win].sort((a,b)=>a-b);
   ['home-avg-win','ble-avg-win'].forEach(id=>{const sel=document.getElementById(id);if(!sel)return;
@@ -3715,96 +3722,159 @@ function wavgRender(){
     ' · lull '+ut('wind',a.min)+' / gust '+ut('wind',a.max)+(a.steady==null?'':' · steadiness '+Math.round(a.steady*100)+' %')+
     ' · '+(a.fill<win-1?fmtMS(a.fill)+' of '+fmtMS(win)+' (filling)':'window full')+' · '+a.n+' readings'+(a.gap>WAVG_GAP_S?' · ⚠ gap '+Math.round(a.gap)+' s':'');
 }
-function isBleSup(){return!!(navigator.bluetooth&&navigator.bluetooth.requestDevice);}
 function updateBleStatus(state,txt){
   const dot=document.getElementById('ble-dot'),btn=document.getElementById('ble-btn'),stxt=document.getElementById('ble-status-text');
   if(dot)dot.className='ble-dot'+(state==='connected'?' connected':state==='scanning'?' scanning':'');
   if(stxt)stxt.textContent=txt;if(btn)btn.textContent=state==='connected'?'Disconnect':'Connect';
 }
+/* ═════ CORE-07 (V2.0.0) — SenBle: the one transport every device goes through ═════
+   Connect with retries, service discovery with one retry for an empty answer (Lab V1.3.1: a battery
+   service came back empty with two devices connecting at once), a per-device GATT queue (one operation
+   at a time per device — Web Bluetooth rejects overlapping ones), notifications, optional battery
+   (0x180F/0x2A19), disconnect callback. Device drivers (Calypso today; FX chrono, rangefinders and the
+   LoRa bridge later) sit on top and never touch navigator.bluetooth themselves. A native wrapper would
+   replace this object only. */
+const SenBle={
+  supported(){return!!(typeof navigator!=='undefined'&&navigator.bluetooth&&navigator.bluetooth.requestDevice);},
+  async connect({filters,optionalServices,onDisconnect}){
+    const dev=await navigator.bluetooth.requestDevice({filters,optionalServices});
+    let server=null,q=Promise.resolve();
+    for(let a=1;a<=3;a++){try{server=await dev.gatt.connect();await new Promise(r=>setTimeout(r,500));await server.getPrimaryServices();break;}
+      catch(ex){if(a===3)throw new Error('Connect failed after 3 attempts: '+ex.message);await new Promise(r=>setTimeout(r,800));}}
+    const link={dev,server,name:dev.name||'',id:dev.id,
+      connected:()=>!!(dev.gatt&&dev.gatt.connected),
+      disconnect:()=>{try{dev.gatt.disconnect();}catch(e){}},
+      op(fn){const run=q.then(fn,fn);q=run.catch(()=>{});return run;}, // serialise every GATT operation on this device
+      async chars(svc){let c=await(await server.getPrimaryService(svc)).getCharacteristics();
+        if(!c.length){await new Promise(r=>setTimeout(r,300));c=await(await server.getPrimaryService(svc)).getCharacteristics();}return c;},
+      write(ch,bytes){return link.op(()=>ch.properties.writeWithoutResponse?ch.writeValueWithoutResponse(bytes):ch.writeValue(bytes));},
+      async notify(ch,handler){await link.op(()=>ch.startNotifications());ch.addEventListener('characteristicvaluechanged',e=>handler(e.target.value));},
+      async battery(handler){try{const c=await(await server.getPrimaryService(0x180F)).getCharacteristic(0x2A19);
+        handler((await link.op(()=>c.readValue())).getUint8(0));
+        if(c.properties.notify)await link.notify(c,v=>handler(v.getUint8(0)));return true;}catch(e){return false;}}};
+    dev.addEventListener('gattserverdisconnected',()=>onDisconnect&&onDisconnect(link));
+    return link;
+  }
+};
+
+/* ═════ Calypso driver (V2.0.0: any number of units at once) ═════
+   One driver per connected unit: its own unlock, handshake, 10 s keepalive, :WU parser, battery and
+   wind-average buffer. CALS lists them; the PRIMARY one feeds the session wind (radio on its card) —
+   the others stream and are shown live, ready for CORE-17 stations. */
+const CALS=[];let calPrimaryId=null;
+const calPrimary=()=>CALS.find(d=>d.link.id===calPrimaryId)||null;
 function calypsoBytes(s){const out=[];for(let i=0;i<s.length;i++)out.push(s.charCodeAt(i));out.push(0x0d);out.push(0x0d);return new Uint8Array(out);}
-async function calypsoWrite(bytes){if(!bleFFF1Char)return;if(bleFFF1Char.properties.writeWithoutResponse)await bleFFF1Char.writeValueWithoutResponse(bytes);else await bleFFF1Char.writeValue(bytes);}
-async function calypsoUnlock(name){ // own token first, then every other known token until one is :AK'd
-  const own=CALYPSO_UNLOCK[(name||'').toUpperCase()],all=Object.values(CALYPSO_UNLOCK);
+async function calypsoUnlock(d){ // own token first, then every other known token until one is :AK'd
+  const own=CALYPSO_UNLOCK[(d.link.name||'').toUpperCase()],all=Object.values(CALYPSO_UNLOCK);
   for(const tok of own?[own,...all.filter(t=>t!==own)]:all){
-    bleReply=null;await calypsoWrite(calypsoBytes(tok));
-    const t0=Date.now();while(!bleReply&&Date.now()-t0<800)await new Promise(r=>setTimeout(r,40));
-    if(bleReply==='AK')return true;
+    d.reply=null;await d.link.write(d.fff1,calypsoBytes(tok));
+    const t0=Date.now();while(!d.reply&&Date.now()-t0<800)await new Promise(r=>setTimeout(r,40));
+    if(d.reply==='AK')return true;
   }
   return false;
 }
-async function calypsoBattery(server){ // battery from 0x2A19 (:GK field 2 is not battery: unit #2 sends 'BD')
-  try{const c=await(await server.getPrimaryService(0x180F)).getCharacteristic(0x2A19);
-    const show=v=>{bleLastBatt=v.getUint8(0);updateBleDisplay();};
-    show(await c.readValue());
-    if(c.properties.notify){await c.startNotifications();c.addEventListener('characteristicvaluechanged',e=>show(e.target.value));}
-  }catch(e){} // battery is optional; wind works without it
+function calSyncPrimary(){ // copy the primary unit into the globals every reader uses
+  const d=calPrimary();
+  bleDevice=d?d.link.dev:null;bleLastWu=d?d.lastWu:0;bleLastSpd=d?d.spd:0;bleLastDir=d?d.dir:0;bleLastBatt=d?d.batt:null;
+  if(d)wavgBuf=d.buf;
 }
-async function toggleBLE(){
-  if(!isBleSup()){alert('Web Bluetooth not supported.\nUse Chrome on Android or Chrome/Edge on desktop. (iOS blocks Web Bluetooth — use manual wind entry.)');return;}
-  if(bleDevice&&bleDevice.gatt.connected){await bleDevice.gatt.disconnect();return;}
+function calSetPrimary(id){calPrimaryId=id;calSyncPrimary();updateBleDisplay();homeLiveState();}
+async function calAdd(){
+  if(!SenBle.supported()){alert('Web Bluetooth not supported.\nUse Chrome on Android or Chrome/Edge on desktop. (iOS blocks Web Bluetooth — use manual wind entry.)');return;}
+  let d=null;
   try{
     updateBleStatus('scanning','Scanning for WDOT-…');
-    bleDevice=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'WDOT'}],optionalServices:[CALYPSO_SVC,0x180F,0x1800,0x1801]});
-    bleDevice.addEventListener('gattserverdisconnected',onCalypsoDisconnect);
-    let server=null;
-    for(let a=1;a<=3;a++){try{server=await bleDevice.gatt.connect();await new Promise(r=>setTimeout(r,500));await server.getPrimaryServices();break;}catch(ex){if(a===3)throw new Error('Connect failed after 3 attempts: '+ex.message);await new Promise(r=>setTimeout(r,1000));}}
-    const svc=await server.getPrimaryService(CALYPSO_SVC);
-    const chars=await svc.getCharacteristics();
-    bleFFF1Char=chars.find(c=>c.uuid.includes('fff1'))||null;
-    bleFFF2Char=chars.find(c=>c.uuid.includes('fff2'))||null;
-    if(!bleFFF2Char)throw new Error('FFF2 notify characteristic not found');
-    if(!bleFFF1Char)throw new Error('FFF1 write characteristic not found (cannot send handshake)');
-    bleRxBuf='';
-    await bleFFF2Char.startNotifications();
-    bleFFF2Char.addEventListener('characteristicvaluechanged',onCalypsoPacket);
-    updateBleStatus('connected','Connected: '+bleDevice.name+' · activating…');
+    const link=await SenBle.connect({filters:[{namePrefix:'WDOT'}],optionalServices:[CALYPSO_SVC,0x180F,0x1800,0x1801],onDisconnect:calOnDisconnect});
+    const old=CALS.find(x=>x.link.id===link.id);if(old)calRemove(old);
+    d={link,status:'activating',spd:0,dir:0,lastWu:0,batt:null,reply:null,rx:'',buf:[],ka:null,fff1:null,locked:false};
+    CALS.push(d);if(!calPrimary())calPrimaryId=link.id;
+    const chars=await link.chars(CALYPSO_SVC);
+    d.fff1=chars.find(c=>c.uuid.includes('fff1'))||null;const fff2=chars.find(c=>c.uuid.includes('fff2'))||null;
+    if(!fff2)throw new Error('FFF2 notify characteristic not found');
+    if(!d.fff1)throw new Error('FFF1 write characteristic not found (cannot send handshake)');
+    await link.notify(fff2,v=>calPacket(d,v));
+    calSyncPrimary();calRender();updateBleStatus('connected','Connected: '+link.name+' · activating…');
     document.getElementById('ble-live-wrap').style.display='block';
-    // run the proven handshake after a short settle
     await new Promise(r=>setTimeout(r,600));
-    if(!await calypsoUnlock(bleDevice.name)){
-      updateBleStatus('connected','Connected: '+bleDevice.name+' · locked');
-      const sl=document.getElementById('ble-service-list');if(sl)sl.textContent='This Calypso isn\'t unlocked for SEN yet: its :DU code is unknown. Capture it once (Anemotracker + HCI snoop) and add it to the app.';
+    if(!await calypsoUnlock(d)){
+      d.status='locked';d.locked=true;calRender();
+      if(calPrimary()===d)updateBleStatus('connected','Connected: '+link.name+' · locked');
+      const sl=document.getElementById('ble-service-list');if(sl)sl.textContent=link.name+' isn\'t unlocked for SEN yet: its :DU code is unknown. Capture it once (Anemotracker + HCI snoop) and add it to the app.';
       return;
     }
     await new Promise(r=>setTimeout(r,120));
-    for(const s of CALYPSO_HANDSHAKE){await calypsoWrite(calypsoBytes(s));await new Promise(r=>setTimeout(r,120));}
-    await calypsoWrite(calypsoBytes(CALYPSO_KEEPALIVE));
-    bleKaTimer=setInterval(()=>{if(bleDevice&&bleDevice.gatt.connected)calypsoWrite(calypsoBytes(CALYPSO_KEEPALIVE)).catch(()=>{});},10000);
-    updateBleStatus('connected','Connected: '+bleDevice.name);
-    calypsoBattery(server);
+    for(const c of CALYPSO_HANDSHAKE){await link.write(d.fff1,calypsoBytes(c));await new Promise(r=>setTimeout(r,120));}
+    await link.write(d.fff1,calypsoBytes(CALYPSO_KEEPALIVE));
+    d.ka=setInterval(()=>{if(link.connected())link.write(d.fff1,calypsoBytes(CALYPSO_KEEPALIVE)).catch(()=>{});},10000);
+    d.status='live';calRender();
+    if(calPrimary()===d)updateBleStatus('connected','Connected: '+link.name);
+    link.battery(v=>{d.batt=v;if(calPrimary()===d)calSyncPrimary();updateBleDisplay();});
     const sl=document.getElementById('ble-service-list');if(sl)sl.textContent='Handshake sent · awaiting live :WU wind…';
-  }catch(e){updateBleStatus('','Error: '+e.message);onCalypsoDisconnect();}
+  }catch(e){
+    if(d){calRemove(d);try{d.link.disconnect();}catch(x){}}
+    updateBleStatus(calPrimary()?'connected':'',calPrimary()?'Connected: '+calPrimary().link.name:'Error: '+e.message);
+  }
 }
-function onCalypsoDisconnect(){
-  if(bleKaTimer){clearInterval(bleKaTimer);bleKaTimer=null;}
-  bleFFF1Char=bleFFF2Char=null;bleRxBuf='';
-  updateBleStatus('','Disconnected');
-  const w=document.getElementById('ble-live-wrap');if(w)w.style.display='none';
+function calRemove(d){
+  if(d.ka){clearInterval(d.ka);d.ka=null;}
+  const i=CALS.indexOf(d);if(i>=0)CALS.splice(i,1);
+  if(calPrimaryId===d.link.id)calPrimaryId=(CALS.find(x=>x.status==='live')||CALS[0]||{link:{}}).link.id||null;
+  calSyncPrimary();calRender();
 }
-function onCalypsoPacket(evt){
-  const bytes=new Uint8Array(evt.target.value.buffer);
+function calOnDisconnect(link){
+  const d=CALS.find(x=>x.link===link);if(d)calRemove(d);
+  const p=calPrimary();
+  updateBleStatus(p?'connected':'',p?'Connected: '+p.link.name:'Disconnected');
+  const w=document.getElementById('ble-live-wrap');if(w)w.style.display=p?'block':'none';
+  updateBleDisplay();homeLiveState();
+}
+// Connect button: connects a unit when none is connected, otherwise disconnects the primary one.
+async function toggleBLE(){
+  const p=calPrimary();
+  if(p&&p.link.connected()){p.link.disconnect();return;}
+  await calAdd();
+}
+function calPacket(d,value){
+  const bytes=new Uint8Array(value.buffer);
   // idle HDLC frame (pre-activation) — ignore, it's not wind
   if(bytes.length>=4&&bytes[0]===0x7e&&bytes[bytes.length-1]===0x7e)return;
-  bleRxBuf+=new TextDecoder().decode(bytes);
-  const parts=bleRxBuf.split('\r');
-  bleRxBuf=parts.pop();
-  for(const raw of parts){const s=raw.trim();if(s)calypsoParse(s);}
+  d.rx+=new TextDecoder().decode(bytes);
+  const parts=d.rx.split('\r');d.rx=parts.pop();
+  for(const raw of parts){const t=raw.trim();if(t)calypsoParse(t,d);}
 }
-function calypsoParse(s){
+function calypsoParse(s,d){
+  d=d||calPrimary();if(!d)return;
   if(s.startsWith(':WU')){
     const f=s.split(',');
     if(f.length>=5){
       const inst=parseFloat(f[2]),dir=parseFloat(f[4]); // f[3] = the unit's own average (unknown window, not used)
-      if(!isNaN(inst))bleLastSpd=inst;if(!isNaN(dir))bleLastDir=Math.round(dir)%360;
-      bleLastWu=Date.now();
-      if(!isNaN(inst)&&!isNaN(dir)){const u=bleDevice&&bleDevice.name;if(u!==wavgUnit){wavgBuf=[];wavgUnit=u;}wavgPush(bleLastWu,inst,dir);}
-      updateBleDisplay();
+      if(!isNaN(inst))d.spd=inst;if(!isNaN(dir))d.dir=Math.round(dir)%360;
+      d.lastWu=Date.now();if(d.status!=='live')d.status='live';
+      if(!isNaN(inst)&&!isNaN(dir))wavgPush(d.lastWu,inst,dir,d.buf);
+      if(calPrimary()===d){calSyncPrimary();updateBleDisplay();}else calRender();
     }
-  }else if(s.startsWith(':AK')){bleReply='AK';
-  }else if(s.startsWith(':NA')){bleReply='NA';
+  }else if(s.startsWith(':AK')){d.reply='AK';
+  }else if(s.startsWith(':NA')){d.reply='NA';
   }
   // :GK (id; field 2 is not battery), :VR, :CC ignored
 }
+// One row per connected unit: name, live wind, battery, state, "feeds session", disconnect. Text only.
+function calRender(){
+  const box=document.getElementById('cal-units');if(!box)return;
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  box.replaceChildren(...CALS.map(d=>{
+    const age=d.lastWu?(Date.now()-d.lastWu)/1000:null,row=el('div','cal-unit');
+    const live=d.status==='live'&&age!=null&&age<3;
+    const lab=el('label','cal-pick');const r=el('input');r.type='radio';r.name='cal-primary';r.checked=calPrimaryId===d.link.id;r.onchange=()=>calSetPrimary(d.link.id);
+    lab.append(r,el('b',null,d.link.name),document.createTextNode(calPrimaryId===d.link.id?' · feeds session':''));
+    const info=el('span','cal-info',d.locked?'locked — unlock code unknown':d.lastWu?(un('wind',d.spd)+' '+lab2('wind')+' · '+d.dir+'°'+(live?'':' · signal lost')):'activating…');
+    const bat=el('span','cal-batt',d.batt!=null?d.batt+'%':'—');
+    const dot=el('span','ble-dot'+(live?' connected':''));
+    const x=el('button','btn-xs','Disconnect');x.onclick=()=>d.link.disconnect();
+    row.append(dot,lab,info,bat,x);return row;}));
+  const add=document.getElementById('cal-add');if(add)add.style.display=CALS.length?'':'none';
+}
+const lab2=q=>lab(q,UNITS[q]);
 function updateBleDisplay(){
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('ble-speed',un('wind',bleLastSpd));
@@ -3812,7 +3882,7 @@ function updateBleDisplay(){
   set('ble-batt',bleLastBatt!=null?bleLastBatt+'%':'—');
   const ctr=document.getElementById('ble-poll-ctr');
   if(ctr){const age=(Date.now()-bleLastWu)/1000;ctr.textContent=bleLastWu?(age<3?'live':'signal lost ('+age.toFixed(0)+'s)'):'awaiting wind…';}
-  wavgRender();
+  wavgRender();calRender();
   // Live mode → push avg wind into the session (avg is stable; instant shown above)
   if(windMode==='live'||homeLive){
     // home-live uses the chosen source (avg/instant); wind-tab live uses avg

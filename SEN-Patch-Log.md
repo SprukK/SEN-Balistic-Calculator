@@ -7,6 +7,44 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.0.0 — major — SenBle device transport (CORE-07); any number of Calypsos at once; LAB-07 graduation checklist
+
+**Why major.** Architecture decision A-07 / CORE-07: all device I/O now goes through one transport layer. The single global Calypso connection is gone.
+
+**Problem.** Main could hold only one Calypso: one global device, one write characteristic, one keepalive timer and one parser. The second unit had been proven in the Lab, but couldn't run alongside the first in the calculator. CORE-17 stations need both.
+
+**Fix.**
+- **`SenBle`** (the only code that touches `navigator.bluetooth`):
+  - `connect` with 3 retries
+  - `chars`, with one retry when a service answers empty (Lab V1.3.1 finding)
+  - a per-device GATT queue `op`: one operation at a time per device, because Web Bluetooth rejects overlapping ones
+  - `write`, `notify`, optional `battery` (0x180F/0x2A19), and a disconnect callback
+  - FX chrono, rangefinders and the LoRa bridge will plug in here. A native wrapper would replace only this object.
+- **Calypso driver per unit**, each with its own:
+  - unlock code (own token first, then the fallback)
+  - handshake and 10 s keepalive
+  - `:WU` parser, battery and **wind-average buffer**
+- **`CALS`** lists connected units. The unit marked **"feeds session"** (radio button) supplies the session wind. The others stream and are shown live, ready for CORE-17. The session unit's values are mirrored into the existing globals, so Home, Wind, Solver and the averaging work exactly as before.
+- **Sensors card:**
+  - one row per unit: live dot, radio + name, instant wind, battery, Disconnect
+  - **+ Connect another Calypso**
+  - note on what "feeds session" means
+  - the existing Connect button connects the first unit, or disconnects the session unit
+  - a locked unit is listed as locked and gets no keepalive
+  - when the session unit drops, another live unit takes over
+- **Version strings.** The Settings-screen version note had been left at V1.31.1 since V1.32.0: it was bumped by line number and the lines had moved. Fixed, and now matched by content.
+
+**LAB-07.** `SEN-Lab-Graduation-Checklist.md` was added to Project knowledge. It covers: real-device proof, built on SenBle, honest data, tests (simulated device + full suite + the Lab's `maindatatest`), and code/release. Graduation: Calypso multi-unit (this release); on-device check with both units in Main still pending.
+
+**Files:**
+- `index.html`: `SenBle`; Calypso driver (`CALS`, `calAdd`, `calRemove`, `calOnDisconnect`, `calPacket`, `calypsoParse(s,d)`, `calypsoUnlock(d)`, `calSyncPrimary`, `calSetPrimary`, `calRender`); `wavgPush(…, buf)`; `wavgReset`; Sensors card markup and CSS; `isBleSup` removed; version strings.
+- `sw.js`: CACHE → `sen-ballistics-v2.0.0`.
+- New `tests/multicaltest.js` (15). `tests/windavgtest.js`: per-unit buffers replace the old reset-on-unit-switch. `tests/README.md`: twenty-two suites.
+
+**Verify:** `node --check` clean · `runtests.js` 93/93 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · `calypsotest.js` 18/18 · `windavgtest.js` 28/28 · `stabtest.js` 12/12 · `flighttest.js` 16/16 · `pressuretest.js` 12/12 · `truedroptest.js` 20/20 · **`multicaltest.js` 15/15** · Lab `maindatatest.js` 13/13 against this build · real Chromium at 412 / 780 px: Sensors with two units, no sideways scroll, no errors · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V2.0.0.html`. No dope change.
+
+---
+
 ## V1.34.0 — minor — True BC from impacts: several distances, one best-fit BC (CALC-04)
 
 **Why.** Truing option B (MV and BC together from drops at 2+ distances) was checked before building and dropped: MV and BC bend the trajectory almost the same way (correlation −0.99), so drops alone give MV only to ±2–5 m/s and BC to ±9–40 % (Queen, 280 m/s, ±½ click per reading, 30–300 m). The Garmin Xero measures MV to about ±0.3 m/s. Instead, option A now takes several distances with MV fixed from the chrono.
