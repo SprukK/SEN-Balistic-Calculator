@@ -104,7 +104,7 @@ chk('restart: chrono values kept',J(r,'APP.chrono.es')===5);
 
 // 9. Fold rail with a layout.
 const f=await open(NEW,w.localStorage.getItem(SK),[784,724]);
-const railIds=()=>[...$(f,'sol-rail').children].map(e=>e.id).filter(Boolean).join();
+const railIds=()=>[...$(f,'sol-rail').children].map(e=>e.id).filter(x=>x&&x!=='pane-sw').join();   // V2.7.0: the pane switch row is not a moved block
 chk('unfolded: rail holds solution, turret, conditions; turret stays hidden',railIds()==='rail-head,home-dash,home-turret-panel,home-cond'&&$(f,'home-turret-panel').classList.contains('mod-off'));
 f.eval('useLayout(APP.layouts[0].id)');await wait(30);
 chk('switching while unfolded: no duplicates, turret shown again in the rail',['home-dash','home-turret-panel','home-cond','home-windoff'].every(id=>f.document.querySelectorAll('#'+id).length===1)&&!$(f,'home-turret-panel').classList.contains('mod-off'));

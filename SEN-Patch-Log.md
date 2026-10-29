@@ -7,6 +7,33 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.7.0 — minor — Context-aware second pane on the unfolded screen (CORE-18)
+
+**Problem.** On the inner fold screen, the right pane always showed the solution rail, whatever the page. On the Design Bench, Stability or BC / Truing, the results sat below the inputs on the left while the rail took the other half. On Settings or Profiles the rail was just in the way. Wide desktop screens got a single column.
+
+**Fix.**
+- **Per-page second pane:**
+  - **Solution rail** (unchanged): Home, Trajectory, Solver, Wind, Dope, Holds.
+  - **The page's own results beside its inputs:**
+    - Design Bench: drawing, mass/SD/OAL/CG cards, flags;
+    - Stability: Sg cards and the twist recommender (the McGyro panel stays with its inputs);
+    - BC / Truing: truing result, BC/SD card, benchmark table.
+
+    The results pane takes half the screen (max 600 px) instead of the rail's 42 %.
+  - **Single wider column:** Profiles, Sensors, Layouts, Formulas, Settings.
+- **Switch:** pages with a choice get **Results | Solution** at the top of the pane. Single-column pages get a **◧ Solution** button above the bottom nav and, once the rail is on, **Hide | Solution**. The choice is remembered per page (`APP.panes`; unknown or garbage values fall back to the page default).
+- **Blocks are moved, never copied,** and go back to their exact place on every page change and on folding. All ids are unchanged, so every renderer keeps working. With "Solution" on, the rail stays live on that page.
+- **Where two panes apply:** the inner fold screen (both orientations), and wide screens at least 560 px tall (desktop, landscape tablet) with the same rules. Landscape phones stay single column, and the outer screen is unchanged. Settings shows the detected layout.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.7.0.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.7.0`), `tests/layouttest.js` (+18 CORE-18 checks), `tests/rendertest.js` (rail scroll check switches the Settings pane to Solution first), `tests/homelayouttest.js` (rail helper ignores the switch row), `tests/courserunnertest.js` and `tests/benchtest.js` (pinned to a phone window: jsdom's 1024 × 768 default is now a two-pane wide screen), `tests/README.md`, this log.
+
+**Verify.**
+- `layouttest.js` 36/36, `rendertest.js` 22/22 (real Chromium, independent rail scrolling via the new switch), all 28 suites green, Lab `maindatatest` 13/13.
+- Real Chromium on the inner screen in both orientations (780 × 880, 880 × 780): all 14 pages visited, pane content as designed, no sideways scroll, no errors.
+- Two layout issues were found and fixed in that run: the floating Solution button covered the version text, and the twist table was clipped in the narrower pane.
+
+---
+
 ## V2.6.1 — patch — Design Bench: dish cavity capped at a hemisphere; new Ball-end cavity
 
 **Problem (owner report).** A dish cavity was a spherical cap through the opening edge, with the depth free. Deeper than its opening radius, the sphere's centre moved inside the slug and the cavity bulged wider than its own opening: Ø 2.5 × 2.5 mm reached Ø 3.1 inside. That undercut can't be machined from the front, and the mass was wrong for the cavity that would actually be cut.

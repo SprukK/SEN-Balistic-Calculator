@@ -29,6 +29,8 @@ for(const [name,vp] of [['outer',OUTER],['inner',INNER]]){
     const sy=await p.evaluate(()=>scrollY),nav=await box(p,'.navbar');
     chk(tag+': page scrolls, bottom nav stays pinned to the screen bottom',sy>=700&&Math.abs(nav.bottom-vp.height)<=1&&nav.top>0,JSON.stringify({scrollY:sy,nav}));
     if(name==='inner'){
+      // V2.7.0 CORE-18: Settings is single column by default; switch its pane to the solution rail (the switch under test too)
+      await p.evaluate(()=>{setPaneMode('settings','rail');scrollTo(0,800);});await p.waitForTimeout(100);
       const rail=await box(p,'#sol-rail');
       const r=await p.evaluate(()=>{const e=document.getElementById('sol-rail');return{sh:e.scrollHeight,ch:e.clientHeight};});
       chk(tag+': rail fits the screen above the nav (not page-long)',rail.top===0&&rail.bottom<=nav.top+1&&r.ch<vp.height,JSON.stringify({rail,...r}));

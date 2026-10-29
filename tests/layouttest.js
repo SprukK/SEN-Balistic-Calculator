@@ -1,4 +1,4 @@
-// Layout test (V1.24.0, CORE-04): screen classification by shape, two-pane inner-screen layout
+// Layout test (V1.24.0, CORE-04; V2.7.0 CORE-18 per-page second pane): screen classification by shape, two-pane inner-screen layout
 // with the live solution rail (reticle + elevation/windage, turret panel, conditions), live
 // updates on other tabs, fold/unfold round trip restoring the exact original order, every tab
 // still navigable, Settings screen info.
@@ -25,7 +25,7 @@ async function open(screen){
 }
 const resize=async(w,screen,coarse)=>{setScreen(w,screen,coarse);w.dispatchEvent(new w.Event('resize'));await wait(200);};
 const homeOrder=w=>[...w.document.getElementById('page-home').children].map(e=>e.id||e.className).join(',');
-const railIds=w=>[...w.document.getElementById('sol-rail').children].map(e=>e.id).filter(Boolean).join(',');
+const railIds=w=>[...w.document.getElementById('sol-rail').children].map(e=>e.id).filter(x=>x&&x!=='pane-sw').join(',');   // V2.7.0: the pane switch row is not a moved block
 const isFold=w=>w.document.documentElement.classList.contains('fold');
 
 (async()=>{
@@ -65,6 +65,7 @@ w.eval("openMore()");const more=w.document.querySelectorAll('#sbox .navsheet but
 chk('all 14 tabs and the More sheet work with the rail',bad.length===0&&more===9,bad.join(','));
 
 // 6. Rotation keeps the layout; folding back restores the exact original order.
+w.eval("gotoPage('home')");   // V2.7.0: the solution rail is Home's pane (Settings is single column)
 await resize(w,INNER_ROT);
 chk('rotated inner screen stays two-pane',isFold(w)&&railIds(w)==='rail-head,home-dash,home-turret-panel,home-cond');
 await resize(w,OUTER);
@@ -81,6 +82,46 @@ chk('Settings shows screen size and detected layout',/784 × 724 CSS px · touch
 // 8. Booting directly on the inner screen.
 const w2=await open(INNER);
 chk('app opened unfolded starts in two-pane layout',isFold(w2)&&railIds(w2)==='rail-head,home-dash,home-turret-panel,home-cond');
+
+// 9. V2.7.0 CORE-18 — what the second pane shows depends on the page.
+const J2=e=>JSON.parse(w2.eval('JSON.stringify('+e+')'));
+const $w=id=>w2.document.getElementById(id),sw=()=>[...$w('pane-sw').querySelectorAll('button')].map(b=>b.textContent+(b.classList.contains('on')?'*':'')).join('|');
+const benchOrder=()=>[...$w('bn-form').children].map(e=>e.id||e.className).join(',');
+w2.eval("gotoPage('bench')");w2.eval("benchNew()");await wait(20);
+chk('Bench: pane shows the drawing + stats (Results · Design Bench), switch Results* | Solution',railIds(w2)==='rail-head,bn-out'&&/^Results · Design Bench$/.test($w('rail-head').textContent)&&sw()==='Results*|Solution'&&!!$w('sol-rail').querySelector('#bn-draw svg'),railIds(w2)+' · '+sw());
+chk('Bench: inputs stay in the left pane, Home blocks are back on Home',!!w2.document.querySelector('#page-bench #bn-diam')&&!!w2.document.querySelector('#page-home #home-dash'));
+w2.eval("gotoPage('stab')");
+chk('Stability: Sg results + twist table in the pane, McGyro panel left',railIds(w2)==='rail-head,st-out,st-twbox'&&!!w2.document.querySelector('#page-stab #st-mcg'));
+w2.eval("gotoPage('truing')");
+chk('BC / Truing: truing result, BC/SD card, benchmark table in the pane',railIds(w2)==='rail-head,tu-result,bc-out,bc-benchbox');
+w2.eval("gotoPage('bench')");[...$w('pane-sw').querySelectorAll('button')].find(b=>b.textContent==='Solution').click();await wait(20);
+chk('Bench → Solution: rail in the pane, results back in the Bench page in their exact place',railIds(w2)==='rail-head,home-dash,home-turret-panel,home-cond'&&benchOrder().startsWith('bn-out,')&&sw()==='Results|Solution*'&&J2('APP.panes.bench')==='rail',benchOrder());
+const wb=$w('home-wind').textContent;w2.eval("Bus.setWind(6,90,'manual')");await wait(30);
+chk('…and the rail stays live there (wind change → rail windage)',$w('home-wind').textContent!==wb);
+w2.eval("gotoPage('home');gotoPage('bench')");
+chk('the choice is remembered per page',railIds(w2)==='rail-head,home-dash,home-turret-panel,home-cond');
+[...$w('pane-sw').querySelectorAll('button')].find(b=>b.textContent==='Results').click();await wait(20);
+chk('back to Results',railIds(w2)==='rail-head,bn-out');
+w2.eval("gotoPage('settings')");
+chk('Settings: single column — pane hidden, "◧ Solution" button shown',w2.document.documentElement.classList.contains('pane-none')&&railIds(w2)==='rail-head'&&$w('pane-show').style.display==='');
+$w('pane-show').click();await wait(20);
+chk('◧ Solution → rail on Settings, switch Hide | Solution*',!w2.document.documentElement.classList.contains('pane-none')&&railIds(w2)==='rail-head,home-dash,home-turret-panel,home-cond'&&sw()==='Hide|Solution*'&&$w('pane-show').style.display==='none');
+[...$w('pane-sw').querySelectorAll('button')].find(b=>b.textContent==='Hide').click();await wait(20);
+chk('Hide → single column again',w2.document.documentElement.classList.contains('pane-none')&&railIds(w2)==='rail-head');
+w2.eval("gotoPage('wind')");
+chk('Wind: solution rail, no switch',railIds(w2)==='rail-head,home-dash,home-turret-panel,home-cond'&&sw()==='');
+w2.eval("APP.panes={bench:'evil',stab:{}};gotoPage('bench')");
+chk('unknown stored choice → the page default',railIds(w2)==='rail-head,bn-out');
+w2.eval("APP.panes='x';gotoPage('stab')");
+chk('garbage APP.panes → defaults, no error',railIds(w2)==='rail-head,st-out,st-twbox');
+let dup=['bn-out','st-out','st-twbox','tu-result','bc-out','bc-benchbox','home-dash','home-turret-panel','home-cond'].filter(id=>w2.document.querySelectorAll('#'+id).length!==1);
+chk('every moved block exists exactly once after all the switching',dup.length===0,dup.join(','));
+await resize(w2,OUTER);
+chk('fold on the Bench: phone layout, results back in the page, no markers, switch empty',!isFold(w2)&&railIds(w2)==='rail-head'&&benchOrder().startsWith('bn-out,')&&w2.document.querySelectorAll('[data-rail-home]').length===0&&sw()===''&&!w2.document.documentElement.classList.contains('pane-none'));
+await resize(w2,[1440,900],false);
+chk('desktop 1440 × 900 (on Stability): two panes, same per-page rules',isFold(w2)&&railIds(w2)==='rail-head,st-out,st-twbox'&&/wide \(two panes, per page\)/.test(w2.eval('screenInfo()')),[isFold(w2),railIds(w2),w2.eval('screenInfo()'),w2.eval('curPage()')].join(' · '));
+await resize(w2,[915,412],true);
+chk('landscape phone 915 × 412: single column',!isFold(w2)&&railIds(w2)==='rail-head'&&/wide \(single column\)/.test(w2.eval('screenInfo()')));
 
 const errs=[...w.errs,...w2.errs];
 chk('ZERO uncaught errors',errs.length===0,errs.slice(0,3).join(' / '));

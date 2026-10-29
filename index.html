@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.6.1</title>
+<title>SEN Ballistics V2.7.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -228,6 +228,15 @@ html.fold .navbar{position:fixed;left:0;right:0;bottom:0;background:rgba(10,11,1
   border-top:1px solid var(--border2);padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:4px}
 html.fold .navbar button{flex:1 1 0;flex-direction:column;min-height:50px;padding:9px 2px;font-size:10px;background:transparent;border-color:transparent}
 html.fold .navbar button.on{background:var(--bg3);border-color:var(--accent)}
+/* V2.7.0 CORE-18 — per-page second pane */
+.pane-sw{display:flex;gap:6px;margin-bottom:8px}.pane-sw:empty{display:none}
+.pane-sw .btn-xs.on{border-color:var(--accent);color:var(--accent)}
+html.fold.pane-none body{max-width:1000px;margin:0 auto;padding-right:14px}
+html.fold.pane-none #sol-rail{display:none}
+#pane-show{position:fixed;right:14px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:31}
+/* results beside inputs get half the screen (the rail keeps its narrower width) */
+html.fold.pane-page body{padding-right:calc(min(50vw,600px) + 18px)}
+html.fold.pane-page #sol-rail{width:min(50vw,600px)}
 /* CORE-16 layouts */
 .mod-off{display:none!important}
 #wt-body th{text-transform:none}
@@ -300,10 +309,10 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.6.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.7.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
-<aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
+<aside id="sol-rail" aria-label="Second pane"><div class="pane-sw" id="pane-sw"></div><div class="rail-head" id="rail-head">—</div></aside><button class="btn-xs" id="pane-show" style="display:none" onclick="setPaneMode(curPage(),'rail')">◧ Solution</button>
 <div class="flag warn" id="store-warn" role="alert" style="display:none;margin:8px 12px 0"></div>
 <div class="flag warn" id="fx-alarm" role="alert" style="display:none;margin:8px 12px 0;color:var(--red);border-color:var(--red)"></div>
 <div class="flag warn" id="ios-hint" style="display:none;margin:8px 12px 0">On iPhone, add SEN to your Home Screen (Share → Add to Home Screen). Safari deletes the data of websites that aren't installed after 7 days without use. <button class="btn-xs" onclick="dismissIosHint()">Got it</button></div>
@@ -555,7 +564,7 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="btnrow"><button class="btn" onclick="tdAddRow()">+ Add distance</button><button class="btn primary" onclick="tdSolve()">True BC from impacts</button></div>
     <div id="td-result"></div>
   </div>
-  <div class="outcard">
+  <div class="outcard" id="bc-out">
     <div class="ot"><span>BC / SD · <span id="bc-name">—</span></span><span id="bc-type-lbl"></span></div>
     <div class="scs" id="bc-outs"><div class="sc"><div class="sv" style="font-size:14px;color:var(--text3)">Select a projectile or enter geometry</div></div></div>
     <div id="bc-flags"></div>
@@ -573,7 +582,7 @@ details.disc .dbody{padding:0 14px 14px}
     </div>
     <div class="note">§9H: SD = mass_gr / (7000 · d_in²), no π/4 · BC G7 [kg/m²] = lb/in² × 703.07 · BC G1 ≈ BC G7 / 0.509 (Litz estimate)</div>
   </div>
-  <div class="tablebox"><div class="ct">vs Altaros Queen .25 benchmark (BC G7 0.128 lb/in² · 90.0 kg/m² · SD 0.137)</div><table><thead><tr><th>Metric</th><th>This</th><th>Queen</th><th>Δ %</th></tr></thead><tbody id="bc-bench"></tbody></table></div>
+  <div class="tablebox" id="bc-benchbox"><div class="ct">vs Altaros Queen .25 benchmark (BC G7 0.128 lb/in² · 90.0 kg/m² · SD 0.137)</div><table><thead><tr><th>Metric</th><th>This</th><th>Queen</th><th>Δ %</th></tr></thead><tbody id="bc-bench"></tbody></table></div>
   <div class="panel" id="mvt-panel">
     <div class="ph"><h2>MV vs temperature · E2</h2><span class="psub">per-rifle regulator temperature model</span></div>
     <div class="note" id="mvt-rifle-note"></div>
@@ -607,7 +616,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <!-- ═══════════ STABILITY (A2) ═══════════ -->
 <div class="page" id="page-stab">
-  <div class="outcard">
+  <div class="outcard" id="st-out">
     <div class="ot"><span>Gyroscopic stability · <span id="st-name">—</span></span><span id="st-cmode"></span></div>
     <div class="scs" id="st-outs"><div class="sc"><div class="sv" style="font-size:14px;color:var(--text3)">Select rifle + projectile</div></div></div>
     <div style="margin-top:10px;height:8px;background:var(--bg4);border-radius:4px;overflow:hidden"><div id="st-sgbar" style="height:100%;width:0;transition:width .3s"></div></div>
@@ -630,7 +639,7 @@ details.disc .dbody{padding:0 14px 14px}
     </div>
     <div class="note">Miller twist rule — the formula behind Berger's twist-rate calculator (matches it: Queen 1.18, King 1.07/1.48/1.67). Fitted on rifle bullets; not validated for airgun hollow points or below L/D 2.0. Pellets are drag-stabilised (no Sg). Worst-case column uses <span data-uv="temp|-5">−5°C</span> · <span data-uv="pres|1013">1013 hPa</span> · <span data-uv="vel|229">229 m/s</span> (global barrel spec).</div>
   </div>
-  <div class="tablebox"><div class="ct">Twist recommender · min twist for Sg target at global worst-case</div><table><thead><tr><th>Sg target</th><th>Min twist (in)</th><th>= mm</th><th>This barrel</th></tr></thead><tbody id="st-twist-tbl"></tbody></table></div>
+  <div class="tablebox" id="st-twbox"><div class="ct">Twist recommender · min twist for Sg target at global worst-case</div><table><thead><tr><th>Sg target</th><th>Min twist (in)</th><th>= mm</th><th>This barrel</th></tr></thead><tbody id="st-twist-tbl"></tbody></table></div>
   <div class="panel" id="st-mcg">
     <h2>McGyro · McCoy 1986 <span class="note" style="font-weight:400">estimate · compare with Miller</span></h2>
     <div class="projdia" data-dia="nose,rtr,mep,base"></div>
@@ -656,7 +665,7 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="note" id="bn-empty">No design yet. A design is a planned or measured shape: geometry → mass, SD and centre of gravity. Designs stay on the Bench — they are never used by the calculator (§10A).</div>
   </div>
   <div id="bn-form">
-  <div class="outcard">
+  <div class="outcard" id="bn-out">
     <div class="bndraw" id="bn-draw"></div>
     <div class="scs" id="bn-outs"></div>
     <div id="bn-flags"></div>
@@ -915,7 +924,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.6.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.7.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1275,6 +1284,7 @@ function benchRender(){
   const opt=(v,t)=>{const o=document.createElement('option');o.value=v;o.textContent=t;return o;};
   sel.replaceChildren(...(DB.designs.length?DB.designs.map(x=>opt(x.id,x.name)):[opt('','— no design yet —')]));if(d)sel.value=d.id;
   document.getElementById('bn-form').style.display=d?'':'none';
+  document.getElementById('bn-out').style.display=d?'':'none';   // may sit in the second pane (CORE-18)
   ['bn-ren','bn-dup','bn-del'].forEach(id=>{document.getElementById(id).disabled=!d;});
   if(!d){document.getElementById('bn-empty').style.display='';return;}
   document.getElementById('bn-empty').style.display='none';
@@ -2760,6 +2770,7 @@ function gotoPage(p){
   if(more)more.classList.toggle('on',MORE_PAGES.some(m=>m[0]===p));
   window.scrollTo(0,0);
   pg.classList.add('active');
+  if(twoPane)applyPane(p);   // V2.7.0 CORE-18
   if(p==='profiles'){renderProfiles();setProfSub(profSub);}
   if(p==='settings')renderSettings();
   if(p==='bench')benchRender();
@@ -3363,7 +3374,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.6.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.7.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3939,7 +3950,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.6.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.7.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4757,28 +4768,57 @@ function layoutMode(w,h,coarse){
   return coarse&&r>=0.8&&r<=1.25?'inner':'wide';
 }
 const isCoarse=()=>window.matchMedia?matchMedia('(pointer: coarse)').matches:('ontouchstart' in window);
-function moveToRail(){
+/* ═════════ CORE-18 (V2.7.0) — CONTEXT-AWARE SECOND PANE ═════════
+   Two panes on the inner fold screen and on wide screens at least 560 px tall (landscape phones stay
+   single column). What the right pane shows depends on the page:
+     rail  — the live solution (reticle + dial, turret, conditions): Home, Trajectory, Solver, Wind, Dope, Holds
+     page  — the page's own results beside its inputs: Design Bench, Stability, BC / Truing
+     none  — one wider column: Profiles, Sensors, Layouts, Formulas, Settings
+   Pages with a choice get a switch at the top of the pane (Results ↔ Solution, or Hide ↔ Solution via a
+   button at the top right); the choice is remembered per page (APP.panes). Blocks are MOVED, never copied
+   (ids unchanged, every renderer keeps working), and go back to their exact place on every page change. */
+const PANE_RAIL=['home','traj','solver','wind','dope','holds'];
+const PANE_PAGE={bench:['bn-out'],stab:['st-out','st-twbox'],truing:['tu-result','bc-out','bc-benchbox']};
+const PANE_LABEL={page:'Results',rail:'Solution',none:'Hide'};
+let twoPane=false,paneShown=null;     // paneShown: 'rail' | 'page' | 'none' while two panes are on, else null
+const paneModes=p=>PANE_RAIL.includes(p)?['rail']:PANE_PAGE[p]?['page','rail']:['none','rail'];
+function paneMode(p){const m=paneModes(p),c=APP.panes&&typeof APP.panes==='object'?APP.panes[p]:null;return m.includes(c)?c:m[0];}
+const curPage=()=>(document.querySelector('.page.active')||{id:'page-home'}).id.replace('page-','');
+function paneIn(ids){
   const rail=document.getElementById('sol-rail');
-  RAIL_BLOCKS.forEach(id=>{const el=document.getElementById(id);if(!el||el.parentNode===rail)return;
+  ids.forEach(id=>{const el=document.getElementById(id);if(!el||el.parentNode===rail)return;
     const mark=document.createElement('span');mark.hidden=true;mark.dataset.railHome=id;el.before(mark);rail.appendChild(el);});
 }
-function moveFromRail(){
-  RAIL_BLOCKS.forEach(id=>{const el=document.getElementById(id),mark=document.querySelector('[data-rail-home="'+id+'"]');
-    if(el&&mark){mark.replaceWith(el);}});
+function paneOut(){
+  document.querySelectorAll('[data-rail-home]').forEach(mark=>{const el=document.getElementById(mark.dataset.railHome);if(el)mark.replaceWith(el);else mark.remove();});
 }
-const screenInfo=()=>`Screen ${window.innerWidth} × ${window.innerHeight} CSS px · ${isCoarse()?'touch':'mouse'} · layout: ${({phone:'phone (single column)',inner:'fold inner screen (two panes + live solution rail)',wide:'wide'})[layout]}`;
+function applyPane(p){
+  paneOut();
+  const m=twoPane?paneMode(p):null;paneShown=m;
+  document.documentElement.classList.toggle('pane-none',m==='none');
+  document.documentElement.classList.toggle('pane-page',m==='page');
+  if(m==='rail')paneIn(RAIL_BLOCKS);else if(m==='page')paneIn(PANE_PAGE[p]);
+  const sw=document.getElementById('pane-sw'),show=document.getElementById('pane-show');
+  if(sw){const modes=paneModes(p);sw.replaceChildren(...(m&&modes.length>1?modes.map(x=>{const b=document.createElement('button');b.className='btn-xs'+(x===m?' on':'');b.textContent=PANE_LABEL[x];b.setAttribute('aria-pressed',String(x===m));b.onclick=()=>setPaneMode(p,x);return b;}):[]));}
+  if(show)show.style.display=m==='none'?'':'none';
+  renderRailHead();
+  if(m==='rail')renderQuick();
+}
+function setPaneMode(p,m){if(!paneModes(p).includes(m))return;APP.panes={...(APP.panes&&typeof APP.panes==='object'?APP.panes:{}),[p]:m};saveDB();applyPane(p);}
+const screenInfo=()=>`Screen ${window.innerWidth} × ${window.innerHeight} CSS px · ${isCoarse()?'touch':'mouse'} · layout: ${({phone:'phone (single column)',inner:'fold inner screen (two panes, per page)',wide:twoPane?'wide (two panes, per page)':'wide (single column)'})[layout]}`;
 function applyLayout(){
-  const mode=layoutMode(window.innerWidth,window.innerHeight,isCoarse());
+  const mode=layoutMode(window.innerWidth,window.innerHeight,isCoarse()),two=mode==='inner'||(mode==='wide'&&window.innerHeight>=560);
   const info=()=>{const el=document.getElementById('screen-info');if(el)el.textContent=screenInfo();};
-  if(mode===layout){info();return;}
-  layout=mode;
-  document.documentElement.classList.toggle('fold',mode==='inner');
-  mode==='inner'?moveToRail():moveFromRail();
+  if(mode===layout&&two===twoPane){info();return;}
+  layout=mode;twoPane=two;
+  document.documentElement.classList.toggle('fold',two);
+  applyPane(curPage());
   info();renderQuick();
 }
-const homeVisible=()=>layout==='inner'||document.getElementById('page-home').classList.contains('active');
+const homeVisible=()=>paneShown==='rail'||document.getElementById('page-home').classList.contains('active');
 function renderRailHead(){
-  const h=document.getElementById('rail-head');if(!h||layout!=='inner')return;
+  const h=document.getElementById('rail-head');if(!h||!twoPane)return;
+  if(paneShown==='page'){const pg=curPage(),mp=MORE_PAGES.find(x=>x[0]===pg);h.textContent='Results · '+(mp?mp[1]:pg);return;}
   const p=getProj();h.textContent='Solution · '+uq('range',S.dist_m)+(p?' · '+p.name:'');
 }
 
