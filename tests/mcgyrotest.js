@@ -52,15 +52,24 @@ chk('import keeps the shape fields through the whitelist, drops unknown keys',pi
 w.eval(`Bus.setRifle(DB.rifles.find(x=>/\\.25/.test(x.name)).id);Bus.setProj(DB.projectiles.find(p=>p.name==='Test slug A').id);Bus.setWx('cur',DB.weathers[0].id);S.mv=274;gotoPage('stab');stabFromActive()`);await wait(20);
 const card=i=>[...$('st-mcg-outs').children][i];
 const tC=+$('st-temp').value,mv=+$('st-mv').value,twIn=+$('st-twist').value;
-const exp=J(`(()=>{const M=${mv}/sos(${tC});return mcgyro(12.9/6.35,3.2/6.35,1,1,0,11.34,${twIn}/(6.35/25.4),M)})()`);
+const hPa=+$('st-pres').value,SH='{L:12.9/6.35,Ln:3.2/6.35,rtr:1,db:1,dm:0,rho:11.34}',TW=`${twIn}/(6.35/25.4)`;
+const std=J(`(()=>{const M=${mv}/sos(15);return mcgyro(12.9/6.35,3.2/6.35,1,1,0,11.34,${TW},M)})()`);
+// "your air", computed here from the raw port: Sg × ρ_std/ρ with Mach at the local speed of sound (dry air)
+const air=J(`(()=>{const M=${mv}/sos(${tC}),r=mcgyro(12.9/6.35,3.2/6.35,1,1,0,11.34,${TW},M),k=airDensity(15,1013.25,0)/airDensity(${tC},${hPa},0);return{sg:r.sg*k,n15:r.n15*Math.sqrt(k)}})()`);
+const exp=std;
 chk('Get from active fills nose / Rt/R / meplat / base / density',+$('st-nose').value===3.2&&+$('st-rtr').value===1&&+$('st-mep').value===0&&+$('st-base').value===6.35&&+$('st-dens').value===11.34);
-chk('McGyro Sg card = port at the launch Mach (MV / speed of sound)',card(0)&&card(0).querySelector('.sv').textContent===exp.sg.toFixed(2)&&/Mach 0\.\d\d/.test(card(0).textContent),card(0)&&card(0).textContent);
+chk('McGyro, standard air = raw port at Mach MV / speed of sound at 15 °C',card(0)&&card(0).querySelector('.sv').textContent===std.sg.toFixed(2)&&/15 °C · 1013 hPa · M 0\.\d\d/.test(card(0).textContent),card(0)&&card(0).textContent);
+chk('McGyro, your air = raw port × ρ_std/ρ at the local Mach (Kolbe-confirmed scaling)',card(2)&&card(2).querySelector('.sv').textContent===air.sg.toFixed(2)&&/McGyro, your air/.test(card(2).textContent),card(2)&&card(2).textContent);
 const milStd=J(`calcSg(60,6.35,12.9,${twIn}*25.4,${mv},millerC(6.35,12.9).c,15,1013.25)`);
 chk('Miller shown at standard air (15 °C, 1013 hPa) for a like-for-like comparison',card(1).querySelector('.sv').textContent===milStd.toFixed(2),card(1).textContent);
-chk('McGyro twists for Sg 1.5 and 1.7',card(2).querySelector('.sv').textContent==='1:'+(exp.n15*0.25).toFixed(1)+'″'&&card(3).querySelector('.sv').textContent==='1:'+(exp.n15*Math.sqrt(1.5/1.7)*0.25).toFixed(1)+'″');
+chk('McGyro twists for Sg 1.5 and 1.7 at your air',card(3).querySelector('.sv').textContent==='1:'+(air.n15*0.25).toFixed(1)+'″'&&card(4).querySelector('.sv').textContent==='1:'+(air.n15*Math.sqrt(1.5/1.7)*0.25).toFixed(1)+'″');
 const fl=txt('st-mcg-flags'),dis=Math.abs(exp.sg-milStd)/milStd>0.15&&Math.min(exp.sg,milStd)<1.5;
 chk('disagreement verdict matches the numbers ('+exp.sg.toFixed(2)+' vs '+milStd.toFixed(2)+')',dis?/Range-test candidate/.test(fl):/not a deciding test/.test(fl),fl);
-chk('estimate + reference-atmosphere caveat always shown',/Estimate \(McCoy ±5 %\)/.test(fl)&&/Reference atmosphere/.test(fl));
+chk('estimate + standard-air / Kolbe note always shown',/Estimate \(McCoy ±5 %\)/.test(fl)&&/Standard air = 15 °C, 1013 hPa, dry/.test(fl)&&/Kolbe/.test(fl));
+// Kolbe cross-check (owner's runs, graph readings ±0.02): 59 °F and 86 °F, 29.92 inHg, dry, 1:20″
+const K=(fps,tc)=>J(`mcgyroAir(MCG_KOLBE,80,${fps}*0.3048,${tc},1013.25,0).sg`);
+chk('Kolbe 59 °F: 560/1000/1250/2000/4000 fps ≈ 1.76/1.43/1.93/2.02/2.12',[[560,1.76],[1000,1.43],[1250,1.93],[2000,2.02],[4000,2.12]].every(([v,k])=>Math.abs(K(v,15)-k)<=0.02),[560,1000,1250,2000,4000].map(v=>K(v,15).toFixed(3)).join(' '));
+chk('Kolbe 86 °F: 560/1000/1250/2000/4000 fps ≈ 1.86/1.55/2.03/2.12/2.22 (density-scaled; unscaled would miss by ~5 %)',[[560,1.86],[1000,1.55],[1250,2.03],[2000,2.12],[4000,2.22]].every(([v,k])=>Math.abs(K(v,30)-k)<=0.02)&&Math.abs(J(`mcgyro(2.03,0.5,1,1,0,11.34,80,2000*0.3048/sos(30)).sg`)-2.12)>0.08,[560,1000,1250,2000,4000].map(v=>K(v,30).toFixed(3)).join(' '));
 const sgBefore=J('homeTraj().sg');
 chk('Stability tab Miller result unchanged by the McGyro panel (st-outs still Miller)',/Miller C = /.test(txt('st-cmode')));
 $('st-mv').value='340';w.eval('calcStab()');
@@ -73,6 +82,17 @@ w.eval(`UNITS.bullet='in';refreshUnits();stabFromActive()`);
 chk('shape lengths follow the Settings unit (3.2 mm → 0.126 in shown)',Math.abs(+w.eval(`NATIVE_VALUE.get.call(document.getElementById('st-nose'))`)-0.126)<0.001&&+$('st-nose').value===3.2);
 w.eval(`UNITS.bullet='mm';refreshUnits()`);
 chk('Home still uses Miller (session Sg unchanged by shape fields)',J('homeTraj().sg')===sgBefore&&Math.abs(sgBefore-J(`calcSg(60,6.35,12.9,DB.rifles.find(x=>/\\.25/.test(x.name)).twist,S.mv,millerC(6.35,12.9).c,${tC},+document.getElementById('st-pres').value)`))<0.05,String(sgBefore));
+// Dimension drawings wherever projectile dimensions are entered.
+const dia=sel=>{const h=w.document.querySelector(sel);const s=h&&h.querySelector('svg');return s?[...s.querySelectorAll('g[data-f]')].map(g=>[g.getAttribute('data-f'),g.getAttribute('opacity'),g.textContent]):null;};
+const on=d=>d.filter(x=>x[1]==='1').map(x=>x[0]).sort().join(',');
+chk('BC tab geometry: drawing with Diameter + Length highlighted',(d=>d&&on(d)==='diam,oal'&&d.length===6)(dia('#page-truing .projdia')),JSON.stringify(dia('#page-truing .projdia')));
+chk('Stability inputs: drawing with Diameter + Length highlighted',(d=>d&&on(d)==='diam,oal')(dia('#page-stab .panel .projdia')));
+chk('McGyro panel: drawing with nose length, Rt/R, meplat, base highlighted',(d=>d&&on(d)==='base,mep,nose,rtr')(dia('#st-mcg .projdia')),JSON.stringify(dia('#st-mcg .projdia')));
+w.eval(`openProjForm(DB.projectiles[0].id)`);
+const pfd=dia('#mbox .projdia');
+chk('projectile form: drawing with all six fields highlighted and labelled',pfd&&pfd.length===6&&pfd.every(x=>x[1]==='1')&&['Diameter','Length (OAL)','Nose length','Meplat Ø','Base Ø','Nose shape Rt/R'].every(l=>pfd.some(x=>x[2].startsWith(l))),JSON.stringify(pfd));
+chk('drawings are built as SVG elements (no HTML strings)',!/<svg/.test(w.eval(`openProjForm.toString()`))&&w.document.querySelector('#mbox .projdia svg').namespaceURI==='http://www.w3.org/2000/svg');
+w.eval('closeModal()');
 chk('no uncaught errors',w.errs.length===0,w.errs.join(' | '));
 console.log('\nPASS '+pass+'   FAIL '+fail);
 process.exit(fail?1:0);

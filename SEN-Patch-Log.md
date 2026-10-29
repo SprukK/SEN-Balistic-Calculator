@@ -7,7 +7,7 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
-## V2.5.0 — minor — McGyro stability next to Miller (BENCH-03 step 2); range test sheet
+## V2.5.0 — minor — McGyro stability next to Miller (BENCH-03 step 2); dimension drawings; range test sheet
 
 **Problem.** The app's only stability model is Miller (Berger's calculator), fitted on supersonic rifle bullets. Its velocity factor (V/2800)^⅓ is the least certain part for subsonic airgun slugs, and nothing in the app could check it.
 
@@ -17,25 +17,34 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
   - Output: N15 (the twist for Sg 1.5) and Sg = 1.5·(N15/twist)². Subsonic, transonic and supersonic fits are ported as written.
 - **Projectile profile:** optional "Shape for McGyro" fields: nose length, Rt/R, meplat Ø, base Ø, density (empty = lead 11.34). Lengths follow the Settings unit, the import whitelist carries them, and profiles without them are unchanged.
 - **Stability tab, new McGyro panel:**
-  - McGyro Sg at the launch Mach (MV / speed of sound);
-  - Miller at standard air (15 °C / 1013.25 hPa, its own reference) for a like-for-like comparison;
-  - McGyro twist for Sg 1.5 and 1.7;
+  - McGyro at **standard air** (15 °C, 1013.25 hPa, dry) next to Miller at standard air, like for like;
+  - McGyro at **your air**: Sg × ρ_std/ρ, with Mach at the local speed of sound;
+  - McGyro twist for Sg 1.5 and 1.7 at your air;
   - a **range-test candidate** flag when the models differ by more than 15 % and either is below 1.5;
   - guidance for pellets, a missing shape or Mach above 0.95.
 
   The panel is text only.
 - **Home and the BC penalty still use Miller.** Whether to switch is the owner's decision after range tests.
+- **Dimension drawings:** wherever projectile dimensions are entered, a side-view drawing with a callout per field: Diameter, Length (OAL), Nose length, Nose shape Rt/R, Meplat Ø, Base Ø. The screen's own fields are highlighted, the others faded.
+  - projectile form: all six;
+  - BC tab and Stability inputs: diameter + length;
+  - McGyro panel: nose, Rt/R, meplat, base.
+
+  Built as SVG with createElementNS and no HTML strings. (Requested by the owner with a reference drawing; the drawing is original.)
 - **`SEN-Stability-Range-Test-Sheet-V1.md`** (Project knowledge): measuring slugs, hole shape at 10/25/50 m, groups, LabRadar BC, a results table, and the decision rules.
 
 **§20A.** McCoy's BASIC was run **unchanged** in pcbasic 2.0.8 over 40 shapes × 22 launch Mach numbers.
 - **The port:** reproduces all **880** printed rows within print resolution (worst 0.0050); 879/880 print identically, and the one difference is single-precision rounding at the third decimal.
 - **Separate check:** an independent Python port matched before the app code was written.
 - **Where the anchors live:** the Formulas page, with McGyro flagged EST (now five estimates); `runtests.js` (+4); and `tests/mcgyro-fixture.json`, which holds the program's outputs, not its source.
-- **Open:** McGyro has no air-density input and its reference atmosphere isn't stated in the source. To be pinned down by checking against Geoffrey Kolbe's McGyro-based calculator.
+- **Reference air (not stated by McCoy), pinned down against Geoffrey Kolbe's independent McGyro implementation (Perl v1.1):** the owner ran the Kolbe check shape (0.250″ × 0.508″, 0.125″ round nose, flat base, lead, 1:20″) at 59 °F and 86 °F, 29.92 inHg, sea level, 0 % RH.
+  - At **59 °F** Kolbe's curves equal raw McGyro: 560 / 1000 / 1250 / 2000 / 4000 fps → 1.76 / 1.43 / 1.93 / 2.02 / 2.12, the port within 0.01.
+  - At **86 °F** they equal raw McGyro × ρ_std/ρ: 1.86 / 1.55 / 2.03 / 2.12 / 2.22. Unscaled would be about 5 % low.
+  - So the reference is standard sea-level air, and other air scales by density. Both runs are anchors on the Formulas page and in `mcgyrotest.js`.
 
 **Illustrative only (assumed .25 round-nose solid shape, not a measured slug):** at Mach 0.8, 1:20″, McGyro gives Sg 1.55 against Miller's 1.18 at standard air (+31 %).
 
-**Files:** `index.html` (`mcgyro`, `mcgyroShape`, `LEAD_GCC`, projectile form/save/validation/import, Stability-tab McGyro panel + `renderMcGyro`, unit classes, FORMULAS entry; 5 live version strings) · `sw.js` CACHE → `sen-ballistics-v2.5.0` · new `tests/mcgyrotest.js` (22) + `tests/mcgyro-fixture.json` · `tests/runtests.js` (112) · `tests/formulatest.js` (five EST) · `tests/README.md` (twenty-seven suites).
+**Files:** `index.html` (`mcgyro`, `mcgyroShape`, `mcgyroAir`, `LEAD_GCC`, projectile form/save/validation/import, Stability-tab McGyro panel + `renderMcGyro`, `projDiagram`/`mountProjDiagrams` + four drawing hosts, unit classes, FORMULAS entry with Kolbe anchors; 5 live version strings) · `sw.js` CACHE → `sen-ballistics-v2.5.0` · new `tests/mcgyrotest.js` (30) + `tests/mcgyro-fixture.json` · `tests/runtests.js` (112) · `tests/formulatest.js` (five EST) · `tests/README.md` (twenty-seven suites).
 
 **Verify:** all 27 suites green, Lab maindatatest 13/13, real Chromium at 412/780 px clean.
 
