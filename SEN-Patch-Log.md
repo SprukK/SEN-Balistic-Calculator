@@ -7,6 +7,32 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.3.0 — minor — Wind as its own Home module: the lane, each station's wind and its share of the drift (CORE-17 step 3)
+
+**Problem.** Since V2.2.0 Home used every placed station, but the only signs of it were "N stations · blend" in the conditions box and the rows on the Sensors page. There was no Home module for wind that could be placed in a layout.
+
+**Fix.** A new Home module, **Wind along the lane (stations)**. Turn it on and position it per layout under More › Layouts:
+- **Lane, seen from above.** You on the left, the target on the right with its distance, and each live station at its placed position with an arrow showing where the wind blows. Stations that are placed but not live show as hollow circles. With no station field, one arrow shows the session wind.
+- **One row per station.** Name and distance down the line, crosswind (R/L), head/tail, and the station's **share of the drift** at the target. The shares are exact: drift is linear in the crosswind field and nearest/blend interpolation is linear in the station values, so each station's own field gives its part and the parts add up to the total. A % of the total is shown only when every share pushes the same way.
+- **Windage row.** The same clicks as Home. The note gives the drift baked into the zero that windage subtracts.
+- **Without stations.** One "Whole flight" row for the single session wind (manual, same as zero, or the session unit), with the reason from the Sensors page.
+- Off in every template and every stored layout, so no Home changes until you turn it on. Units follow Settings. Built with createElement/textContent and SVG via createElementNS — no HTML sinks.
+
+**Tests.** New `windmodtest.js` (19):
+- single wind matches `solveShot`;
+- two simulated Calypsos give shares that add up to the field's drift exactly (1e-9), with that drift equal to `solveShot` given a `windField` built in the test;
+- the windage row equals Home;
+- the lane geometry is right: a station left of the line is drawn above it;
+- nearest mode, mph/inches, names rendered as text, and the fallback to a single wind when one unit drops.
+
+`homelayouttest.js`: the normalised-layout check now expects 14 modules (one added on purpose).
+
+**Files:** `index.html` (module markup, `HOME_MODS.wind`, `renderWindMod`, `windShares`, `drawWindLane`, `stnSummary` factored out of `stnLive`; 5 live version strings) · `sw.js` CACHE → `sen-ballistics-v2.3.0` · new `tests/windmodtest.js` · `tests/homelayouttest.js` (13 → 14 modules) · `tests/README.md` (twenty-five suites).
+
+**Verify:** all 25 suites green (runtests 108), Lab maindatatest 13/13, real Chromium at 412/780 px with no sideways scroll and no errors.
+
+---
+
 ## V2.2.0 — minor — Wind stations: place each Calypso along the lane, Home uses all of them (CORE-17 step 2)
 
 **Problem.** Two Calypsos streamed together since V2.0.0 and the solver could take wind that changes along the flight since V2.1.0, but the app didn't know where the units stood, so only the "feeds session" unit counted.

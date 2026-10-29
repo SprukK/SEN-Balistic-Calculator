@@ -119,7 +119,7 @@ w.eval(`activeLayout().name='<img src=x id=pwn>';applyHomeLayout();gotoPage('lay
 chk('layout names are text, never HTML',!w.document.getElementById('pwn')&&/<img/.test(txt(w,'home-layout-name')));
 w.eval('closeSheet()');
 const g=J(w,`normLayout({id:5,name:'x'.repeat(99),mods:[{id:'evil'},{id:'chrono',on:1},{id:'chrono',on:0},null],set:{dist:-3,timerMin:'a',shots:1e9}})`);
-chk('garbage layout normalised (known modules once each, sane settings)',g.mods.length===13&&g.mods[0].id==='chrono'&&g.mods[0].on===true&&g.name.length===40&&g.set.dist===null&&g.set.timerMin===20&&g.set.shots===999&&typeof g.id==='string');
+chk('garbage layout normalised (known modules once each, sane settings)',g.mods.length===14&&g.mods[0].id==='chrono'&&g.mods[0].on===true&&g.name.length===40&&g.set.dist===null&&g.set.timerMin===20&&g.set.shots===999&&typeof g.id==='string');
 
 const errs=all.flatMap(x=>x.errs);
 chk('ZERO uncaught errors',errs.length===0,errs.slice(0,3).join(' / '));

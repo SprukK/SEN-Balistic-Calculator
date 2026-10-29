@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.2.0</title>
+<title>SEN Ballistics V2.3.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -298,7 +298,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.2.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.3.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -410,6 +410,12 @@ details.disc .dbody{padding:0 14px 14px}
   <div class="panel mod-off" id="home-windoff">
     <h2>Wind offset now · <span id="wo-dist">—</span></h2>
     <div class="dsol-v" id="wo-clk" style="color:var(--gold)">—</div><div class="note" id="wo-mm" style="margin-top:2px">—</div>
+  </div>
+  <div class="panel mod-off" id="home-windmod">
+    <h2>Wind · <span id="wm-src">—</span></h2>
+    <svg id="wm-lane" viewBox="0 0 320 120" style="width:100%;max-width:440px;height:auto;display:block;margin:0 auto" role="img" aria-label="Lane seen from above: you on the left, the target on the right, wind arrows at each station"></svg>
+    <div class="tablebox" style="margin:6px 0 0"><table><thead><tr><th>Station</th><th>Cross <span data-ul="wind"></span></th><th>Head/tail</th><th>Drift <span data-ul="drop"></span></th></tr></thead><tbody id="wm-body"></tbody></table></div>
+    <div class="note" id="wm-note" style="margin-top:4px">—</div>
   </div>
   <div class="panel mod-off" id="home-windtable">
     <h2>Wind offset · full-value crosswind · <span id="wt-dist">—</span></h2>
@@ -839,7 +845,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.2.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.3.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -2994,7 +3000,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.2.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.3.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3557,7 +3563,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.2.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.3.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3979,6 +3985,7 @@ const HOME_MODS={
   rail:{el:'home-rail-panel',name:'Adjustable rail budget'},
   turret:{el:'home-turret-panel',name:'Turret dialled'},
   live:{el:'home-livebar',name:'Calypso live wind'},
+  wind:{el:'home-windmod',name:'Wind along the lane (stations)'},   // V2.3.0 CORE-17 step 3
   bearing:{el:'home-tgt',name:'Target bearing'},
   manwind:{el:'home-manwind',name:'Manual wind (compass)'},
   cond:{el:'home-cond',name:'Conditions strip'},
@@ -4070,6 +4077,7 @@ function renderHomeMods(tr){
   }
   if(on('timer'))renderTimer();
   if(on('course'))renderCourse(tr);
+  if(on('wind'))renderWindMod(tr);
 }
 /* MV spread → vertical spread at a fixed launch angle: Δy ≈ g·t²·ΔV/V₀ (small ΔV; t = time of
    flight). EST approximation — reproduced against py-ballisticcalc fixed-angle runs (Queen G7
@@ -4650,11 +4658,83 @@ function stnLive(){
   st.rows.forEach(q=>{const e=document.querySelector('[data-stn="'+q.t.id+'"]');if(!e)return;
     e.textContent=q.why?'— '+q.why:ut('wind',q.s)+' from '+Math.round(q.d)+'° on its mark → '+Math.round(q.rel)+'° to the line · cross '+ut('wind',Math.abs(q.cross))+
       (Math.abs(q.cross)<0.05?'':q.cross>0?' from the right':' from the left')+' · '+(Math.abs(q.head)<0.05?'no head/tail':(q.head>0?'tail ':'head ')+ut('wind',Math.abs(q.head)))+' · at '+ut('range',q.x)+' down the line';});
-  sum.textContent=!st.range?'Create a range, then add a station for each Calypso.'
+  sum.textContent=stnSummary(st);
+}
+function stnSummary(st){
+  return!st.range?'Create a range, then add a station for each Calypso.'
     :st.live.length+' of '+st.rows.length+' stations live. '+(APP.windStations===false?'Home uses the session unit only.'
     :st.live.length<2?'Needs two live stations — until then Home uses the session unit, as before.'
     :S.wind.source!=='calypso'?'Turn live wind on (Home) to use them.'
     :'Home uses all '+st.live.length+' along the flight to '+ut('range',S.dist_m)+' ('+st.range.mode+').');
+}
+/* ═════ CORE-17 step 3 (V2.3.0) — the wind as a Home module ═════
+   Top-down lane (you left, target right, stations at their placed position, arrows where the wind
+   blows to) and one row per station: crosswind, head/tail and its share of the drift at the target.
+   Shares are exact: drift is linear in the crosswind field and nearest/blend interpolation is linear
+   in the station values, so the field splits into one field per station (that station's crosswind,
+   the others 0) and their drifts add up to the total. Each share uses the full field's head/tail and
+   key, so it rides on the same re-solved trajectory as Home. Windage = total drift − drift baked
+   into the zero. Without a station field the row is the single session wind. SVG and table built
+   with createElement/textContent — no HTML sinks. */
+function windShares(fld,st){
+  return st.live.map((q,i)=>{const f=crossField(st.live.map((r,j)=>({x:r.x,cross:j===i?r.cross:0})),fld.mode);f.head=fld.head;f.key=fld.key;return f;});
+}
+function renderWindMod(tr){
+  const body=document.getElementById('wm-body'),svg=document.getElementById('wm-lane');if(!body||!svg)return;
+  const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
+  const ok=tr&&!tr.bcPending&&tr.pts,z=ok?zeroConds():null,scope=rifleScope(getRifle()),click=scope?.clickStepMrad||0.1;
+  const ang=document.getElementById('home-angle'),angle=ang?+ang.value||0:0,D=S.dist_m;
+  const fld=stnField(D),st=stnState(D);
+  const shot=f=>ok?solveShot(tr.pts,nearestPt,z.range,D,angle,S.wind.speed,S.wind.dir,S.mv,click,z.wSpd,z.wDir,f):null;
+  const sol=shot(fld);
+  const td=(t,cls)=>{const c=document.createElement('td');c.textContent=t;if(cls)c.className=cls;return c;};
+  const lr=v=>Math.abs(v)<0.05?'0':(v>0?'R ':'L ')+un('wind',Math.abs(v));
+  const ht=v=>Math.abs(v)<0.05?'0':(v>0?'tail ':'head ')+un('wind',Math.abs(v));
+  const dr=mm=>mm==null?'—':(mm>=0?'→':'←')+un('drop',Math.abs(mm));
+  const rows=[];let pts=[];
+  if(fld){
+    set('wm-src',fld.n+' stations · '+fld.mode);
+    const shares=sol?windShares(fld,st).map(f=>{const s=shot(f);return s?s.windDriftMm:null;}):st.live.map(()=>null);
+    // % of the total only when every share pushes the same way (opposite shares give > 100 % / negative %)
+    const pct=sol&&Math.abs(sol.windDriftMm)>0.5&&shares.every(v=>v!=null&&v*sol.windDriftMm>0);
+    st.live.forEach((q,i)=>{const r=document.createElement('tr');
+      r.append(td((q.t.nick||q.t.unit)+' · '+ut('range',q.x)),td(lr(q.cross)),td(ht(q.head)),td(dr(shares[i])+(pct?' ('+Math.round(shares[i]/sol.windDriftMm*100)+' %)':'')));rows.push(r);});
+    pts=st.live.map(q=>({x:q.x,y:stnPos(q.t).y,rel:q.rel,s:q.s,lab:q.t.nick||q.t.unit}));
+  }else{
+    const src=S.wind.source==='calypso'?'session unit '+(stnNick(calPrimary()?.link.name||'')||calPrimary()?.link.name||'Calypso'):S.wind.source==='zero'?'same as zero':'manual';
+    set('wm-src','single wind · '+src);
+    const th=S.wind.dir*Math.PI/180,c=S.wind.speed*Math.sin(th),h=-S.wind.speed*Math.cos(th);
+    const r=document.createElement('tr');r.append(td('Whole flight'),td(lr(c)),td(ht(h)),td(sol?dr(sol.windDriftMm):'—'));rows.push(r);
+    if(S.wind.speed>0)pts=[{x:0,y:0,rel:S.wind.dir,s:S.wind.speed,lab:''}];
+  }
+  const zb=sol?sol.windDriftMm-sol.windNetMm:0;
+  if(sol){const r=document.createElement('tr');
+    r.append(td('Windage'),td(''),td(''),td((sol.clWind>=0?'→':'←')+Math.abs(sol.clWind).toFixed(1)+' clk'));r.style.fontWeight='600';rows.push(r);}
+  body.replaceChildren(...rows);
+  set('wm-note',(!ok?'Needs a solution (rifle, projectile, weather).':(fld?'The station shares add up to the drift at '+ut('range',D)+'. ':'')+
+    (Math.abs(zb)>0.05?'Windage = drift − '+dr(zb)+' '+lab('drop',UNITS.drop)+' baked into the zero. ':''))+(fld?'':stnSummary(st)));
+  drawWindLane(svg,D,pts,st);
+}
+function drawWindLane(svg,D,pts,st){
+  const NS='http://www.w3.org/2000/svg',W=320,H=120,L=14,R=306,M=H/2;
+  const mk=(t,a)=>{const e=document.createElementNS(NS,t);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));return e;};
+  const placed=(st.rows||[]).filter(q=>q.t.dist!=null).map(q=>stnPos(q.t));
+  const xmax=Math.max(D,...placed.map(p=>p.x),1)*1.04,ymax=Math.max(xmax*0.12,...placed.map(p=>Math.abs(p.y)))*1.25;
+  const sx=x=>L+(R-L)*x/xmax,sy=y=>M+(H/2-14)*y/ymax;
+  const out=[mk('line',{x1:L,y1:M,x2:R,y2:M,stroke:'var(--text3)','stroke-dasharray':'3 4','stroke-width':1}),
+    mk('circle',{cx:L,cy:M,r:4,fill:'var(--text2)'}),
+    mk('path',{d:`M${sx(D)-5} ${M-5}L${sx(D)+5} ${M+5}M${sx(D)-5} ${M+5}L${sx(D)+5} ${M-5}`,stroke:'var(--warn)','stroke-width':2})];
+  const tl=mk('text',{x:sx(D),y:M+16,'text-anchor':'middle','font-size':9,fill:'var(--text3)'});tl.textContent=ut('range',D);out.push(tl);
+  (st.rows||[]).filter(q=>q.why&&q.t.dist!=null).forEach(q=>{const p=stnPos(q.t);out.push(mk('circle',{cx:sx(p.x),cy:sy(p.y),r:3.5,fill:'none',stroke:'var(--text3)'}));});
+  pts.forEach(p=>{
+    const x=sx(p.x),y=sy(p.y),a=p.rel*Math.PI/180,len=Math.min(34,8+5*p.s),dx=-Math.cos(a),dy=-Math.sin(a); // arrow points where the wind blows TO
+    const x2=x+dx*len,y2=y+dy*len,hx=-dx*6,hy=-dy*6;
+    out.push(mk('line',{x1:x,y1:y,x2,y2,stroke:'var(--gold)','stroke-width':2}),
+      mk('path',{d:`M${x2} ${y2}L${x2+hx-hy*0.5} ${y2+hy+hx*0.5}M${x2} ${y2}L${x2+hx+hy*0.5} ${y2+hy-hx*0.5}`,stroke:'var(--gold)','stroke-width':2}),
+      mk('circle',{cx:x,cy:y,r:4,fill:'var(--accent)'}));
+    if(p.lab){const t=mk('text',{x,y:y<M?y-7:y+13,'text-anchor':'middle','font-size':9,fill:'var(--text2)'});t.textContent=p.lab;out.push(t);}
+  });
+  svg.replaceChildren(...out);
 }
 
 /* ═════════ CORE-02 (V1.20.0) — SHARE: one payload, three carriers (QR · text · link) ═════════
