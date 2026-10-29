@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.1.0</title>
+<title>SEN Ballistics V2.2.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -109,6 +109,8 @@ input.man{border-color:var(--gold);border-style:dashed;background:var(--src-man)
 .cal-unit .ble-dot{grid-area:dot}.cal-unit .cal-pick{grid-area:pick;display:flex;align-items:center;gap:6px;min-width:0}
 .cal-unit .cal-pick input[type=radio]{width:16px;height:16px;flex:0 0 auto;margin:0;padding:0}
 .cal-unit .cal-info{grid-area:info;font-family:var(--mono)}.cal-unit .cal-batt{grid-area:batt;font-family:var(--mono);color:var(--text3)}.cal-unit button{grid-area:x}
+.stn{padding:8px 0;border-bottom:1px solid var(--border)}.stn .stn-head{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:end}
+.stn .stn-live{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:6px}
 .flag{font-family:var(--mono);font-size:10px;padding:9px 12px;border-radius:6px;margin-top:8px;line-height:1.6}
 .flag.warn{background:rgba(224,122,95,.08);border:1px solid rgba(224,122,95,.28);color:var(--warn)}
 .flag.ok{background:rgba(122,184,122,.06);border:1px solid rgba(122,184,122,.22);color:var(--green)}
@@ -296,7 +298,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.1.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.2.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -761,7 +763,7 @@ details.disc .dbody{padding:0 14px 14px}
     </div>
     <div id="cal-units"></div>
     <div class="btnrow" id="cal-add" style="display:none;margin-top:4px"><button class="btn-xs" onclick="calAdd()">+ Connect another Calypso</button></div>
-    <div class="note" style="margin-top:2px">The unit marked “feeds session” supplies the session wind (Home, Wind, Solver). Any others stream alongside — placing them as stations along the lane comes with CORE-17. Values below are the session unit's.</div>
+    <div class="note" style="margin-top:2px">The unit marked “feeds session” supplies the session wind (Home, Wind, Solver). Any others stream alongside — place them as wind stations in the panel below. Values below are the session unit's.</div>
     <div id="ble-live-wrap" style="display:none">
       <div class="scs">
         <div class="sc accent"><div class="sl">Speed (instant)</div><div class="sv" id="ble-speed">—</div><div class="su" data-ul="wind">m/s</div></div>
@@ -785,6 +787,19 @@ details.disc .dbody{padding:0 14px 14px}
     </div>
     <div class="note" id="cal-mount-note"></div>
     <div class="flag info" style="margin-top:10px">Live wind via the proven activation handshake (Handoff V3). Session uses the app's own <b>average</b> of the instant readings over the window you choose (the Calypso's built-in average is not used — its window is unknown). Keep the Calypso in the same orientation for the whole window; after moving it, tap Reset average. This device measures wind only — temperature/humidity come from manual entry or an online source, not the Calypso.</div>
+  </div>
+  <div class="panel" id="stn-panel">
+    <h2>Wind stations</h2>
+    <div class="fld"><label>Range</label><select id="stn-range" onchange="stnPickRange(this.value)"></select></div>
+    <div class="btnrow" style="margin-top:6px"><button class="btn-xs" onclick="stnNewRange()">+ New range</button><button class="btn-xs" onclick="stnRenameRange()">Rename</button><button class="btn-xs" onclick="stnDeleteRange()">Delete</button></div>
+    <div class="fld" style="margin-top:8px"><label>Between stations</label>
+      <div class="seg"><button id="stn-m-blend" onclick="stnSetMode('blend')">Blend</button><button id="stn-m-near" onclick="stnSetMode('nearest')">Nearest</button></div></div>
+    <div class="fld" style="margin-top:8px"><label>Live wind on Home uses</label>
+      <div class="seg"><button id="stn-use-on" onclick="stnSetUse(true)">All placed stations</button><button id="stn-use-off" onclick="stnSetUse(false)">Session unit only</button></div></div>
+    <div id="stn-list"></div>
+    <div class="btnrow"><button class="btn-xs" onclick="stnAdd()">+ Add station</button></div>
+    <div class="note" id="stn-summary"></div>
+    <div class="note">Each station: a name, which Calypso, its distance from you and its angle off the line of fire (0 = on the line, + right, − left), and where its mark points — at the target, or at north (the same magnetic compass as the target bearing on Home; needs that bearing). With two or more live stations and live wind on, Home's dial and windage use all of them along the flight (crosswind and head/tailwind). Otherwise Home uses the session unit, exactly as before. A station with no reading for 3 s drops out.</div>
   </div>
   <div class="panel">
     <h2>Manual wind entry</h2>
@@ -824,7 +839,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.1.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.2.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1227,7 +1242,7 @@ const QDEF={
 };
 let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',tsize:'mm',alt:'m',regp:'bar'};
 let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',tsize:'off',alt:'off',regp:'off'};
-let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,turretMode:'match',solverCor:false,solverSpin:false,lat:46.05};
+let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,turretMode:'match',solverCor:false,solverSpin:false,lat:46.05};
 /* FIX-14b/c — apply display preferences (boot + on change) */
 function applyDisplayPrefs(){
   const h=document.documentElement;
@@ -1393,10 +1408,10 @@ function migrateDopeCard(c){
   });
   return c;
 }
-let DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[]};let currentDopeId=null;
+let DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[]};let currentDopeId=null;
 let _idb=null,storeError=null,storeBytes=0,storePersisted=null;
 function snapshotJSON(){return JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,session:{rifleId:S.rifleId,projId:S.projId,zeroWxId:S.zeroWxId,curWxId:S.curWxId,zero_m:S.zero_m,dist_m:S.dist_m,drag:S.drag}});}
-function applySnapshot(d){DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],...d};UNITS={...UNITS,...(d.units||{})};SUNITS={...SUNITS,...(d.sunits||{})};APP={...APP,...(d.app2||{})};if(d.session)Object.assign(S,d.session);}
+function applySnapshot(d){DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],...d};UNITS={...UNITS,...(d.units||{})};SUNITS={...SUNITS,...(d.sunits||{})};APP={...APP,...(d.app2||{})};if(d.session)Object.assign(S,d.session);}
 function schemaNewerThanApp(d){return Object.keys(SCHEMA).filter(k=>d&&d.schema&&(d.schema[k]||0)>SCHEMA[k]);}
 function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
 function idbRun(mode,op){return new Promise((res,rej)=>{const tx=_idb.transaction(IDB_STORE,mode);const q=op(tx.objectStore(IDB_STORE));tx.oncomplete=()=>res(q.result);tx.onerror=tx.onabort=()=>rej(tx.error||new Error('transaction aborted'));});}
@@ -2122,7 +2137,9 @@ function renderQuick(){
     updateTurretUI(null);
   }else{
     const z=zeroConds();
-    const sol=solveShot(tr.pts,nearestPt,z.range,S.dist_m,angle,S.wind.speed,S.wind.dir,S.mv,clickStep,z.wSpd,z.wDir,null,cant);
+    const fld=stnField(S.dist_m); // V2.2.0 CORE-17: two or more live placed stations → the wind along the flight
+    const sol=solveShot(tr.pts,nearestPt,z.range,S.dist_m,angle,S.wind.speed,S.wind.dir,S.mv,clickStep,z.wSpd,z.wDir,fld,cant);
+    if(fld){document.getElementById('home-winddir').textContent=fld.n+' stations · '+(fld.mode==='nearest'?'nearest':'blend');document.getElementById('home-cross').textContent='along the flight';}
     if(!sol){
       document.getElementById('home-elev').textContent='OOR';document.getElementById('home-wind').textContent='OOR';
       document.getElementById('home-elev-u').textContent='out of range';document.getElementById('home-wind-u').textContent='—';
@@ -2977,7 +2994,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.1.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.2.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3540,7 +3557,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.1.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.2.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3557,15 +3574,16 @@ function importAll(input){
    content, or same name) are never resolved silently: the review sheet offers Overwrite /
    Save as copy / Skip per item. References inside the import (rifle→scope→reticle, dope
    card→rifle/projectile/weather) follow whatever was chosen for their target. */
-const IMPORT_ORDER=['reticles','scopes','rifles','projectiles','weathers','dopeCards'];
-const IMPORT_LABEL={reticles:'Reticle',scopes:'Scope',rifles:'Rifle',projectiles:'Projectile',weathers:'Weather',dopeCards:'Dope card'};
+const IMPORT_ORDER=['reticles','scopes','rifles','projectiles','weathers','dopeCards','ranges'];
+const IMPORT_LABEL={reticles:'Reticle',scopes:'Scope',rifles:'Rifle',projectiles:'Projectile',weathers:'Weather',dopeCards:'Dope card',ranges:'Range'};
 const IMPORT_FIELDS={
   rifles:{id:'s',name:'s',cal:'s',twist:'n',twistDir:'s',blen:'n',sight:'n',mv:'n',zero:'n',notes:'s',scopeId:'s',railOn:'b',railMrad:'n',railUnit:'s',downClicks:'ns',zwSpd:'n',zwDir:'n',zTemp:'n',zPres:'n',zPresType:'s',zAlt:'n',zRH:'n',reg1:'ns',reg2:'ns',ssj:'b',regDelta:'ns',dwell:'ns',fav:'b',mvt:'mvt'},
   scopes:{id:'s',name:'s',sku:'s',adjUnit:'s',click:'n',elev:'n',wind:'n',cpr:'n',magMin:'n',magMax:'n',reticleId:'s0',source:'s',notes:'s',fav:'b'},
   reticles:{id:'s',name:'s',fp:'s',renderer:'s',dotMrad:'n',hashStep:'n',hashMark:'n',hashes:'nums',windHashes:'nums',treeRows:'nums',verified:'b',confNote:'s',notes:'s',fav:'b'},
   projectiles:{id:'s',name:'s',cal:'s',mfg:'s',type:'s',diam:'n',mass:'n',oal:'n',bcg7:'n',bcg1:'n',c:'n',ff:'n',notes:'s',fav:'b'},
   weathers:{id:'s',name:'s',temp:'n',pres:'n',presType:'s',rh:'n',alt:'n',notes:'s',fav:'b'},
-  dopeCards:{id:'s',name:'s',rifleId:'s0',projId:'s0',cwxId:'s0',mv:'n',zero:'n',notes:'s',stages:'stages',fav:'b'}
+  dopeCards:{id:'s',name:'s',rifleId:'s0',projId:'s0',cwxId:'s0',mv:'n',zero:'n',notes:'s',stages:'stages',fav:'b'},
+  ranges:{id:'s',name:'s',notes:'s',mode:'s',stations:'stns',fav:'b'}   // V2.2.0 CORE-17 wind-station placements
 };
 const IMPORT_REQUIRED={scopes:['click'],projectiles:['diam','mass']};
 const isNum=v=>typeof v==='number'&&isFinite(v);
@@ -3574,7 +3592,8 @@ const IMPORT_CHECK={
   s:isStr, n:isNum, b:v=>typeof v==='boolean', ns:v=>isStr(v)||isNum(v), s0:v=>v===null||isStr(v),
   nums:v=>Array.isArray(v)&&v.every(isNum),
   mvt:v=>Array.isArray(v)&&v.every(o=>o&&isNum(o.t)&&isNum(o.v)),
-  stages:v=>Array.isArray(v)&&v.every(st=>st&&isStr(st.id)&&isStr(st.name)&&Array.isArray(st.dists)&&st.dists.every(d=>d&&isStr(d.id)&&['range','angle','wind','wdir'].every(k=>isNum(d[k]))))
+  stages:v=>Array.isArray(v)&&v.every(st=>st&&isStr(st.id)&&isStr(st.name)&&Array.isArray(st.dists)&&st.dists.every(d=>d&&isStr(d.id)&&['range','angle','wind','wdir'].every(k=>isNum(d[k])))),
+  stns:v=>Array.isArray(v)&&v.length<=32&&v.every(t=>t&&typeof t==='object'&&isStr(t.id))
 };
 function sanitiseRecord(type,raw){
   if(!raw||typeof raw!=='object')return{reject:'not a record'};
@@ -3589,6 +3608,7 @@ function sanitiseRecord(type,raw){
         brg:isNum(d.brg)?norm360(d.brg):null,size:isNum(d.size)&&d.size>0?d.size:null,pos:d.pos in TARGET_POS?d.pos:'',shots:isNum(d.shots)&&d.shots>=1?Math.round(d.shots):1}))}));
     migrateDopeCard(rec);
   }
+  if(type==='ranges'){rec.mode=rec.mode==='nearest'?'nearest':'blend';rec.stations=(rec.stations||[]).map(stnClean);}
   if(!rec.id)rec.id=uid();
   return{rec};
 }
@@ -3723,8 +3743,8 @@ function wavgPush(t,s,d,buf=wavgBuf){
   buf.push({t,s,d});
   const cut=t-WAVG_MAX_S*1000;let i=0;while(i<buf.length&&buf[i].t<cut)i++;if(i)buf.splice(0,i);
 }
-function windAvg(winS,now){
-  const from=now-winS*1000,pts=wavgBuf.filter(p=>p.t>from&&p.t<=now);return pts.length?windMean(pts,winS,now):null;
+function windAvg(winS,now,buf=wavgBuf){
+  const from=now-winS*1000,pts=buf.filter(p=>p.t>from&&p.t<=now);return pts.length?windMean(pts,winS,now):null;
 }
 function windMean(pts,winS,now){
   let x=0,y=0,sum=0,mn=Infinity,mx=-Infinity,gap=(now-pts[pts.length-1].t)/1000;
@@ -3903,14 +3923,15 @@ function calRender(){
     const age=d.lastWu?(Date.now()-d.lastWu)/1000:null,row=el('div','cal-unit');
     const live=d.status==='live'&&age!=null&&age<3;
     const lab=el('label','cal-pick');const r=el('input');r.type='radio';r.name='cal-primary';r.checked=calPrimaryId===d.link.id;r.onchange=()=>calSetPrimary(d.link.id);
-    lab.append(r,el('b',null,d.link.name),document.createTextNode(calPrimaryId===d.link.id?' · feeds session':''));
+    const nick=stnNick(d.link.name); // V2.2.0: the station name from the active range, the unit's BLE name after it
+    lab.append(r,el('b',null,nick||d.link.name),document.createTextNode((nick?' ('+d.link.name+')':'')+(calPrimaryId===d.link.id?' · feeds session':'')));
     const info=el('span','cal-info',d.locked?'locked — unlock code unknown':d.lastWu?(un('wind',d.spd)+' '+lab2('wind')+' · '+d.dir+'°'+(live?'':' · signal lost')):'activating…');
     const bat=el('span','cal-batt',d.batt!=null?d.batt+'%':'—');
     const dot=el('span','ble-dot'+(live?' connected':''));
     const x=el('button','btn-xs','Disconnect');x.onclick=()=>d.link.disconnect();
     row.append(dot,lab,info,bat,x);return row;}));
   const add=document.getElementById('cal-add');if(add)add.style.display=CALS.length?'':'none';
-  calStatus();
+  calStatus();stnRender();stnLive();
 }
 const lab2=q=>lab(q,UNITS[q]);
 function updateBleDisplay(){
@@ -4233,6 +4254,12 @@ const FORMULAS=[
     anchors:[{l:'3 m/s full cross, 100 m (py-ballisticcalc 37.22 mm)',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null);return windDrift(fxAt(p,100).tof,100,260,3);},want:37.22,tol:0.03,u:'mm'},
              {l:'90° and 270° equal and opposite at 100 m',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),r=solveShot(p,nearestPt,50,100,0,4,90,260,0.1,0,90).mrWind,l=solveShot(p,nearestPt,50,100,0,4,270,260,0.1,0,90).mrWind;return Math.abs(r)>0.05?r+l:NaN;},want:0,tol:1e-9,u:'mrad'},
              {l:'0° headwind → no windage',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null);return solveShot(p,nearestPt,50,100,0,4,0,260,0.1,0,90).mrWind;},want:0,tol:1e-9,u:'mrad'}]},
+  {name:'Wind stations → line of fire (CORE-17)',status:'ok',eq:'x = d·cos a, y = d·sin a · mark at target m = atan2(−y, D − x), at north m = −bearing · θ = reading + m · cross = s·sin θ (+ from the right) · head/tail = −s·cos θ (+ tail)',
+    src:'plane geometry; Calypso reading = direction the wind blows FROM, clockwise from its mark (Handoff V3). Known answers reproduced independently in Python (V2.2.0)',used:'Home live wind with two or more placed stations',
+    anchors:[{l:'on the line, mark at target, 4 m/s from 90° → cross 4',got:()=>stnComponents(4,90,stnMarkRel({dist:60,ang:0,mount:'target'},150,null)).cross,want:4,tol:1e-12,u:'m/s'},
+             {l:'mark at north, line 270°, wind from 0° → from the right 4',got:()=>stnComponents(4,0,stnMarkRel({dist:60,ang:0,mount:'north'},150,270)).cross,want:4,tol:1e-12,u:'m/s'},
+             {l:'50 m at 30° right, mark at a 200 m target, 4 m/s from 90° (Python 3.95004)',got:()=>stnComponents(4,90,stnMarkRel({dist:50,ang:30,mount:'target'},200,null)).cross,want:3.950044,tol:1e-6,u:'m/s'},
+             {l:'same: headwind part (Python −0.63020)',got:()=>stnComponents(4,90,stnMarkRel({dist:50,ang:30,mount:'target'},200,null)).head,want:-0.630197,tol:1e-6,u:'m/s'}]},
   {name:'Wind changing along the flight (CORE-17 core)',status:'ok',eq:'crosswind: dvz/dt = −k·(vz − w(x)) → z(X) = ∫₀^X ∫ w du dx, u = 1/vx · head/tailwind h(x) inside the RK4 drag term at every stage · stations → w(x), h(x) by nearest or linear blend',
     src:'point-mass lateral equation; uniform wind reduces to the Didion lag rule. Reproduced against py-ballisticcalc 3.1.1 per-zone winds (full 3-D) — not yet used for dope (needs the CORE-17 station UI)',used:'solveShot when given two or more stations',
     anchors:[{l:'uniform 3 m/s, 100 m (pbc 37.22 mm)',got:()=>{const e=FX_ENV();return windDriftField(rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),100,crossField([{x:0,cross:3}]));},want:37.22,tol:0.1,u:'mm'},
@@ -4500,6 +4527,136 @@ async function captureCalMount(){
   try{setCalMount(await readCompass(),'compass');}catch(e){calNote(e.message);}
 }
 
+/* ═════════ CORE-17 step 2 (V2.2.0) — WIND STATIONS: placement → wind along the line of fire ═════════
+   A range (DB.ranges, exportable) holds the stations: name, Calypso (by its BLE name, the key the unlock
+   table already uses), distance d from the shooter (stored in m, typed in the Settings range unit), angle
+   a off the line of fire (+ right) and where the unit's mark points. Geometry, shooter at the origin,
+   x down the line of fire, y to the right:
+     position  x = d·cos a,  y = d·sin a
+     mark      'target': m = atan2(−y, D − x)  (D = shot distance — points at the target from where it stands)
+               'north':  m = −B                (B = line-of-fire bearing from the heading service; same
+                                                magnetic compass as the mark, so declination cancels)
+     reading r (direction the wind blows FROM, clockwise from the mark) → angle to the line θ = r + m
+     crosswind = s·sin θ (+ from the right) · head/tail = −s·cos θ (+ tailwind) — solveShot's conventions.
+   A station on the line pointing at the target gives θ = r: the single-Calypso behaviour. Speed and
+   direction are the unit's own vector mean over the chosen window (or instant, as Home's source).
+   Off-line stations stand for the wind at their distance down the line (the lateral gap isn't modelled).
+   Two or more live stations + live wind on → windField(…, blend|nearest) into solveShot on Home;
+   fewer → Home keeps the session unit's single wind (bit-identical to V2.1.0). The bearing comes from
+   lineBearing() only, so the rifle unit (CALC-12) can replace the phone compass there. */
+const STN_STALE_S=3;
+const lineBearing=()=>S.tgtBrg;
+const stnRange=()=>(DB.ranges||[]).find(r=>r.id===APP.rangeId)||null;
+const calByName=n=>n?CALS.find(d=>(d.link.name||'').toUpperCase()===String(n).toUpperCase())||null:null;
+function stnNick(name){const r=stnRange(),t=r&&name?r.stations.find(x=>(x.unit||'').toUpperCase()===name.toUpperCase()):null;return t&&t.nick?t.nick:null;}
+function stnClean(t){
+  const n=v=>typeof v==='number'&&isFinite(v);
+  return{id:String(t.id).slice(0,40),nick:typeof t.nick==='string'?t.nick.slice(0,40):'',unit:typeof t.unit==='string'?t.unit.slice(0,40):'',
+    dist:n(t.dist)&&t.dist>=0&&t.dist<=5000?t.dist:null,ang:n(t.ang)&&Math.abs(t.ang)<=180?t.ang:0,mount:t.mount==='north'?'north':'target'};
+}
+function stnPos(t){const a=(+t.ang||0)*Math.PI/180;return{x:t.dist*Math.cos(a),y:t.dist*Math.sin(a)};}
+function stnMarkRel(t,D,brg){
+  if(t.mount==='north')return brg==null?null:norm360(-brg);
+  const p=stnPos(t);return norm360(Math.atan2(-p.y,D-p.x)*180/Math.PI);
+}
+function stnComponents(s,r,m){const th=norm360(r+m),q=th*Math.PI/180;return{rel:th,cross:s*Math.sin(q),head:-s*Math.cos(q)};}
+function calReading(d,src){
+  if(src==='inst')return{s:d.spd,d:d.dir};
+  const a=windAvg(wavgWin(),Date.now(),d.buf);return a?{s:a.spd,d:a.dir==null?d.dir:a.dir}:{s:d.spd,d:d.dir};
+}
+function stnState(D){
+  const r=stnRange();if(!r)return{range:null,rows:[],live:[]};
+  const brg=lineBearing();
+  const rows=r.stations.map(t=>{
+    const d=calByName(t.unit),age=d&&d.lastWu?(Date.now()-d.lastWu)/1000:null,ok=t.dist!=null&&t.dist>=0;
+    const m=ok?stnMarkRel(t,D,brg):null;
+    const why=!t.unit?'no Calypso chosen':!ok?'no distance':!d?'not connected':d.locked?'locked':age==null?'waiting for wind':age>STN_STALE_S?'signal lost':m==null?'needs the target bearing (Home)':null;
+    if(why)return{t,why};
+    const w=calReading(d,homeWindSrc);return{t,why:null,x:stnPos(t).x,s:w.s,d:w.d,...stnComponents(w.s,w.d,m)};
+  });
+  return{range:r,rows,live:rows.filter(q=>!q.why)};
+}
+function stnField(D){
+  if(APP.windStations===false||S.wind.source!=='calypso')return null;
+  const st=stnState(D);if(st.live.length<2)return null;
+  const f=windField(st.live.map(q=>({x:q.x,cross:q.cross,head:q.head})),st.range.mode);f.n=st.live.length;f.mode=st.range.mode;return f;
+}
+function stnChanged(){saveDB();stnRender();stnLive();calRender();if(homeVisible())renderQuick();}
+function stnNewRange(){
+  const def='Range '+((DB.ranges||[]).length+1),nm=prompt('Name for the range:',def);if(nm===null)return null;
+  const r={id:uid(),name:nm.trim()||def,notes:'',mode:'blend',stations:[]};
+  DB.ranges.push(r);APP.rangeId=r.id;stnChanged();return r;
+}
+function stnRenameRange(){const r=stnRange();if(!r)return;const nm=prompt('Rename the range:',r.name);if(nm===null||!nm.trim())return;r.name=nm.trim();stnChanged();}
+function stnDeleteRange(){
+  const r=stnRange();if(!r||!confirm('Delete the range "'+r.name+'" and its stations?'))return;
+  DB.ranges=DB.ranges.filter(x=>x!==r);APP.rangeId=DB.ranges.length?DB.ranges[0].id:null;stnChanged();
+}
+function stnPickRange(id){APP.rangeId=id||null;stnChanged();}
+function stnSetMode(m){const r=stnRange();if(!r)return;r.mode=m==='nearest'?'nearest':'blend';stnChanged();}
+function stnSetUse(on){APP.windStations=!!on;stnChanged();}
+function stnAdd(){
+  let r=stnRange();
+  if(!r){r={id:uid(),name:'My range',notes:'',mode:'blend',stations:[]};DB.ranges.push(r);APP.rangeId=r.id;}
+  const used=r.stations.map(t=>(t.unit||'').toUpperCase()),free=CALS.find(d=>!used.includes((d.link.name||'').toUpperCase()));
+  r.stations.push({id:uid(),nick:'Station '+(r.stations.length+1),unit:free?free.link.name:'',dist:null,ang:0,mount:'target'});
+  stnChanged();
+}
+function stnSet(id,k,v){
+  const r=stnRange(),t=r&&r.stations.find(x=>x.id===id);if(!t)return;
+  if(k==='dist')t.dist=v===''||!(+v>=0)?null:Math.min(5000,+v);
+  else if(k==='ang')t.ang=v===''||!isFinite(+v)?0:Math.max(-180,Math.min(180,+v));
+  else if(k==='mount')t.mount=v==='north'?'north':'target';
+  else if(k==='nick')t.nick=String(v).slice(0,40);
+  else if(k==='unit')t.unit=String(v).slice(0,40);
+  stnChanged();
+}
+function stnRemove(id){const r=stnRange();if(!r)return;r.stations=r.stations.filter(x=>x.id!==id);stnChanged();}
+/* Rows are rebuilt only when the structure changes (range, stations, choices, connected units) and never
+   while one of their fields has focus, so live readings don't disturb typing. Text only (no HTML sinks). */
+function stnRender(){
+  const list=document.getElementById('stn-list');if(!list)return;
+  const r=stnRange(),units=[...new Set([...Object.keys(CALYPSO_UNLOCK),...CALS.map(d=>d.link.name)].filter(Boolean))];
+  const key=JSON.stringify([APP.rangeId,(DB.ranges||[]).map(x=>[x.id,x.name]),r&&r.mode,APP.windStations,units,CALS.map(d=>d.link.name),r&&r.stations.map(t=>[t.id,t.unit,t.mount])]);
+  const tog=(id,on)=>{const b=document.getElementById(id);if(b)b.classList.toggle('on',on);};
+  tog('stn-m-blend',!!r&&r.mode!=='nearest');tog('stn-m-near',!!r&&r.mode==='nearest');tog('stn-use-on',APP.windStations!==false);tog('stn-use-off',APP.windStations===false);
+  if(list.dataset.k===key||list.contains(document.activeElement))return;
+  list.dataset.k=key;
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const opt=(v,t,sel)=>{const o=el('option',null,t);o.value=v;o.selected=!!sel;return o;};
+  const rs=document.getElementById('stn-range');
+  rs.replaceChildren(...(DB.ranges.length?DB.ranges.map(x=>opt(x.id,x.name,x.id===APP.rangeId)):[opt('','— no range yet —',true)]));
+  if(!r){list.replaceChildren();return;}
+  const fld=(lbl,inp)=>{const f=el('div','fld');f.append(el('label',null,lbl),inp);return f;};
+  list.replaceChildren(...r.stations.map(t=>{
+    const row=el('div','stn'),head=el('div','stn-head');
+    const nm=el('input');nm.type='text';nm.maxLength=40;nm.value=t.nick;nm.onchange=()=>stnSet(t.id,'nick',nm.value);
+    const sel=el('select');sel.append(opt('','— choose Calypso —',!t.unit),...[...new Set([...units,t.unit].filter(Boolean))].map(u=>opt(u,u+(calByName(u)?' · connected':''),u===t.unit)));
+    sel.onchange=()=>stnSet(t.id,'unit',sel.value);
+    const x=el('button','btn-xs','✕');x.title='Remove station';x.onclick=()=>stnRemove(t.id);
+    head.append(fld('Name',nm),fld('Calypso',sel),x);
+    const g=el('div','fgrid');g.style.alignItems='start';g.style.marginTop='6px';
+    const di=el('input');di.type='number';di.dataset.q='range';di.min='0';di.step='1';di.value=t.dist==null?'':t.dist;di.onchange=()=>stnSet(t.id,'dist',di.value);
+    const an=el('input');an.type='number';an.dataset.q='-';an.min='-180';an.max='180';an.step='1';an.value=t.ang;an.onchange=()=>stnSet(t.id,'ang',an.value);
+    const seg=el('div','seg');[['target','Target'],['north','North']].forEach(([v,l])=>{const b=el('button',t.mount===v?'on':null,l);b.onclick=()=>stnSet(t.id,'mount',v);seg.append(b);});
+    g.append(fld('Distance m',di),fld('Angle off line °',an));
+    const mk=fld('Mark points at',seg);mk.style.marginTop='6px';
+    const live=el('div','stn-live','—');live.dataset.stn=t.id;
+    row.append(head,g,mk,live);return row;}));
+}
+function stnLive(){
+  const sum=document.getElementById('stn-summary');if(!sum)return;
+  const st=stnState(S.dist_m);
+  st.rows.forEach(q=>{const e=document.querySelector('[data-stn="'+q.t.id+'"]');if(!e)return;
+    e.textContent=q.why?'— '+q.why:ut('wind',q.s)+' from '+Math.round(q.d)+'° on its mark → '+Math.round(q.rel)+'° to the line · cross '+ut('wind',Math.abs(q.cross))+
+      (Math.abs(q.cross)<0.05?'':q.cross>0?' from the right':' from the left')+' · '+(Math.abs(q.head)<0.05?'no head/tail':(q.head>0?'tail ':'head ')+ut('wind',Math.abs(q.head)))+' · at '+ut('range',q.x)+' down the line';});
+  sum.textContent=!st.range?'Create a range, then add a station for each Calypso.'
+    :st.live.length+' of '+st.rows.length+' stations live. '+(APP.windStations===false?'Home uses the session unit only.'
+    :st.live.length<2?'Needs two live stations — until then Home uses the session unit, as before.'
+    :S.wind.source!=='calypso'?'Turn live wind on (Home) to use them.'
+    :'Home uses all '+st.live.length+' along the flight to '+ut('range',S.dist_m)+' ('+st.range.mode+').');
+}
+
 /* ═════════ CORE-02 (V1.20.0) — SHARE: one payload, three carriers (QR · text · link) ═════════
    Code = "SEN1:" + CRC-32 of the JSON (8 hex) + "." + base64url(deflate-raw(JSON)).
    The checksum catches text cut off by a messenger. Payload = the record(s) plus anything it
@@ -4624,6 +4781,8 @@ applyDisplayPrefs();if(APP.wakeLock)wlAcquire();document.addEventListener('visib
 reticleMag=APP.retMag??null;document.documentElement.style.setProperty('--ret-px',RET_PX_FIXED+'px');
 turretElevMode=APP.turretMode||'match';
 {const el=document.getElementById('sv-lat');if(el&&APP.lat!=null)el.value=APP.lat;}
+Bus.on(()=>{stnRender();stnLive();}); // V2.2.0 CORE-17: stations follow distance, bearing, imports
+stnRender();stnLive();
 homeWindSrc=APP.homeWindSrc||'avg';{const a=document.getElementById('home-src-avg'),i=document.getElementById('home-src-inst');if(a&&i){a.classList.toggle('on',homeWindSrc==='avg');i.classList.toggle('on',homeWindSrc==='inst');}}
 wavgRender();
 /* V1.15.0: restore persisted compass bearings (speed is session-only, not persisted) — prefill

@@ -7,6 +7,30 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.2.0 — minor — Wind stations: place each Calypso along the lane, Home uses all of them (CORE-17 step 2)
+
+**Problem.** Two Calypsos streamed together since V2.0.0 and the solver could take wind that changes along the flight since V2.1.0, but the app didn't know where the units stood, so only the "feeds session" unit counted.
+
+**Fix.** New **Wind stations** panel on the Sensors page:
+- **Ranges** (saved, exported and imported with everything else): each holds its stations and the choice blend / nearest (blend by default). + New range, Rename, Delete, and a picker for the active one.
+- **Station:** name, which Calypso (by its BLE name, the key the unlock table already uses), distance from you (in the Settings range unit, stored in metres), angle off the line of fire (0 = on the line, + right, − left), and where its mark points: **at the target** or **at north**. North uses the target bearing from Home, read through one `lineBearing()` function so the rifle unit (CALC-12) can replace the phone compass later.
+- **Wind to the line:** position x = d·cos a, y = d·sin a; mark at the target m = atan2(−y, D − x), at north m = −bearing; θ = reading + m; crosswind = s·sin θ, head/tail = −s·cos θ. Each unit's own vector mean over the chosen window (or instant, as Home's source).
+- **Home:** with live wind on and two or more live stations, the dial and windage use all of them along the flight (crosswind and head/tailwind, V2.1.0 solver). Conditions show "N stations · blend" and "along the flight". With fewer live stations, "Session unit only", or live wind off, Home uses the session unit's single wind exactly as before. A station with no reading for 3 s drops out, with the reason on its row.
+- The station name replaces the BLE name on the Calypso card (BLE name kept after it).
+- Rows are rebuilt only when the structure changes and never while a field has focus. Text only, no HTML sinks.
+
+**Not yet:** the wind as its own Home module (step 3); the course runner and the Solver still use the single session wind; one shared average window for all units; stations keyed by BLE name, not the `:GK` id the register suggested (its reply format isn't verified on both units yet).
+
+**§20A.** The new part is plane geometry. Known answers reproduced independently in Python (50 m at 30° right, mark at a 200 m target, 4 m/s from 90° → cross 3.950044, head −0.630197; north mark with line 270° → wind from north = full crosswind from the right) and added as Formulas-page anchors. Home's solution is checked against `solveShot` with a `windField` built independently in the test (blend, nearest, with a tailwind station), and the fallbacks are bit-identical to the single-wind solution.
+
+**Data.** New collection `DB.ranges`, with no SCHEMA key added. The Lab reader refuses unknown schema keys, so the key will be added together with a Lab update when the format first changes. Lab `maindatatest.js` 13/13 against this build.
+
+**Files:** `index.html` (Sensors panel + CSS, `stn*` functions, `lineBearing`, `calReading`, `windAvg(…, buf)`, `calRender` names, Home `solveShot(…, stnField())`, import whitelist for ranges, FORMULAS entry; 5 live version strings) · `sw.js` CACHE → `sen-ballistics-v2.2.0` · new `tests/stationtest.js` (30) · `tests/README.md` (twenty-four suites).
+
+**Verify:** all 24 suites green (runtests 108); real Chromium at 412 / 780 px with no sideways scroll and no script errors.
+
+---
+
 ## V2.1.0 — minor — Solver: head/tailwind that changes along the flight, from several stations (CORE-17 step 1); "Same as zero" conditions
 
 **Problem.** The wind field from V1.29.0 carried only the crosswind. A head/tail component could only be one value for the whole flight, so two stations with different along-the-line winds couldn't both count — the next step for CORE-17 (both Calypsos as placed stations).
