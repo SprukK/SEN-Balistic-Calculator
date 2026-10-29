@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.4.0</title>
+<title>SEN Ballistics V2.5.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -298,7 +298,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.4.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.5.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -627,6 +627,19 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="note">Miller twist rule — the formula behind Berger's twist-rate calculator (matches it: Queen 1.18, King 1.07/1.48/1.67). Fitted on rifle bullets; not validated for airgun hollow points or below L/D 2.0. Pellets are drag-stabilised (no Sg). Worst-case column uses <span data-uv="temp|-5">−5°C</span> · <span data-uv="pres|1013">1013 hPa</span> · <span data-uv="vel|229">229 m/s</span> (global barrel spec).</div>
   </div>
   <div class="tablebox"><div class="ct">Twist recommender · min twist for Sg target at global worst-case</div><table><thead><tr><th>Sg target</th><th>Min twist (in)</th><th>= mm</th><th>This barrel</th></tr></thead><tbody id="st-twist-tbl"></tbody></table></div>
+  <div class="panel" id="st-mcg">
+    <h2>McGyro · McCoy 1986 <span class="note" style="font-weight:400">estimate · compare with Miller</span></h2>
+    <div class="fgrid3">
+      <div class="fld"><label>Nose length mm</label><input type="number" id="st-nose" step="0.01" oninput="calcStab()"></div>
+      <div class="fld"><label>Nose Rt/R</label><input type="number" id="st-rtr" step="0.05" min="0" max="1" oninput="calcStab()"></div>
+      <div class="fld"><label>Meplat Ø mm</label><input type="number" id="st-mep" step="0.01" oninput="calcStab()"></div>
+      <div class="fld"><label>Base Ø mm</label><input type="number" id="st-base" step="0.01" oninput="calcStab()"></div>
+      <div class="fld"><label>Density g/cc</label><input type="number" id="st-dens" step="0.01" value="11.34" oninput="calcStab()"></div>
+    </div>
+    <div class="scs" id="st-mcg-outs"></div>
+    <div id="st-mcg-flags"></div>
+    <div class="note">McCoy's empirical estimate from the shape (nose length, ogive Rt/R: 1 = round nose or tangent ogive, 0 = cone; meplat and base diameter). Uniform density assumed. McCoy gives ±5 % (1 SD) below Mach 0.95. It has no air-density input and its reference atmosphere isn't stated, so compare it with Miller at standard air. Home and the BC penalty keep using Miller until range tests decide.</div>
+  </div>
 </div>
 
 <!-- ═══════════ WIND DRIFT (A4) ═══════════ -->
@@ -847,7 +860,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.4.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.5.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -992,6 +1005,31 @@ function millerC(d_mm,oal_mm){
 function projC(p){
   if(p.type==='pellet')return{c:0,est:false,valid:false,why:'pellet'};
   return(p.c&&p.c>=0.5)?{c:p.c,est:false,valid:true,why:'profile'}:millerC(p.diam,p.oal);
+}
+/* ═════ BENCH-03 step 2 (V2.5.0) — McGyro, R. L. McCoy, April 1986 ═════
+   Line-for-line port of McCoy's BASIC program (jbmballistics.com/downloads/mcgyro.txt, sha256 9adcac5c…31b87a;
+   lines 860–1070). Inputs in calibres: total length L, nose length Ln, headshape Rt/R, base diameter db,
+   meplat diameter dm; bullet density rho (g/cc, uniform — CG at the volume centroid); twist (calibres/turn);
+   launch Mach M. N15 = the twist (cal/turn) that gives Sg 1.5; Sg = 1.5·(N15/twist)². Boat-tail length is
+   read by the original but never used. McCoy: SD of the estimate 5 % subsonic/supersonic, 10 % transonic.
+   The program has no air-density input — its reference atmosphere is not stated in the source (open item).
+   §20A: tests/mcgyrotest.js reproduces all 880 printed rows of the original run unchanged in pcbasic. */
+function mcgyro(L,Ln,rtr,db,dm,rho,twistCal,M){
+  if(!(L>0)||!(Ln>=0)||!(rho>0)||!(twistCal>0)||!(M>0)||dm>=1||dm<0)return null;
+  const S1=Math.sqrt(1-dm),S2=1-db*db;
+  const G1=M<=0.95?20.082+3.726*(M/Math.sqrt(1-M*M)):M>=1.1?35.079-24.066*(Math.sqrt(M*M-1)/M):71.73001-42.433*M;
+  const A1=G1*S2;let A,B;
+  if(M<1){const B1=Math.sqrt(1-M*M);B=.82112+.36971*B1;A=34.779+(24.091+(8.977-12.804*rtr+8.38*rtr*rtr)*Ln)*S1*B1-A1;}
+  else{const B1=Math.sqrt(M*M-1)/M;B=1.0528+.23379*B1-.004884*(M-1);A=58.873+(8.115+(14.15-15.348*rtr+7.216*rtr*rtr)*Ln)*S1*B1*B1-A1;}
+  if(!(A>0))return null;
+  const n15=A*Math.sqrt(rho)/Math.pow(L,B);
+  return{n15,sg:1.5*Math.pow(n15/twistCal,2)};
+}
+const LEAD_GCC=11.34;
+// Projectile profile → McGyro inputs (calibres). null unless the shape fields are filled.
+function mcgyroShape(p){
+  if(!p||!(p.diam>0)||!(p.oal>0)||!(p.noseL>0)||p.rtr==null||p.meplat==null||!(p.baseD>0))return null;
+  const d=p.diam;return{L:p.oal/d,Ln:p.noseL/d,rtr:p.rtr,db:p.baseD/d,dm:p.meplat/d,rho:p.dens>0?p.dens:LEAD_GCC};
 }
 const isHollowPoint=p=>/hollow|\bHP\b/i.test((p.name||'')+' '+(p.notes||''));
 function twistForSg(sg,mass_gr,d_mm,oal_mm,mv_ms,C,tC,hPa){
@@ -2667,6 +2705,8 @@ function stabFromActive(){
   document.getElementById('st-oal').value=p.oal;document.getElementById('st-c').value=p.c||0;
   document.getElementById('st-twist').value=(r.twist/25.4).toFixed(2);document.getElementById('st-mv').value=S.mv||r.mv;
   const w=getWx(S.curWxId);if(w){document.getElementById('st-temp').value=w.temp;document.getElementById('st-pres').value=+wxPres(w).toFixed(1);}
+  [['st-nose','noseL'],['st-rtr','rtr'],['st-mep','meplat'],['st-base','baseD']].forEach(([id,k])=>{document.getElementById(id).value=p[k]??'';});
+  document.getElementById('st-dens').value=p.dens>0?p.dens:LEAD_GCC;
   stabKind={pellet:p.type==='pellet',hp:isHollowPoint(p)};
   document.getElementById('st-name').textContent=p.name+' · '+r.name;calcStab();
 }
@@ -2694,6 +2734,7 @@ function calcStab(){
     document.getElementById('st-sgbar').style.width='0%';
     document.getElementById('st-flags').innerHTML=stabKind.pellet?'<div class="flag info">Diabolo pellets are drag-stabilised (heavy head, hollow skirt). The Miller/Berger formula assumes a solid bullet of even density, so it gives no meaningful Sg for a pellet. Judge pellets by measured BC holding steady over distance, groups and yaw cards.</div>':`<div class="flag warn">⚠ L/D ${(oal/d).toFixed(2)} is below 2.0 — outside the range the Miller formula was fitted on, so Sg is not computed. Enter a measured or otherwise verified C to override.</div>`;
     document.getElementById('st-twist-tbl').innerHTML='<tr><td colspan="4" style="color:var(--warn)">No twist recommendation without an Sg.</td></tr>';
+    renderMcGyro(d,m,oal,twIn,mv,tC,null);
     return;
   }
   const sg=calcSg(m,d,oal,tw,mv,C,tC,hPa),
@@ -2717,6 +2758,38 @@ function calcStab(){
     const mTw=twistForSg(t,m,d,oal,229,C,-5,1013),ok=tw<=mTw;
     return`<tr><td>${lbl}</td><td>1:${(mTw/25.4).toFixed(1)}″</td><td>${mTw.toFixed(0)} mm</td><td style="color:${ok?'var(--green)':'var(--warn)'}">${ok?'✓ sufficient':'faster needed'}</td></tr>`;
   }).join('');
+  renderMcGyro(d,m,oal,twIn,mv,tC,C);
+}
+/* V2.5.0 McGyro panel: McGyro Sg at the launch Mach, Miller at standard air (15 °C / 1013.25 hPa, its own
+   reference) for a like-for-like comparison, McGyro twist for Sg 1.5 / 1.7, and whether the two models
+   disagree enough for this slug to be a useful range-test candidate. Text only (createElement). */
+const MCG_MAX_MACH=0.95,MCG_DISAGREE=0.15;
+function renderMcGyro(d,m,oal,twIn,mv,tC,C){
+  const outs=document.getElementById('st-mcg-outs'),flags=document.getElementById('st-mcg-flags');if(!outs)return;
+  const num=id=>{const v=document.getElementById(id).value;return v===''?null:+v;};
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const card=(l,v,u,col)=>{const c=el('div','sc');const sv=el('div','sv',v);if(col)sv.style.color=col;c.append(el('div','sl',l),sv,el('div','su',u));return c;};
+  const flag=(cls,t)=>el('div','flag '+cls,t);
+  const sh=mcgyroShape({diam:d,oal,noseL:num('st-nose'),rtr:num('st-rtr'),meplat:num('st-mep'),baseD:num('st-base'),dens:num('st-dens')});
+  const M=mv/sos(tC);
+  if(stabKind.pellet){outs.replaceChildren();flags.replaceChildren(flag('info','Pellets are drag-stabilised — no McGyro Sg.'));return;}
+  if(!sh){outs.replaceChildren();flags.replaceChildren(flag('info','Enter nose length, Rt/R, meplat and base diameter (or fill them in the projectile profile) to get McGyro.'));return;}
+  if(M>MCG_MAX_MACH){outs.replaceChildren();flags.replaceChildren(flag('warn','Launch Mach '+M.toFixed(2)+' is above 0.95 — only McGyro\'s subsonic fit is used here.'));return;}
+  const tw=twIn/(d/25.4),r=mcgyro(sh.L,sh.Ln,sh.rtr,sh.db,sh.dm,sh.rho,tw,M);
+  if(!r){outs.replaceChildren();flags.replaceChildren(flag('warn','McGyro gives no result for this shape (outside its fit).'));return;}
+  const dIn=d/25.4,tw15=r.n15*dIn,tw17=r.n15*Math.sqrt(1.5/1.7)*dIn;
+  const mil=C?calcSg(m,d,oal,twIn*25.4,mv,C,15,1013.25):null;
+  outs.replaceChildren(card('McGyro Sg',r.sg.toFixed(2),'Mach '+M.toFixed(2),sgCol(r.sg)),
+    card('Miller, standard air',mil==null?'—':mil.toFixed(2),'15 °C · 1013 hPa',mil==null?null:sgCol(mil)),
+    card('Twist for Sg 1.5','1:'+tw15.toFixed(1)+'″','McGyro'),card('Twist for Sg 1.7','1:'+tw17.toFixed(1)+'″','McGyro'));
+  const fl=[flag('info','Estimate (McCoy ±5 %). Reference atmosphere of McGyro not stated in the source — check pending.')];
+  if(stabKind.hp)fl.push(flag('info','Hollow point: McGyro also assumes a solid, evenly dense slug — treat as approximate.'));
+  if(mil!=null){
+    const diff=Math.abs(r.sg-mil)/mil,lo=Math.min(r.sg,mil);
+    fl.push(diff>MCG_DISAGREE&&lo<1.5?flag('warn','Range-test candidate: McGyro '+r.sg.toFixed(2)+' vs Miller '+mil.toFixed(2)+' ('+(r.sg>mil?'+':'−')+Math.round(diff*100)+' %). The models disagree on whether this slug is fully stable in this barrel — see the range test sheet.')
+      :flag('ok','McGyro and Miller '+(diff<=MCG_DISAGREE?'agree within '+Math.round(MCG_DISAGREE*100)+' %':'both say ≥ 1.5')+' — not a deciding test for this slug.'));
+  }
+  flags.replaceChildren(...fl);
 }
 
 /* ═════════ A4 — WIND DRIFT ═════════ */
@@ -3012,7 +3085,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.4.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.5.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3530,12 +3603,18 @@ function openProjForm(id){
     ${fldHtml('pf-oal','OAL mm',p.oal,0.1)}${fldHtml('pf-c','Stability C (0=est)',p.c,0.001)}
     ${fldHtml('pf-bcg7','BC G7 lb/in²',p.bcg7,0.001)}${fldHtml('pf-bcg1','BC G1 lb/in²',p.bcg1,0.001)}
     ${fldHtml('pf-ff','Form factor',p.ff,0.001)}${fldHtml('pf-notes','Notes',p.notes)}</div>
+    <div class="note" style="margin-top:8px"><b>Shape for McGyro (optional)</b> — leave empty if unknown.</div>
+    <div class="fgrid">${fldHtml('pf-nose','Nose length mm',p.noseL??'',0.01)}${fldHtml('pf-rtr','Nose Rt/R (1 round/tangent, 0 cone)',p.rtr??'',0.05)}
+    ${fldHtml('pf-mep','Meplat diameter mm',p.meplat??'',0.01)}${fldHtml('pf-base','Base diameter mm',p.baseD??'',0.01)}
+    ${fldHtml('pf-dens','Density g/cc (empty = lead 11.34)',p.dens??'',0.01)}</div>
     <div class="note">BC convention §9H: SD = gr/(7000·d_in²), no π/4. Mass always grains, BC always lb/in². Calibre is the nominal bore tag (for filtering), not measured diameter.</div>
     <div class="btnrow"><button class="btn primary" onclick="saveProj('${id||''}')">Save</button><button class="btn" onclick="closeModal()">Cancel</button></div>`);
 }
 function saveProj(id){
   const v=i=>document.getElementById(i).value;
   const obj={name:v('pf-name').trim(),cal:v('pf-cal'),mfg:v('pf-mfg').trim(),type:v('pf-type'),diam:+v('pf-diam'),mass:+v('pf-mass'),oal:+v('pf-oal'),c:+v('pf-c'),bcg7:+v('pf-bcg7'),bcg1:+v('pf-bcg1'),ff:+v('pf-ff'),notes:v('pf-notes')};
+  const opt=i=>v(i)===''?null:+v(i);  // V2.5.0 McGyro shape — optional
+  Object.assign(obj,{noseL:opt('pf-nose'),rtr:opt('pf-rtr'),meplat:opt('pf-mep'),baseD:opt('pf-base'),dens:opt('pf-dens')});
   const err=vchk([
     [obj.name,'Name',{req:true,str:true}],
     [obj.diam,'Diameter',{gt:0,max:25,req:true}],
@@ -3544,7 +3623,12 @@ function saveProj(id){
     [obj.bcg7,'BC G7',{gt:0,max:2}],
     [obj.bcg1,'BC G1',{gt:0,max:2}],
     [obj.ff,'Form factor',{gt:0,max:5}],
-    [obj.c,'Stability C',{min:0,max:10}]
+    [obj.c,'Stability C',{min:0,max:10}],
+    [obj.noseL,'Nose length',{gt:0,max:obj.oal||25}],
+    [obj.rtr,'Rt/R',{min:0,max:1}],
+    [obj.meplat,'Meplat diameter',{min:0,max:obj.diam}],
+    [obj.baseD,'Base diameter',{gt:0,max:obj.diam}],
+    [obj.dens,'Density',{gt:1,max:25}]
   ]);
   if(err){alert(err);return;}
   if(!obj.name){alert('Projectile needs a name.');return;}
@@ -3575,7 +3659,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.4.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.5.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3598,7 +3682,7 @@ const IMPORT_FIELDS={
   rifles:{id:'s',name:'s',cal:'s',twist:'n',twistDir:'s',blen:'n',sight:'n',mv:'n',zero:'n',notes:'s',scopeId:'s',railOn:'b',railMrad:'n',railUnit:'s',downClicks:'ns',zwSpd:'n',zwDir:'n',zTemp:'n',zPres:'n',zPresType:'s',zAlt:'n',zRH:'n',reg1:'ns',reg2:'ns',ssj:'b',regDelta:'ns',dwell:'ns',fav:'b',mvt:'mvt'},
   scopes:{id:'s',name:'s',sku:'s',adjUnit:'s',click:'n',elev:'n',wind:'n',cpr:'n',magMin:'n',magMax:'n',reticleId:'s0',source:'s',notes:'s',fav:'b'},
   reticles:{id:'s',name:'s',fp:'s',renderer:'s',dotMrad:'n',hashStep:'n',hashMark:'n',hashes:'nums',windHashes:'nums',treeRows:'nums',verified:'b',confNote:'s',notes:'s',fav:'b'},
-  projectiles:{id:'s',name:'s',cal:'s',mfg:'s',type:'s',diam:'n',mass:'n',oal:'n',bcg7:'n',bcg1:'n',c:'n',ff:'n',notes:'s',fav:'b'},
+  projectiles:{id:'s',name:'s',cal:'s',mfg:'s',type:'s',diam:'n',mass:'n',oal:'n',bcg7:'n',bcg1:'n',c:'n',ff:'n',notes:'s',fav:'b',noseL:'n',rtr:'n',meplat:'n',baseD:'n',dens:'n'},
   weathers:{id:'s',name:'s',temp:'n',pres:'n',presType:'s',rh:'n',alt:'n',notes:'s',fav:'b'},
   dopeCards:{id:'s',name:'s',rifleId:'s0',projId:'s0',cwxId:'s0',mv:'n',zero:'n',notes:'s',stages:'stages',fav:'b'},
   ranges:{id:'s',name:'s',notes:'s',mode:'s',stations:'stns',fav:'b'}   // V2.2.0 CORE-17 wind-station placements
@@ -4307,6 +4391,11 @@ const FORMULAS=[
     anchors:[{l:'constant 250 m/s, 500 m, lat 46.05°',got:()=>{const pts=[];for(let x=0;x<=500;x+=1)pts.push({range:x,tof:x/250});return coriolisH_mm(pts,pts[500],46.05);},want:OMEGA*Math.sin(46.05*DEG)*500*2*1000,tol:0.01,u:'mm'}]},
   {name:'BC truing (bisection)',status:'ok',eq:'BC such that v_model(d) = v_measured(d)',src:'inverse of the verified trajectory engine; round-trip check',used:'BC / Truing',
     anchors:[{slow:true,l:'Queen G7 0.128: true BC from its own 100 m velocity',got:()=>{const e=FX_ENV();return trueBCsingle(260,60,100,velAtDist(260,0.128,60,100,e.rho,e.aS,'g7'),e.rho,e.aS,'g7').bc;},want:0.128,tol:1e-4,u:'lb/in²'}]},
+  {name:'McGyro gyroscopic stability (McCoy 1986)',status:'est',eq:'N15 = A·√ρ_b / L^B (twist in calibres for Sg 1.5) · subsonic: A = 34.779 + (24.091 + (8.977 − 12.804·Rt/R + 8.38·(Rt/R)²)·Ln)·√(1−dm)·√(1−M²) − G1·(1−db²), G1 = 20.082 + 3.726·M/√(1−M²), B = 0.82112 + 0.36971·√(1−M²) · Sg = 1.5·(N15/twist)²',
+    src:'R. L. McCoy, McGyro (BASIC, April 1986), via jbmballistics.com/downloads/mcgyro.txt; port reproduces all 880 printed rows of the original run unchanged in pcbasic. EST: McCoy ±5 % subsonic; reference atmosphere not stated; not validated on airgun slugs',used:'Stability tab, next to Miller (Home and the BC penalty use Miller)',
+    anchors:[{l:'original run: L 2.03, Ln 0.5, Rt/R 1, flat base, lead, 80 cal/turn, M 0.5 → N15 86.47',got:()=>mcgyro(2.03,0.5,1,1,0,11.34,80,0.5).n15,want:86.47,tol:0.005,u:'cal/turn'},
+             {l:'same, M 0.8 → N15 81.42',got:()=>mcgyro(2.03,0.5,1,1,0,11.34,80,0.8).n15,want:81.42,tol:0.005,u:'cal/turn'},
+             {l:'same, M 0.8 → Sg 1.55',got:()=>mcgyro(2.03,0.5,1,1,0,11.34,80,0.8).sg,want:1.55,tol:0.005,u:''}]},
   {name:'Spin drift (Litz)',status:'est',eq:'drift_in = 1.25·(Sg+1.2)·t^1.83',src:'Litz empirical fit from supersonic rifle data — NOT validated for subsonic airgun slugs. Default off',used:'Solver (optional)',
     anchors:[{l:'formula reproduction: Sg 1.5, t 1.0 s',got:()=>spinDrift_mm(1.5,1.0,'right'),want:85.725,tol:1e-6,u:'mm'}]},
   {name:'G1 ≈ G7 / 0.509',status:'est',eq:'BC_G1 ≈ BC_G7 / 0.509',src:'Litz conversion factor, ±5–8 % — skill §4A',used:'BC / Truing estimate',
@@ -4409,13 +4498,13 @@ const UNIT_FIELDS={
   temp:['tr-ct','tu-temp','mvt-t','st-temp','rf-ztemp','wf-temp'],
   pres:['tr-cp','tu-pres','st-pres','rf-zpres','wf-pres'],
   sight:['tr-sight','rf-sight'],
-  bullet:['bc-diam','bc-oal','st-diam','st-oal','pf-diam','pf-oal','rf-blen'],
+  bullet:['bc-diam','bc-oal','st-diam','st-oal','pf-diam','pf-oal','rf-blen','pf-nose','pf-mep','pf-base','st-nose','st-mep','st-base'],
   alt:['wf-alt','rf-zalt'],
   '-':['home-railoff','hm-tbrg','hm-wbrg','home-angle','tr-bc','tr-crh','tu-rh','bc-mass','bc-ff','bc-g1',
        'st-mass','st-twist','st-c','wd-dir','wd-xf','sv-angle','sv-cant','home-cant','sv-wdir','sv-lat','sv-az','cal-m-brg','mw-dir',
        'rf-downclicks','rf-reg1','rf-reg2','rf-twist','rf-railmrad','rf-zwdir','rf-zrh','rf-dwell',
        'sc-click','sc-elev','sc-wind','sc-cpr','sc-magmin','sc-magmax','rt-dot',
-       'pf-mass','pf-c','pf-bcg7','pf-bcg1','pf-ff','wf-rh']
+       'pf-mass','pf-c','pf-bcg7','pf-bcg1','pf-ff','wf-rh','pf-rtr','pf-dens','st-rtr','st-dens']
 };
 const FIELD_Q=Object.fromEntries(Object.entries(UNIT_FIELDS).flatMap(([q,ids])=>ids.map(id=>[id,q])));
 const NATIVE_VALUE=typeof HTMLInputElement!=='undefined'?Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value'):null;

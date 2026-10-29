@@ -111,6 +111,12 @@ chk('ISA: 1013.25 hPa QNH at 1000 m = 898.76 hPa station', stationPres(1013.25,1
 chk('ISA: 1013 hPa QNH at 300 m = 977.5 hPa station', stationPres(1013,300), 1013*Math.pow(1-2.25577e-5*300,5.25588), 1e-9);
 chk('weather profile: sea-level type converts, station type unchanged', wxPres({pres:1013,presType:'sea',alt:300})<978&&wxPres({pres:1013,alt:300})===1013?1:0, 1);
 
+console.log('\n=== V2.5.0 McGYRO (McCoy 1986, §20A: original BASIC run unchanged in pcbasic; full grid in mcgyrotest.js) ===');
+chk('McGyro N15 M0.5 (L2.03 Ln0.5 Rt/R1 flat lead 80 cal) = 86.47', mcgyro(2.03,0.5,1,1,0,11.34,80,0.5).n15, 86.47, 0.005);
+chk('McGyro N15 M0.9 = 77.73', mcgyro(2.03,0.5,1,1,0,11.34,80,0.9).n15, 77.73, 0.005);
+chk('McGyro Sg M0.8 = 1.55', mcgyro(2.03,0.5,1,1,0,11.34,80,0.8).sg, 1.55, 0.005);
+chk('McGyro transonic M1.0 Sg = 2.07 (branch check)', mcgyro(2.03,0.5,1,1,0,11.34,80,1.0).sg, 2.07, 0.005);
+
 console.log('\n=== V1.29.1 RK4 POSITION UPDATE (§20A vs py-ballisticcalc 3.1.1) ===');
 // Fails on ≤ V1.29.0 (position advanced with the start-of-step velocity): TOF 0.396957, drift 37.026.
 chk('Queen G7 0.128 @260: TOF100 = 0.397025 s (pbc)', atR(q7,100).tof, 0.397025, 2e-5);

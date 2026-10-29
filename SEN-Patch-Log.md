@@ -7,6 +7,40 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.5.0 — minor — McGyro stability next to Miller (BENCH-03 step 2); range test sheet
+
+**Problem.** The app's only stability model is Miller (Berger's calculator), fitted on supersonic rifle bullets. Its velocity factor (V/2800)^⅓ is the least certain part for subsonic airgun slugs, and nothing in the app could check it.
+
+**Fix.**
+- **`mcgyro()`:** a line-for-line port of R. L. McCoy's McGyro (BASIC, April 1986; source `jbmballistics.com/downloads/mcgyro.txt`, sha256 9adcac5c…31b87a, supplied by the owner).
+  - Inputs, in calibres: total and nose length, nose Rt/R, base and meplat diameter, plus uniform density, twist and launch Mach.
+  - Output: N15 (the twist for Sg 1.5) and Sg = 1.5·(N15/twist)². Subsonic, transonic and supersonic fits are ported as written.
+- **Projectile profile:** optional "Shape for McGyro" fields: nose length, Rt/R, meplat Ø, base Ø, density (empty = lead 11.34). Lengths follow the Settings unit, the import whitelist carries them, and profiles without them are unchanged.
+- **Stability tab, new McGyro panel:**
+  - McGyro Sg at the launch Mach (MV / speed of sound);
+  - Miller at standard air (15 °C / 1013.25 hPa, its own reference) for a like-for-like comparison;
+  - McGyro twist for Sg 1.5 and 1.7;
+  - a **range-test candidate** flag when the models differ by more than 15 % and either is below 1.5;
+  - guidance for pellets, a missing shape or Mach above 0.95.
+
+  The panel is text only.
+- **Home and the BC penalty still use Miller.** Whether to switch is the owner's decision after range tests.
+- **`SEN-Stability-Range-Test-Sheet-V1.md`** (Project knowledge): measuring slugs, hole shape at 10/25/50 m, groups, LabRadar BC, a results table, and the decision rules.
+
+**§20A.** McCoy's BASIC was run **unchanged** in pcbasic 2.0.8 over 40 shapes × 22 launch Mach numbers.
+- **The port:** reproduces all **880** printed rows within print resolution (worst 0.0050); 879/880 print identically, and the one difference is single-precision rounding at the third decimal.
+- **Separate check:** an independent Python port matched before the app code was written.
+- **Where the anchors live:** the Formulas page, with McGyro flagged EST (now five estimates); `runtests.js` (+4); and `tests/mcgyro-fixture.json`, which holds the program's outputs, not its source.
+- **Open:** McGyro has no air-density input and its reference atmosphere isn't stated in the source. To be pinned down by checking against Geoffrey Kolbe's McGyro-based calculator.
+
+**Illustrative only (assumed .25 round-nose solid shape, not a measured slug):** at Mach 0.8, 1:20″, McGyro gives Sg 1.55 against Miller's 1.18 at standard air (+31 %).
+
+**Files:** `index.html` (`mcgyro`, `mcgyroShape`, `LEAD_GCC`, projectile form/save/validation/import, Stability-tab McGyro panel + `renderMcGyro`, unit classes, FORMULAS entry; 5 live version strings) · `sw.js` CACHE → `sen-ballistics-v2.5.0` · new `tests/mcgyrotest.js` (22) + `tests/mcgyro-fixture.json` · `tests/runtests.js` (112) · `tests/formulatest.js` (five EST) · `tests/README.md` (twenty-seven suites).
+
+**Verify:** all 27 suites green, Lab maindatatest 13/13, real Chromium at 412/780 px clean.
+
+---
+
 ## V2.4.0 — minor — Wind stations everywhere: course runner and Solver, own average window per station (CORE-17 follow-up); fix: stations kept in use with live wind off
 
 **Problem.** Since V2.2.0 only Home used the placed stations: the course runner and the Solver stayed on the single session wind, and every unit shared one average window. Found while testing this release: turning live wind off on Home left the session wind marked "Calypso", so V2.2.0–V2.3.0 **kept using the live stations with live wind off**.
