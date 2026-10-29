@@ -7,6 +7,32 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.4.0 — minor — Wind stations everywhere: course runner and Solver, own average window per station (CORE-17 follow-up); fix: stations kept in use with live wind off
+
+**Problem.** Since V2.2.0 only Home used the placed stations: the course runner and the Solver stayed on the single session wind, and every unit shared one average window. Found while testing this release: turning live wind off on Home left the session wind marked "Calypso", so V2.2.0–V2.3.0 **kept using the live stations with live wind off**.
+
+**Fix.**
+- **Course runner:** each target gets the station field turned to its own line of fire. Stations are placed against the session line (bearing B₀). For a target on bearing B the frame turns by δ = B − B₀:
+  - angle off the line a′ = a − δ;
+  - a mark pointing at the session target keeps its compass direction (m′ = m − δ);
+  - a north mark is −B on any line.
+  Without both bearings the line is assumed unchanged, as the course runner already did for the single wind. The note reads "wind from N stations" when they're used.
+- **Solver:** new "Wind from: The inputs above / Live wind stations" switch (saved). With two or more live stations the field replaces the wind inputs, and a note says so. With fewer, the inputs are used and the note says why. It is not tied to Home's live switch: choosing it is the Solver's own decision.
+- **Own average window per station:** an "Average" picker on each station row, either Session (the window chosen on Sensors) or 10 s – 60 min. Each unit already had its own buffer since V2.0.0. The row text names the window. Saved, exported, and sanitised on import (10 s – 2 h, otherwise Session).
+- **Fix:** stations apply only while the live stream is on (Home or Wind tab) **and** the session wind comes from the Calypso (`liveWindOn()`). The Sensors summary uses the same test.
+- A target-mounted station's mark is now always computed for the session target (`S.dist_m`). This is the same value Home and the wind module used before; the Solver and course targets at other distances no longer move it.
+
+**§20A.** The new part is the turn of the frame: plane geometry, reproduced in the test with its own implementation (positions and marks rotated by δ, north marks fixed) and fed to `solveShot` independently.
+- **Course targets:** the session bearing, 30° right of the line, and no bearing all agree to 1e-12 mrad.
+- **10 m on the line seen from a 30° line:** x = 8.660 m, θ 60°.
+- **Solver windage** = `solveShot` with the independent field.
+
+**Files:** `index.html` (`stnState(D, shotBrg)`, `stnField(D, shotBrg, solver)`, `liveWindOn`, `stnWin`, `calReading(…, win)`, station Average picker, `stnClean` avg, course runner, Solver switch + note; 5 live version strings) · `sw.js` CACHE → `sen-ballistics-v2.4.0` · new `tests/stationusetest.js` (16) · `tests/stationtest.js` +1 (live-off regression, 31) · `tests/README.md` (twenty-six suites).
+
+**Verify:** all 26 suites green (runtests 108), Lab maindatatest 13/13, real Chromium 412/780 px clean.
+
+---
+
 ## V2.3.0 — minor — Wind as its own Home module: the lane, each station's wind and its share of the drift (CORE-17 step 3)
 
 **Problem.** Since V2.2.0 Home used every placed station, but the only signs of it were "N stations · blend" in the conditions box and the rows on the Sensors page. There was no Home module for wind that could be placed in a layout.

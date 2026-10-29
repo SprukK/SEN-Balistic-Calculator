@@ -96,6 +96,9 @@ const m=Math.atan2(-120*Math.sin(Math.PI/6),150-120*Math.cos(Math.PI/6))*180/Mat
 chk('off the line (120 m at 30° right, mark at the 150 m target): position and angle reproduced',Math.abs(q.x-120*Math.cos(Math.PI/6))<1e-9&&Math.abs(q.rel-th)<1e-9&&Math.abs(q.cross-3*Math.sin(th*Math.PI/180))<1e-9&&Math.abs(q.head+3*Math.cos(th*Math.PI/180))<1e-9,JSON.stringify(q));
 h=lastHome();x=expect([{x:10,cross:4,head:-4*Math.cos(Math.PI/2)},{x:q.x,cross:q.cross,head:q.head}],'blend');
 chk('Home with a tailwind station = independent field incl. head/tail (drop changes too)',Math.abs(h.e-x.e)<1e-12&&Math.abs(h.w-x.w)<1e-12&&Math.abs(h.e-single.e)>1e-4,JSON.stringify([h,x]));
+w.eval('toggleHomeLive()');await both([4,90],[3,180]);
+chk('V2.4.0 fix: live wind turned off → no station field, Home = single wind',J('stnField(150)')===null&&!lastHome().f&&/Turn live wind on/.test($('stn-summary').textContent));
+w.eval('toggleHomeLive()');
 // North mount.
 setNum(angs()[1],'0');
 w.eval(`stnSet(stnRange().stations[1].id,'mount','north');setTargetBearing(null);CALS.forEach(d=>d.buf.length=0)`);await both([4,90],[2,0]);

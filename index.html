@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.3.0</title>
+<title>SEN Ballistics V2.4.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -298,7 +298,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.3.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.4.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -674,6 +674,8 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Wind dir °</label><input type="number" id="sv-wdir" step="5" value="90" oninput="solve()"></div>
       <div class="fld"><label>Cant ° (+ right)</label><input type="number" id="sv-cant" step="0.5" value="0" oninput="solve()"></div>
     </div>
+    <div class="fld" style="margin-top:8px"><label>Wind from</label><div class="seg"><button id="sv-ws-in" class="on" onclick="svSetStations(false)">The inputs above</button><button id="sv-ws-st" onclick="svSetStations(true)">Live wind stations</button></div></div>
+    <div class="note" id="sv-ws-note"></div>
     <div class="note">Clicks relative to zero range (zero = 0 by construction). Angle: the trajectory is re-solved along the slope (slant range); a head/tailwind component is integrated too. Wind clicks are the delta vs the wind already held at zero range.</div>
     <div class="btnrow"><button class="btn primary" onclick="solve()">Solve</button></div>
   </div>
@@ -845,7 +847,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.3.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.4.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1248,7 +1250,7 @@ const QDEF={
 };
 let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',tsize:'mm',alt:'m',regp:'bar'};
 let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',tsize:'off',alt:'off',regp:'off'};
-let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,turretMode:'match',solverCor:false,solverSpin:false,lat:46.05};
+let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,solverStations:false,turretMode:'match',solverCor:false,solverSpin:false,lat:46.05};
 /* FIX-14b/c — apply display preferences (boot + on change) */
 function applyDisplayPrefs(){
   const h=document.documentElement;
@@ -2780,6 +2782,14 @@ function renderWind(){
 }
 
 /* ═════════ A5 — BALLISTIC SOLVER ═════════ */
+function svSetStations(on){APP.solverStations=!!on;saveDB();solve();}
+function svStationsNote(fld){
+  const a=document.getElementById('sv-ws-in'),b=document.getElementById('sv-ws-st'),n=document.getElementById('sv-ws-note');if(!n)return;
+  a.classList.toggle('on',!APP.solverStations);b.classList.toggle('on',!!APP.solverStations);
+  const st=APP.solverStations?stnState(+document.getElementById('sv-tdist').value||S.dist_m):null;
+  n.textContent=!APP.solverStations?'':fld?'Wind from '+fld.n+' live stations ('+fld.mode+') along the flight — the wind inputs above are not used.'
+    :(st&&st.range?st.live.length+' of '+st.rows.length+' stations live — needs two; using the wind inputs above.':'No range with stations (Sensors) — using the wind inputs above.');
+}
 function solve(){
   if(!lastTraj){document.getElementById('sv-outs').innerHTML='<div class="sc"><div class="sv" style="font-size:13px;color:var(--warn)">'+esc(trajReason||'Select a rifle, projectile and current weather.')+'</div></div>';document.getElementById('sv-flags').innerHTML='';return;}
   const pts=lastTraj.ptsFine,mv=lastTraj.mv;  // H2: solve off 1 m grid, never the display step
@@ -2792,7 +2802,9 @@ function solve(){
   document.getElementById('sv-zero-lbl').textContent='zero '+uq('zrange',zc.range)+(zc.wSpd>0?' · in '+uq('wind',zc.wSpd)+' wind':'');
   // solveShot works in mrad; pass clickStep (mrad) so click counts are unit-correct
   const cant=+document.getElementById('sv-cant').value||0;
-  const sol=solveShot(pts,nearestPt,zc.range,tdist,angle,wspd,wdir,mv,clickStep,zc.wSpd,zc.wDir,null,cant);
+  // V2.4.0 CORE-17: "Live wind stations" replaces the wind inputs when two or more stations are live.
+  const fld=APP.solverStations?stnField(tdist,null,true):null;svStationsNote(fld);
+  const sol=solveShot(pts,nearestPt,zc.range,tdist,angle,wspd,wdir,mv,clickStep,zc.wSpd,zc.wDir,fld,cant);
   if(!sol){document.getElementById('sv-outs').innerHTML='<div class="sc"><div class="sv" style="font-size:13px;color:var(--warn)">Target or zero outside the computed range.</div></div>';return;}
   const{tp}=sol;
   /* V1.14.0 Layer-3 corrections. Sign convention: a POSITIVE impact shift (right/high) needs a
@@ -3000,7 +3012,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.3.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.4.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3563,7 +3575,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.3.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.4.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4198,10 +4210,11 @@ function renderCourse(tr){
   const st=courseStage();
   head.textContent='Stage '+(Math.min(r.si,c.stages.length-1)+1)+' of '+c.stages.length+' · '+st.name;
   const ok=tr&&!tr.bcPending&&tr.pts,z=ok?zeroConds():null,click=rifleScope(getRifle())?.clickStepMrad||0.1;
-  const ti=Math.min(r.ti,st.dists.length-1);
+  const ti=Math.min(r.ti,st.dists.length-1);let nSt=0;
   box.replaceChildren(...st.dists.map((d,i)=>{
     const rel=d.brg!=null&&S.wind.from!=null?norm360(S.wind.from-d.brg):S.wind.dir;
-    const s=ok?solveShot(tr.pts,nearestPt,z.range,+d.range,+d.angle||0,S.wind.speed,rel,S.mv,click,z.wSpd,z.wDir):null;
+    const fld=ok?stnField(+d.range,d.brg):null;if(fld)nSt=fld.n; // V2.4.0 CORE-17: live stations, turned to this target's line
+    const s=ok?solveShot(tr.pts,nearestPt,z.range,+d.range,+d.angle||0,S.wind.speed,rel,S.mv,click,z.wSpd,z.wDir,fld):null;
     const b=el('button','cs-row'+(i===ti?' cs-cur':''));b.dataset.dist=d.id;b.onclick=()=>courseGo(i);
     const info=el('span','cs-info');info.append(el('b',null,d.label||('T'+(i+1))),document.createTextNode(' · '+ut('range',+d.range)+(d.size?' · '+ut('tsize',d.size):'')+(d.pos?' · '+TARGET_POS[d.pos]:'')));
     const calls=(r.calls[d.id]||[]).map(x=>x==='h'?'✓':'✗').join('')+'·'.repeat(Math.max(0,Math.max(1,d.shots||1)-(r.calls[d.id]||[]).length));
@@ -4209,7 +4222,7 @@ function renderCourse(tr){
     return b;
   }));
   const all=Object.values(r.calls).flat(),hits=all.filter(x=>x==='h').length;
-  score.textContent='Hits '+hits+' / '+all.length+' · solutions use the session rifle, ammo, weather and wind'+(st.dists.some(d=>d.brg!=null)&&S.wind.from==null?' · set a compass wind to use target bearings':'');
+  score.textContent='Hits '+hits+' / '+all.length+' · solutions use the session rifle, ammo, weather and '+(nSt?'wind from '+nSt+' stations':'wind')+(st.dists.some(d=>d.brg!=null)&&S.wind.from==null?' · set a compass wind to use target bearings':'');
   renderCourseTimer();
 }
 
@@ -4560,7 +4573,8 @@ function stnNick(name){const r=stnRange(),t=r&&name?r.stations.find(x=>(x.unit||
 function stnClean(t){
   const n=v=>typeof v==='number'&&isFinite(v);
   return{id:String(t.id).slice(0,40),nick:typeof t.nick==='string'?t.nick.slice(0,40):'',unit:typeof t.unit==='string'?t.unit.slice(0,40):'',
-    dist:n(t.dist)&&t.dist>=0&&t.dist<=5000?t.dist:null,ang:n(t.ang)&&Math.abs(t.ang)<=180?t.ang:0,mount:t.mount==='north'?'north':'target'};
+    dist:n(t.dist)&&t.dist>=0&&t.dist<=5000?t.dist:null,ang:n(t.ang)&&Math.abs(t.ang)<=180?t.ang:0,mount:t.mount==='north'?'north':'target',
+    avg:n(t.avg)&&t.avg>=10&&t.avg<=WAVG_MAX_S?Math.round(t.avg):null};
 }
 function stnPos(t){const a=(+t.ang||0)*Math.PI/180;return{x:t.dist*Math.cos(a),y:t.dist*Math.sin(a)};}
 function stnMarkRel(t,D,brg){
@@ -4568,25 +4582,37 @@ function stnMarkRel(t,D,brg){
   const p=stnPos(t);return norm360(Math.atan2(-p.y,D-p.x)*180/Math.PI);
 }
 function stnComponents(s,r,m){const th=norm360(r+m),q=th*Math.PI/180;return{rel:th,cross:s*Math.sin(q),head:-s*Math.cos(q)};}
-function calReading(d,src){
+// V2.4.0: a station may have its own average window (t.avg, s); null → the session window.
+const stnWin=t=>t&&t.avg>0?Math.min(WAVG_MAX_S,Math.max(10,Math.round(t.avg))):wavgWin();
+function calReading(d,src,win=wavgWin()){
   if(src==='inst')return{s:d.spd,d:d.dir};
-  const a=windAvg(wavgWin(),Date.now(),d.buf);return a?{s:a.spd,d:a.dir==null?d.dir:a.dir}:{s:d.spd,d:d.dir};
+  const a=windAvg(win,Date.now(),d.buf);return a?{s:a.spd,d:a.dir==null?d.dir:a.dir}:{s:d.spd,d:d.dir};
 }
-function stnState(D){
+/* V2.4.0: shotBrg = bearing of THIS shot's line of fire (a course target's own bearing); null → the
+   session line. Stations are placed against the session line (bearing B0, target at S.dist_m), so for a
+   shot on bearing B the frame turns by δ = B − B0: angle off the line a' = a − δ, and a mark that points
+   at the session target keeps its compass direction, m' = m − δ. A north mark is −B on any line. Without
+   both bearings δ = 0 (same line), as the course runner already assumes for the single wind. */
+function stnState(D,shotBrg){
   const r=stnRange();if(!r)return{range:null,rows:[],live:[]};
-  const brg=lineBearing();
+  const base=lineBearing(),b=shotBrg==null?base:shotBrg,turn=b!=null&&base!=null?b-base:0;
   const rows=r.stations.map(t=>{
     const d=calByName(t.unit),age=d&&d.lastWu?(Date.now()-d.lastWu)/1000:null,ok=t.dist!=null&&t.dist>=0;
-    const m=ok?stnMarkRel(t,D,brg):null;
+    const m=!ok?null:t.mount==='north'?(b==null?null:norm360(-b)):norm360(stnMarkRel(t,S.dist_m,base)-turn);
     const why=!t.unit?'no Calypso chosen':!ok?'no distance':!d?'not connected':d.locked?'locked':age==null?'waiting for wind':age>STN_STALE_S?'signal lost':m==null?'needs the target bearing (Home)':null;
     if(why)return{t,why};
-    const w=calReading(d,homeWindSrc);return{t,why:null,x:stnPos(t).x,s:w.s,d:w.d,...stnComponents(w.s,w.d,m)};
+    const win=stnWin(t),w=calReading(d,homeWindSrc,win);
+    return{t,why:null,x:stnPos({dist:t.dist,ang:(+t.ang||0)-turn}).x,s:w.s,d:w.d,win,...stnComponents(w.s,w.d,m)};
   });
   return{range:r,rows,live:rows.filter(q=>!q.why)};
 }
-function stnField(D){
-  if(APP.windStations===false||S.wind.source!=='calypso')return null;
-  const st=stnState(D);if(st.live.length<2)return null;
+// solver = true: the Solver's own "Live wind stations" choice — not gated by Home's live wind or session-only switch.
+// V2.4.0 fix: gated on the live stream being ON (Home or Wind tab), not only on the session wind's source —
+// turning live off left source 'calypso', so V2.2.0–V2.3.0 kept using the stations with live wind off.
+const liveWindOn=()=>(homeLive||windMode==='live')&&S.wind.source==='calypso';
+function stnField(D,shotBrg,solver){
+  if(!solver&&(APP.windStations===false||!liveWindOn()))return null;
+  const st=stnState(D,shotBrg);if(st.live.length<2)return null;
   const f=windField(st.live.map(q=>({x:q.x,cross:q.cross,head:q.head})),st.range.mode);f.n=st.live.length;f.mode=st.range.mode;return f;
 }
 function stnChanged(){saveDB();stnRender();stnLive();calRender();if(homeVisible())renderQuick();}
@@ -4607,7 +4633,7 @@ function stnAdd(){
   let r=stnRange();
   if(!r){r={id:uid(),name:'My range',notes:'',mode:'blend',stations:[]};DB.ranges.push(r);APP.rangeId=r.id;}
   const used=r.stations.map(t=>(t.unit||'').toUpperCase()),free=CALS.find(d=>!used.includes((d.link.name||'').toUpperCase()));
-  r.stations.push({id:uid(),nick:'Station '+(r.stations.length+1),unit:free?free.link.name:'',dist:null,ang:0,mount:'target'});
+  r.stations.push({id:uid(),nick:'Station '+(r.stations.length+1),unit:free?free.link.name:'',dist:null,ang:0,mount:'target',avg:null});
   stnChanged();
 }
 function stnSet(id,k,v){
@@ -4617,6 +4643,7 @@ function stnSet(id,k,v){
   else if(k==='mount')t.mount=v==='north'?'north':'target';
   else if(k==='nick')t.nick=String(v).slice(0,40);
   else if(k==='unit')t.unit=String(v).slice(0,40);
+  else if(k==='avg')t.avg=+v>=10?Math.min(WAVG_MAX_S,Math.round(+v)):null;
   stnChanged();
 }
 function stnRemove(id){const r=stnRange();if(!r)return;r.stations=r.stations.filter(x=>x.id!==id);stnChanged();}
@@ -4625,7 +4652,7 @@ function stnRemove(id){const r=stnRange();if(!r)return;r.stations=r.stations.fil
 function stnRender(){
   const list=document.getElementById('stn-list');if(!list)return;
   const r=stnRange(),units=[...new Set([...Object.keys(CALYPSO_UNLOCK),...CALS.map(d=>d.link.name)].filter(Boolean))];
-  const key=JSON.stringify([APP.rangeId,(DB.ranges||[]).map(x=>[x.id,x.name]),r&&r.mode,APP.windStations,units,CALS.map(d=>d.link.name),r&&r.stations.map(t=>[t.id,t.unit,t.mount])]);
+  const key=JSON.stringify([APP.rangeId,(DB.ranges||[]).map(x=>[x.id,x.name]),r&&r.mode,APP.windStations,units,CALS.map(d=>d.link.name),r&&r.stations.map(t=>[t.id,t.unit,t.mount,t.avg]),wavgWin()]);
   const tog=(id,on)=>{const b=document.getElementById(id);if(b)b.classList.toggle('on',on);};
   tog('stn-m-blend',!!r&&r.mode!=='nearest');tog('stn-m-near',!!r&&r.mode==='nearest');tog('stn-use-on',APP.windStations!==false);tog('stn-use-off',APP.windStations===false);
   if(list.dataset.k===key||list.contains(document.activeElement))return;
@@ -4648,15 +4675,17 @@ function stnRender(){
     const an=el('input');an.type='number';an.dataset.q='-';an.min='-180';an.max='180';an.step='1';an.value=t.ang;an.onchange=()=>stnSet(t.id,'ang',an.value);
     const seg=el('div','seg');[['target','Target'],['north','North']].forEach(([v,l])=>{const b=el('button',t.mount===v?'on':null,l);b.onclick=()=>stnSet(t.id,'mount',v);seg.append(b);});
     g.append(fld('Distance m',di),fld('Angle off line °',an));
-    const mk=fld('Mark points at',seg);mk.style.marginTop='6px';
+    const av=el('select');av.append(opt('','Session ('+wavgLabel(wavgWin())+')',!(t.avg>0)),...[...new Set([...WAVG_WINS,...(t.avg>0?[t.avg]:[])])].sort((a,b)=>a-b).map(v=>opt(String(v),wavgLabel(v),t.avg===v)));
+    av.onchange=()=>stnSet(t.id,'avg',av.value);
+    const g2=el('div','fgrid');g2.style.alignItems='start';g2.style.marginTop='6px';g2.append(fld('Mark points at',seg),fld('Average',av));
     const live=el('div','stn-live','—');live.dataset.stn=t.id;
-    row.append(head,g,mk,live);return row;}));
+    row.append(head,g,g2,live);return row;}));
 }
 function stnLive(){
   const sum=document.getElementById('stn-summary');if(!sum)return;
   const st=stnState(S.dist_m);
   st.rows.forEach(q=>{const e=document.querySelector('[data-stn="'+q.t.id+'"]');if(!e)return;
-    e.textContent=q.why?'— '+q.why:ut('wind',q.s)+' from '+Math.round(q.d)+'° on its mark → '+Math.round(q.rel)+'° to the line · cross '+ut('wind',Math.abs(q.cross))+
+    e.textContent=q.why?'— '+q.why:(homeWindSrc==='inst'?'instant ':'avg '+wavgLabel(q.win)+' ')+ut('wind',q.s)+' from '+Math.round(q.d)+'° on its mark → '+Math.round(q.rel)+'° to the line · cross '+ut('wind',Math.abs(q.cross))+
       (Math.abs(q.cross)<0.05?'':q.cross>0?' from the right':' from the left')+' · '+(Math.abs(q.head)<0.05?'no head/tail':(q.head>0?'tail ':'head ')+ut('wind',Math.abs(q.head)))+' · at '+ut('range',q.x)+' down the line';});
   sum.textContent=stnSummary(st);
 }
@@ -4664,7 +4693,7 @@ function stnSummary(st){
   return!st.range?'Create a range, then add a station for each Calypso.'
     :st.live.length+' of '+st.rows.length+' stations live. '+(APP.windStations===false?'Home uses the session unit only.'
     :st.live.length<2?'Needs two live stations — until then Home uses the session unit, as before.'
-    :S.wind.source!=='calypso'?'Turn live wind on (Home) to use them.'
+    :!liveWindOn()?'Turn live wind on (Home) to use them.'
     :'Home uses all '+st.live.length+' along the flight to '+ut('range',S.dist_m)+' ('+st.range.mode+').');
 }
 /* ═════ CORE-17 step 3 (V2.3.0) — the wind as a Home module ═════
