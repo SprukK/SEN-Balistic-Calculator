@@ -58,6 +58,22 @@ chk('Element: drop500 = 1533.8 cm (±0.5%)', -atR(el,500).drop/10, 1533.8, 7.7);
 chk('Element: drop1000 = 8636.8 cm (±0.5%)', -atR(el,1000).drop/10, 8636.8, 43.2);
 chk('Element: v1000 = 165 m/s (±1)', atR(el,1000).v, 165, 1);
 
+console.log('\n=== V2.1.0 WIND FIELD WITH HEAD/TAILWIND (CORE-17 step 1, §20A: py-ballisticcalc 3.1.1 per-zone Wind) ===');
+// Queen G7 0.128 @ 260 m/s, zero 50 m (calm), sight 44 mm, 20 °C / 1010 hPa / 65 %. Stations {x, cross, head(+ = tail)};
+// pbc zones: nearest = boundary halfway, blend = 1 m zones at the blended vector. Values: [drop, windage] mm.
+const hq=rk4traj(260,0.128,60,50,250,0.044,env.rho,env.aS,1,'g7',0.245,null);
+const WS=(st,m,d)=>{const s=solveShot(hq,nearestPt,50,d,0,0,90,260,0.1,0,90,windField(st,m));return[-s.mrElev*d,s.windDriftMm];};
+const MIX=[{x:10,cross:2.82842712474619,head:-2.8284271247461903},{x:120,cross:-1.026060429977006,head:2.8190778623577253}];
+const HT=[{x:10,cross:0,head:-6},{x:120,cross:0,head:6}],CH=[{x:10,cross:0,head:0},{x:150,cross:0,head:-8}];
+for(const [n,st,m,d,dw,ww] of [['4 m/s from 45° @10 m → 3 m/s from 200° @120 m',MIX,'nearest',100,-343.16,29.74],['… nearest',MIX,'nearest',200,-2290.39,54.19],
+  ['… blend',MIX,'blend',100,-342.99,24.77],['… blend',MIX,'blend',200,-2289.77,48.66],
+  ['6 m/s head @10 m → 6 m/s tail @120 m, nearest',HT,'nearest',100,-343.96,0],['… nearest',HT,'nearest',200,-2292.54,0],['… blend',HT,'blend',200,-2291.13,0],
+  ['calm @10 m → 8 m/s head @150 m, nearest',CH,'nearest',200,-2295.30,0],['… blend',CH,'blend',200,-2296.42,0]]){
+  const r=WS(st,m,d);chk(n+' '+m+' @'+d+' m: drop '+dw+' mm (pbc)',r[0],dw,d>150?0.3:0.1);if(ww)chk(n+' '+m+' @'+d+' m: windage '+ww+' mm (pbc)',r[1],ww,d>150?0.5:0.2);}
+{const one=solveShot(hq,nearestPt,50,150,0,0,90,260,0.1,0,90,windField([{x:30,cross:0,head:-6}],'blend')),cst=solveShot(hq,nearestPt,50,150,0,6,0,260,0.1,0,90);
+ chk('one station = the single-wind path, bit-identical (6 m/s headwind, 150 m)', one.mrElev===cst.mrElev&&one.tp.tof===cst.tp.tof?1:0, 1);}
+chk('a wind field never touches the zero pass (same zero angle)', hq.recalc(0,windField(HT,'blend').head,0,'t').za===hq.za?1:0, 1);
+
 console.log('\n=== V1.33.0 BC FROM IMPACTS (§20A: py-ballisticcalc 3.1.1 dial for a known BC, recovered) ===');
 // pbc: Queen geometry, G7 BC b, 260 m/s, zero 50 m, sight 44 mm, 20 °C / 1010 hPa / 65 %; dial = −height/R.
 const TD=(d,need)=>trueBCdrop(bc=>{const p=rk4traj(260,bc,60,50,d+25,0.044,env.rho,env.aS,1,'g7',0.245,null);return solveShot(p,nearestPt,50,d,0,0,90,260,0.1,0,90).mrElev;},need).bc;

@@ -7,6 +7,32 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.1.0 — minor — Solver: head/tailwind that changes along the flight, from several stations (CORE-17 step 1); "Same as zero" conditions
+
+**Problem.** The wind field from V1.29.0 carried only the crosswind. A head/tail component could only be one value for the whole flight, so two stations with different along-the-line winds couldn't both count — the next step for CORE-17 (both Calypsos as placed stations).
+
+**Fix.**
+- `rk4traj`: `flight.head` may be a **function of distance along the line of fire**; it is evaluated at every RK4 stage position (x, x+h/2·v₁, x+h/2·v₂, x+h·v₃) inside the drag term, rotated into the line-of-sight frame on a slope like the constant head/tailwind of V1.31.0. The zero pass stays level with the zero session's wind only.
+- `windField(stations, mode)`: stations `{x, cross, head}` (head + = tailwind) → crosswind function plus `.head` function and a `.key`; both components interpolated the same way (nearest / blend = blending the wind vectors).
+- `solveShot(..., field)`: a field with `.head` re-solves the trajectory through it (cached by key); the crosswind part uses the V1.29.0 integrator on that trajectory.
+- No UI yet (station placement and the wind module are steps 2 and 3). No dope change — nothing passes a field today.
+
+**"Same as zero" (owner request 2026-10-29).** A virtual current-conditions profile built from the rifle's zero conditions: temperature, station pressure (QNH converted at the zero altitude), humidity, and the zero wind into the session wind. Offered first in the Home weather sheet (with its values), the Trajectory select and the dope-card select. It follows edits to the rifle's zero and rifle switches; a dope card uses its own rifle's zero; it survives a restart and is never stored as a weather profile. Live Calypso wind still overrides the session wind as usual. At the zero range dial and windage are exactly 0.
+
+**Caught during verification (never shipped):** the first draft let the zero pass inherit the flight's wind field (an object-spread copied it), so the zero was solved in the field's wind; py-ballisticcalc disagreed by ~0.35 mm at 100 m only when the wind near the muzzle had a head/tail part. Fixed (the zero env sets `windAt: null`), and a regression check now asserts the zero angle is unchanged by any field.
+
+**§20A.** py-ballisticcalc 3.1.1 per-zone `Wind` (Queen G7 0.128 @ 260 m/s, zero 50 m, sight 44 mm, 20 °C / 1010 hPa / 65 %), three station pairs × nearest/blend at 100 and 200 m:
+- 4 m/s from 45° @10 m → 3 m/s from 200° @120 m: drop within 0.15 mm, windage within 0.4 mm.
+- 6 m/s headwind @10 m → 6 m/s tailwind @120 m: drop within 0.2 mm.
+- calm @10 m → 8 m/s headwind @150 m: drop within 0.1 mm.
+- One station = the single-wind path **bit-identical**.
+
+**Files:** `index.html` (`rk4traj` stage-position wind, `recalc` with a keyed field, `windField`, `solveShot`, FORMULAS anchor; `ZERO_WX`/`zeroWx`/`getWx(id, rifle)`, `Bus.sameAsZero`, weather sheet + selects, `computeCardTraj`, `saveRifle`; 5 live version strings) · `sw.js` CACHE → `sen-ballistics-v2.1.0` · `tests/runtests.js` +15 (108) · new `tests/samezerotest.js` (13) · `tests/README.md` (twenty-three suites).
+
+**Verify:** `node --check` clean · `runtests.js` 108/108 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · `calypsotest.js` 18/18 · `windavgtest.js` 28/28 · `stabtest.js` 12/12 · `flighttest.js` 16/16 · `pressuretest.js` 12/12 · `truedroptest.js` 20/20 · `multicaltest.js` 19/19 · **`samezerotest.js` 13/13** · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V2.1.0.html`.
+
+---
+
 ## V2.0.1 — patch — Sensors: status line follows the session unit; average-window picker no longer flickers
 
 **Problem (owner, on the Honor with both Calypsos).**

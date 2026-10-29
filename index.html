@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.0.1</title>
+<title>SEN Ballistics V2.1.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -296,7 +296,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.0.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.1.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -824,7 +824,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.0.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.1.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -885,17 +885,21 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
      level (the rifle was sighted in on the level) with the zero session's head/tailwind; the flight pass
      uses the shot's angle and wind. flight omitted → gravity (0, −g), no wind: bit-identical to before.
      Verified against py-ballisticcalc 3.1.1 (look_angle, Wind) — runtests.js. */
-  const fl=flight||{},lk=(fl.look||0)*Math.PI/180,hd=fl.head||0;
+  const fl=flight||{},lk=(fl.look||0)*Math.PI/180,hdF=typeof fl.head==='function'?fl.head:null,hd=hdF?0:(fl.head||0);
   const cur={...mkEnv(rho,aS,bc_g7,bc_g1),gx:lk?-G*Math.sin(lk):0,gy:lk?-G*Math.cos(lk):-G,wx:lk?hd*Math.cos(lk):hd,wy:lk?-hd*Math.sin(lk):0};
-  const zen={...(zeroEnv?mkEnv(zeroEnv.rho,zeroEnv.aS,zeroEnv.bc7??bc_g7,zeroEnv.bc1??bc_g1):cur),gx:0,gy:-G,wx:fl.zHead||0,wy:0};
+  /* V2.1.0 (CORE-17) — head/tailwind that changes along the flight: flight.head may be a function of the
+     horizontal distance along the line of fire (x·cos look), evaluated at every RK4 stage position. */
+  if(hdF)cur.windAt=x=>{const h=hdF(lk?x*Math.cos(lk):x);return[lk?h*Math.cos(lk):h,lk?-h*Math.sin(lk):0];};
+  const zen={...(zeroEnv?mkEnv(zeroEnv.rho,zeroEnv.aS,zeroEnv.bc7??bc_g7,zeroEnv.bc1??bc_g1):cur),gx:0,gy:-G,wx:fl.zHead||0,wy:0,windAt:null}; // zero pass: level, zero session's wind only
   /* V1.24.2 — drag deceleration = (π/8)·ρ·v²·Cd / BC, i.e. (π/4)·ρv²Cd / (2·BC_si). The small-arms BC
      (§9H: m/(i·d²), no π/4) omits the reference area's π/4, so the drag term must restore it:
      F = ½ρv²·Cd·(πd²/4) → a = (π/8)ρv²Cd·d²/m. Without it every trajectory had 4/π = 27.3% too much
      drag. Verified: first principles · py-ballisticcalc (constant 2.08551e-4 = (π/8)·ρ₀/144, reproduced to
      0.01 m/s) · owner's Element Ballistics table (Queen G1 0.245, 285 m/s) within 0.2% to 1000 m. */
-  function D(vx,vy,env){const rx=vx-env.wx,ry=vy-env.wy,v=Math.sqrt(rx*rx+ry*ry),m=v/env.aS,cd=interp(DT,m),dec=Math.PI/4*(env.rho*v*v*cd)/(2*env.bcSiAt(v));return[-(dec/v)*rx+env.gx,-(dec/v)*ry+env.gy];}
+  function D(x,vx,vy,env){const w=env.windAt?env.windAt(x):null,rx=vx-(w?w[0]:env.wx),ry=vy-(w?w[1]:env.wy),v=Math.sqrt(rx*rx+ry*ry),m=v/env.aS,cd=interp(DT,m),dec=Math.PI/4*(env.rho*v*v*cd)/(2*env.bcSiAt(v));return[-(dec/v)*rx+env.gx,-(dec/v)*ry+env.gy];}
   function step(x,y,vx,vy,h,env){
-    const[k1ax,k1ay]=D(vx,vy,env);const[k2ax,k2ay]=D(vx+h*k1ax/2,vy+h*k1ay/2,env);const[k3ax,k3ay]=D(vx+h*k2ax/2,vy+h*k2ay/2,env);const[k4ax,k4ay]=D(vx+h*k3ax,vy+h*k3ay,env);
+    // stage positions x, x+h/2·v1, x+h/2·v2, x+h·v3 (only used by a wind field)
+    const[k1ax,k1ay]=D(x,vx,vy,env);const vx2=vx+h*k1ax/2;const[k2ax,k2ay]=D(x+h/2*vx,vx2,vy+h*k1ay/2,env);const vx3=vx+h*k2ax/2;const[k3ax,k3ay]=D(x+h/2*vx2,vx3,vy+h*k2ay/2,env);const[k4ax,k4ay]=D(x+h*vx3,vx+h*k3ax,vy+h*k3ay,env);
     // V1.29.1: position advances by the RK4 average of the four stage velocities (skill §7), not the
     // start-of-step velocity — that Euler update made TOF 0.016 % short and lag-rule drift 0.5 % low.
     // Verified vs py-ballisticcalc 3.1.1: TOF to 3e-6 s, drop to 0.1 mm, drift 37.22 mm (3 m/s, 100 m).
@@ -944,8 +948,9 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
   out.za=za;out.sight=sight_m; // V1.32.0: bore-line geometry for cant
   // Same trajectory for another shot angle / head-tailwind (solveShot), cached per rounded key.
   if(!flight){const A=[mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1,bands,zeroEnv],cache=new Map();
-    out.recalc=(look,head,zHead)=>{const k=[look,head,zHead].map(x=>(+x||0).toFixed(3)).join('|');
-      if(!cache.has(k)){if(cache.size>=24)cache.delete(cache.keys().next().value);cache.set(k,rk4traj(...A,{look:+look||0,head:+head||0,zHead:+zHead||0}));}
+    // head may be a number, or a function of distance (wind field) passed with headKey identifying it.
+    out.recalc=(look,head,zHead,headKey)=>{const hf=typeof head==='function';const k=[look,hf?0:head,zHead].map(x=>(+x||0).toFixed(3)).join('|')+(hf?'|f:'+headKey:'');
+      if(!cache.has(k)){if(cache.size>=24)cache.delete(cache.keys().next().value);cache.set(k,rk4traj(...A,{look:+look||0,head:hf?head:(+head||0),zHead:+zHead||0}));}
       return cache.get(k);};}
   return out;
 }
@@ -1072,7 +1077,9 @@ function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,cl
      Without recalc (or level, pure crosswind) the old path is used unchanged. */
   const head0=v=>Math.abs(v)<1e-6?0:v;
   const head=head0(-(wind_ms||0)*Math.cos((windDir_deg||0)*Math.PI/180)),zHead=head0(-(zeroWind||0)*Math.cos((zeroWindDir||0)*Math.PI/180));
-  const P=pts.recalc&&(angle_deg||head||zHead)?pts.recalc(angle_deg||0,head,zHead):pts;
+  // V2.1.0: a wind field with a head/tail component replaces the single wind's along-the-line part.
+  const fh=field&&typeof field.head==='function'?field.head:null;
+  const P=pts.recalc&&fh?pts.recalc(angle_deg||0,fh,zHead,field.key):pts.recalc&&(angle_deg||head||zHead)?pts.recalc(angle_deg||0,head,zHead):pts;
   const zp=nearest(pts,zero_m),tp=nearest(P,dist_m);
   if(!zp||!tp)return null;
   const cosd=Math.cos(angle_deg*Math.PI/180);
@@ -1141,6 +1148,16 @@ function crossField(stations,mode){
     }
     let best=s[0];for(const t of s)if(Math.abs(x-t.x)<Math.abs(x-best.x))best=t;return best.cross;
   };
+}
+/* V2.1.0 — the whole wind (cross AND head/tail) from stations [{x, cross, head}] (head + = tailwind,
+   i.e. wind along the line of fire toward the target), each component interpolated the same way —
+   nearest or linear blend — so blending components = blending the wind vectors. Returns the crosswind
+   function (as crossField) with .head (function) and .key (identifies the field for trajectory caching). */
+function windField(stations,mode){
+  const s=(stations||[]).filter(t=>isFinite(t.x)&&isFinite(t.cross)&&isFinite(t.head));
+  const cross=crossField(s.map(t=>({x:t.x,cross:t.cross})),mode),head=crossField(s.map(t=>({x:t.x,cross:t.head})),mode);
+  cross.head=head;cross.key=(mode||'nearest')+':'+s.map(t=>[t.x,t.cross,t.head].map(v=>(+v).toFixed(4)).join(',')).sort().join(';');
+  return cross;
 }
 // Drift (mm, same sign convention as windDrift) at `range` for crosswind field w(x). null if
 // the trajectory doesn't reach `range` or lacks vx.
@@ -1838,7 +1855,14 @@ function zeroConds(rifle,rangeOverride){
   };
 }
 const getProj=()=>DB.projectiles.find(p=>p.id===S.projId)||null;
-const getWx=id=>DB.weathers.find(w=>w.id===id)||null;
+/* V2.1.0 — "Same as zero": a virtual current-conditions profile built from the rifle's zero conditions
+   (temperature, station pressure, humidity, wind). Picking it makes the session shoot in the air and
+   wind the rifle was zeroed in, until another profile is picked. A rifle argument serves dope cards
+   that belong to another rifle. Never stored in DB.weathers. */
+const ZERO_WX='@zero';
+function zeroWx(r){const z=zeroConds(r===undefined?getRifle():r);return{id:ZERO_WX,name:'Same as zero',temp:z.temp,pres:z.pres,presType:'station',rh:z.rh,alt:0,notes:'',virtual:true,wSpd:z.wSpd,wDir:z.wDir};}
+const getWx=(id,r)=>id===ZERO_WX?zeroWx(r):(DB.weathers.find(w=>w.id===id)||null);
+const ZERO_WX_LABEL='Same as zero (rifle\'s zero conditions)';
 
 /* ═════════ D2 — SESSION STATE (data bus) ═════════
    Single source of truth · one-way flow · provenance per field.
@@ -1864,9 +1888,11 @@ const Bus={
   },
   on(f){subs.push(f);},
   set(k,v){S[k]=v;this.notify();},
-  setRifle(id){S.rifleId=id;const r=getRifle();if(r){S.zero_m=r.zero??S.zero_m;}dialedElev=0;dialedWind=0;this.pullFromProfiles(['mv','sight']);this.notify();},
+  setRifle(id){S.rifleId=id;const r=getRifle();if(r){S.zero_m=r.zero??S.zero_m;}dialedElev=0;dialedWind=0;this.pullFromProfiles(['mv','sight']);if(S.curWxId===ZERO_WX)this.sameAsZero();this.notify();},
+  // "Same as zero" also sets the session wind to the zero wind (live Calypso wind still overrides it).
+  sameAsZero(){this.pullFromProfiles(['ct','cp','crh']);const z=zeroConds();S.wind={speed:z.wSpd,dir:z.wDir,from:S.tgtBrg!=null?norm360(z.wDir+S.tgtBrg):null,source:'zero'};},
   setProj(id){S.projId=id;const p=getProj();if(p)S.drag=p.type==='pellet'?'g1':'g7';this.pullFromProfiles(['bc']);syncDragUI();this.notify();},
-  setWx(which,id){if(which==='zero'){S.zeroWxId=id;}else{S.curWxId=id;this.pullFromProfiles(['ct','cp','crh']);}this.notify();},
+  setWx(which,id){if(which==='zero'){S.zeroWxId=id;}else{S.curWxId=id;if(id===ZERO_WX)this.sameAsZero();else this.pullFromProfiles(['ct','cp','crh']);}this.notify();},
   /* V1.21.0 CORE-13: `dir` stays the solver's angle relative to the line of fire (0=head, 90=from
      the RIGHT). When the target bearing is known the wind also keeps `from` (compass, where it
      blows FROM), so a new target bearing re-derives `dir` from the same physical wind. */
@@ -1971,7 +1997,8 @@ function pickSheet(kind){
       '<div class="fld" style="margin:10px 0"><input type="text" id="sh-search" placeholder="Search name / manufacturer…" oninput="projSheetList()"></div><div class="slist" id="sh-list"></div>');
     projSheetList();
   }else if(kind==='wx'){
-    openSheet('<h3>Current weather</h3><div class="slist">'+favSort(DB.weathers).map(w=>sItem('wx',w.id,favMark(w)+esc(w.name),
+    const zw=getRifle()?zeroWx():null;
+    openSheet('<h3>Current weather</h3><div class="slist">'+(zw?sItem('wx',ZERO_WX,esc(ZERO_WX_LABEL),ut('temp',zw.temp)+' · '+ut('pres',zw.pres)+' station · '+zw.rh+'% · wind '+ut('wind',zw.wSpd)+' @ '+zw.wDir+'°',S.curWxId===ZERO_WX):'')+favSort(DB.weathers).map(w=>sItem('wx',w.id,favMark(w)+esc(w.name),
       ut('temp',w.temp)+' · '+ut('pres',w.pres)+(w.presType==='sea'?' QNH':'')+' · '+w.rh+'%',w.id===S.curWxId)).join('')+'</div>');
   }else if(kind==='dist'){
     openSheet('<h3>Target distance</h3><div class="fld"><label>Distance</label><input type="number" id="sh-num" data-q="range" step="5" value="'+S.dist_m+'"></div>'+
@@ -2382,7 +2409,7 @@ function refreshSelects(){
   const optP=(arr,sel)=>'<option value="">— select —</option>'+favSort(arr).map(x=>`<option value="${x.id}" ${x.id===sel?'selected':''}>${favMark(x)}${x.cal&&rcal&&x.cal!==rcal?'⚑ ':''}${esc(x.name)}</option>`).join('');
   document.getElementById('tr-rifle').innerHTML=opt(DB.rifles,S.rifleId);
   document.getElementById('tr-proj').innerHTML=optP(projVisible,S.projId);
-  document.getElementById('tr-cwx').innerHTML=opt(DB.weathers,S.curWxId);
+  document.getElementById('tr-cwx').innerHTML=opt(DB.weathers,S.curWxId).replace('</option>',`</option><option value="${ZERO_WX}" ${S.curWxId===ZERO_WX?'selected':''}>${ZERO_WX_LABEL}</option>`);
 }
 function gotoPage(p){
   const pg=document.getElementById('page-'+p);
@@ -2810,7 +2837,7 @@ function loadDope(){
   const ro=arr=>'<option value="">—</option>'+arr.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
   document.getElementById('dc-rifle').innerHTML=ro(DB.rifles);
   document.getElementById('dc-proj').innerHTML=ro(DB.projectiles);
-  document.getElementById('dc-cwx').innerHTML=ro(DB.weathers);
+  document.getElementById('dc-cwx').innerHTML=ro([{id:ZERO_WX,name:ZERO_WX_LABEL},...DB.weathers]);
   document.getElementById('dc-name').value=c.name||'';
   document.getElementById('dc-rifle').value=c.rifleId||'';
   document.getElementById('dc-proj').value=c.projId||'';
@@ -2888,7 +2915,7 @@ function addDist(sid){const c=getCard();if(!c)return;const s=c.stages.find(x=>x.
 function delDist(sid,did){const c=getCard();if(!c)return;const s=c.stages.find(x=>x.id===sid);if(s)s.dists=s.dists.filter(d=>d.id!==did);saveDB();renderStages();}
 function updDist(sid,did,f,v){const c=getCard();if(!c)return;const s=c.stages.find(x=>x.id===sid);if(!s)return;const d=s.dists.find(x=>x.id===did);if(d){d[f]=v;saveDB();}}
 function computeCardTraj(c){
-  const p=DB.projectiles.find(x=>x.id===c.projId), cw=getWx(c.cwxId);
+  const p=DB.projectiles.find(x=>x.id===c.projId), cw=getWx(c.cwxId,DB.rifles.find(x=>x.id===c.rifleId)||null);
   if(!p||!cw)return null;
   const r=DB.rifles.find(x=>x.id===c.rifleId);
   // Option A: zero conditions (range, wind, atmosphere) read LIVE from the card's rifle.
@@ -2950,7 +2977,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.0.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.1.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3159,6 +3186,7 @@ function saveRifle(id){
   if(err){alert(err);return;}
   if(!obj.scopeId){alert('Select a scope.');return;}
   if(id){const ex=DB.rifles.find(x=>x.id===id);delete ex.scope;Object.assign(ex,obj);}else{DB.rifles.push({id:uid(),...obj});}
+  if(S.curWxId===ZERO_WX&&id===S.rifleId)Bus.sameAsZero(); // edited zero conditions flow into "Same as zero"
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 /* ── Scope entity form ── */
@@ -3512,7 +3540,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.0.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.1.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4205,11 +4233,12 @@ const FORMULAS=[
     anchors:[{l:'3 m/s full cross, 100 m (py-ballisticcalc 37.22 mm)',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null);return windDrift(fxAt(p,100).tof,100,260,3);},want:37.22,tol:0.03,u:'mm'},
              {l:'90° and 270° equal and opposite at 100 m',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),r=solveShot(p,nearestPt,50,100,0,4,90,260,0.1,0,90).mrWind,l=solveShot(p,nearestPt,50,100,0,4,270,260,0.1,0,90).mrWind;return Math.abs(r)>0.05?r+l:NaN;},want:0,tol:1e-9,u:'mrad'},
              {l:'0° headwind → no windage',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null);return solveShot(p,nearestPt,50,100,0,4,0,260,0.1,0,90).mrWind;},want:0,tol:1e-9,u:'mrad'}]},
-  {name:'Wind drift — wind changing along the flight (CORE-17 core)',status:'ok',eq:'dvz/dt = −k·(vz − w(x)), k = drag/v → z(X) = ∫₀^X ∫ w du dx, u = 1/vx; stations → w(x) by nearest or linear blend',
+  {name:'Wind changing along the flight (CORE-17 core)',status:'ok',eq:'crosswind: dvz/dt = −k·(vz − w(x)) → z(X) = ∫₀^X ∫ w du dx, u = 1/vx · head/tailwind h(x) inside the RK4 drag term at every stage · stations → w(x), h(x) by nearest or linear blend',
     src:'point-mass lateral equation; uniform wind reduces to the Didion lag rule. Reproduced against py-ballisticcalc 3.1.1 per-zone winds (full 3-D) — not yet used for dope (needs the CORE-17 station UI)',used:'solveShot when given two or more stations',
     anchors:[{l:'uniform 3 m/s, 100 m (pbc 37.22 mm)',got:()=>{const e=FX_ENV();return windDriftField(rk4traj(260,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),100,crossField([{x:0,cross:3}]));},want:37.22,tol:0.1,u:'mm'},
              {l:'nearest: 10 m +4 / 120 m −2 m/s, 200 m (pbc 61.95 mm)',got:()=>{const e=FX_ENV();return windDriftField(rk4traj(260,0.128,60,50,200,0.044,e.rho,e.aS,1,'g7',0.245,null),200,crossField([{x:10,cross:4},{x:120,cross:-2}],'nearest'));},want:61.95,tol:1.5,u:'mm'},
-             {l:'blend: same stations, 200 m (pbc 54.32 mm)',got:()=>{const e=FX_ENV();return windDriftField(rk4traj(260,0.128,60,50,200,0.044,e.rho,e.aS,1,'g7',0.245,null),200,crossField([{x:10,cross:4},{x:120,cross:-2}],'blend'));},want:54.32,tol:1.5,u:'mm'}]},
+             {l:'blend: same stations, 200 m (pbc 54.32 mm)',got:()=>{const e=FX_ENV();return windDriftField(rk4traj(260,0.128,60,50,200,0.044,e.rho,e.aS,1,'g7',0.245,null),200,crossField([{x:10,cross:4},{x:120,cross:-2}],'blend'));},want:54.32,tol:1.5,u:'mm'},
+             {l:'6 m/s head @10 m → 6 m/s tail @120 m, nearest: drop at 200 m (pbc −2292.54 mm)',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,200,0.044,e.rho,e.aS,1,'g7',0.245,null);return -solveShot(p,nearestPt,50,200,0,0,90,260,0.1,0,90,windField([{x:10,cross:0,head:-6},{x:120,cross:0,head:6}],'nearest')).mrElev*200;},want:-2292.54,tol:0.3,u:'mm'}]},
   {name:'Shot angle (uphill / downhill)',status:'ok',eq:'integrated in the line-of-sight frame: g = (−g·sin α, −g·cos α); zero solved level; distance = slant range',
     src:'replaces the Rifleman\'s rule (V1.31.0); py-ballisticcalc 3.1.1 look_angle (sight height 0 — pbc puts the sight vertically above the bore on a slope, the app keeps the rigid-scope geometry)',used:'Home, Solver, dope cards, course runner',
     anchors:[{l:'Queen 260 m/s, 30° up, slant 100 m (pbc −288.67 mm)',got:()=>{const e=FX_ENV(),p=rk4traj(260,0.128,60,50,150,0,e.rho,e.aS,1,'g7',0.245,null);return -solveShot(p,nearestPt,50,100,30,0,90,260,0.1,0,90).mrElev*100;},want:-288.67,tol:0.2,u:'mm'}]},
