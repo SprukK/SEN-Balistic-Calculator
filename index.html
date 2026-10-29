@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.0.0</title>
+<title>SEN Ballistics V2.0.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -296,7 +296,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.0.0 · major<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.0.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -824,7 +824,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.0.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.0.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -2950,7 +2950,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.0.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.0.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3512,7 +3512,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.0.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.0.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3713,8 +3713,11 @@ function setWavgWin(sec){APP.windAvgS=Math.min(WAVG_MAX_S,Math.max(10,Math.round
 function wavgReset(){wavgBuf=[];const d=calPrimary();if(d)d.buf=wavgBuf;wavgRender();}
 function wavgRender(){
   const win=wavgWin(),opts=WAVG_WINS.includes(win)?WAVG_WINS:[...WAVG_WINS,win].sort((a,b)=>a-b);
-  ['home-avg-win','ble-avg-win'].forEach(id=>{const sel=document.getElementById(id);if(!sel)return;
-    sel.replaceChildren(...opts.map(v=>{const o=document.createElement('option');o.value=v;o.textContent=wavgLabel(v);return o;}));sel.value=String(win);});
+  // V2.0.1: rebuild the options only when the list or the choice changes, and never while the picker is
+  // open — rebuilding on every reading made Android's open dropdown flicker and drop the tap.
+  const key=opts.join()+'|'+win;
+  ['home-avg-win','ble-avg-win'].forEach(id=>{const sel=document.getElementById(id);if(!sel||sel.dataset.k===key||document.activeElement===sel)return;
+    sel.replaceChildren(...opts.map(v=>{const o=document.createElement('option');o.value=v;o.textContent=wavgLabel(v);return o;}));sel.value=String(win);sel.dataset.k=key;});
   const st=document.getElementById('ble-avg-stats');if(!st)return;
   const a=windAvg(win,Date.now());
   if(!a){st.textContent='Average '+wavgLabel(win)+': waiting for readings…';return;}
@@ -3778,12 +3781,22 @@ function calSyncPrimary(){ // copy the primary unit into the globals every reade
   bleDevice=d?d.link.dev:null;bleLastWu=d?d.lastWu:0;bleLastSpd=d?d.spd:0;bleLastDir=d?d.dir:0;bleLastBatt=d?d.batt:null;
   if(d)wavgBuf=d.buf;
 }
+/* V2.0.1 — the status line and the note under it always describe the SESSION unit, from its own state
+   (they used to keep the text of whichever unit connected last). No session unit → left to the caller
+   (Scanning / Error / Disconnected). */
+function calStatus(){
+  const p=calPrimary();if(!p)return;
+  updateBleStatus('connected','Connected: '+p.link.name+(p.locked?' · locked':p.status!=='live'?' · activating…':''));
+  const sl=document.getElementById('ble-service-list');
+  if(sl)sl.textContent=p.locked?p.link.name+' isn\'t unlocked for SEN yet: its :DU code is unknown. Capture it once (Anemotracker + HCI snoop) and add it to the app.'
+    :!p.lastWu?(p.status==='live'?'Handshake sent · awaiting live :WU wind…':'Activating…'):'';
+}
 function calSetPrimary(id){calPrimaryId=id;calSyncPrimary();updateBleDisplay();homeLiveState();}
 async function calAdd(){
   if(!SenBle.supported()){alert('Web Bluetooth not supported.\nUse Chrome on Android or Chrome/Edge on desktop. (iOS blocks Web Bluetooth — use manual wind entry.)');return;}
   let d=null;
   try{
-    updateBleStatus('scanning','Scanning for WDOT-…');
+    if(!calPrimary())updateBleStatus('scanning','Scanning for WDOT-…'); // with a session unit, the line stays on it
     const link=await SenBle.connect({filters:[{namePrefix:'WDOT'}],optionalServices:[CALYPSO_SVC,0x180F,0x1800,0x1801],onDisconnect:calOnDisconnect});
     const old=CALS.find(x=>x.link.id===link.id);if(old)calRemove(old);
     d={link,status:'activating',spd:0,dir:0,lastWu:0,batt:null,reply:null,rx:'',buf:[],ka:null,fff1:null,locked:false};
@@ -3793,13 +3806,11 @@ async function calAdd(){
     if(!fff2)throw new Error('FFF2 notify characteristic not found');
     if(!d.fff1)throw new Error('FFF1 write characteristic not found (cannot send handshake)');
     await link.notify(fff2,v=>calPacket(d,v));
-    calSyncPrimary();calRender();updateBleStatus('connected','Connected: '+link.name+' · activating…');
+    calSyncPrimary();calRender();
     document.getElementById('ble-live-wrap').style.display='block';
     await new Promise(r=>setTimeout(r,600));
     if(!await calypsoUnlock(d)){
       d.status='locked';d.locked=true;calRender();
-      if(calPrimary()===d)updateBleStatus('connected','Connected: '+link.name+' · locked');
-      const sl=document.getElementById('ble-service-list');if(sl)sl.textContent=link.name+' isn\'t unlocked for SEN yet: its :DU code is unknown. Capture it once (Anemotracker + HCI snoop) and add it to the app.';
       return;
     }
     await new Promise(r=>setTimeout(r,120));
@@ -3807,12 +3818,10 @@ async function calAdd(){
     await link.write(d.fff1,calypsoBytes(CALYPSO_KEEPALIVE));
     d.ka=setInterval(()=>{if(link.connected())link.write(d.fff1,calypsoBytes(CALYPSO_KEEPALIVE)).catch(()=>{});},10000);
     d.status='live';calRender();
-    if(calPrimary()===d)updateBleStatus('connected','Connected: '+link.name);
     link.battery(v=>{d.batt=v;if(calPrimary()===d)calSyncPrimary();updateBleDisplay();});
-    const sl=document.getElementById('ble-service-list');if(sl)sl.textContent='Handshake sent · awaiting live :WU wind…';
   }catch(e){
     if(d){calRemove(d);try{d.link.disconnect();}catch(x){}}
-    updateBleStatus(calPrimary()?'connected':'',calPrimary()?'Connected: '+calPrimary().link.name:'Error: '+e.message);
+    if(calPrimary())calStatus();else updateBleStatus('','Error: '+e.message);
   }
 }
 function calRemove(d){
@@ -3824,7 +3833,7 @@ function calRemove(d){
 function calOnDisconnect(link){
   const d=CALS.find(x=>x.link===link);if(d)calRemove(d);
   const p=calPrimary();
-  updateBleStatus(p?'connected':'',p?'Connected: '+p.link.name:'Disconnected');
+  if(p)calStatus();else{updateBleStatus('','Disconnected');const sl=document.getElementById('ble-service-list');if(sl)sl.textContent='';}
   const w=document.getElementById('ble-live-wrap');if(w)w.style.display=p?'block':'none';
   updateBleDisplay();homeLiveState();
 }
@@ -3873,6 +3882,7 @@ function calRender(){
     const x=el('button','btn-xs','Disconnect');x.onclick=()=>d.link.disconnect();
     row.append(dot,lab,info,bat,x);return row;}));
   const add=document.getElementById('cal-add');if(add)add.style.display=CALS.length?'':'none';
+  calStatus();
 }
 const lab2=q=>lab(q,UNITS[q]);
 function updateBleDisplay(){

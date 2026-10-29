@@ -7,6 +7,22 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.0.1 — patch — Sensors: status line follows the session unit; average-window picker no longer flickers
+
+**Problem (owner, on the Honor with both Calypsos).**
+1. The status line at the top of the Calypso card read "Connected: WDOT-B1F9A6 · activating…" while that unit was already streaming as the session unit. It kept the text from whichever unit connected last, and wasn't refreshed on activation, on a radio switch, or later. The note under it ("Handshake sent · awaiting live :WU wind…") went stale the same way.
+2. The average-window dropdown flickered while open. Its options were rebuilt on every Calypso reading (about 1/s per unit), so Android redrew the open popup and could drop the tap.
+
+**Fix.**
+- `calStatus()` builds both lines from the **session unit's own state**: "Connected: X", plus " · activating…" or " · locked"; the note says activating / awaiting first wind / locked with the capture hint, and is empty once wind flows. It runs on every unit render: readings, connect, activation, disconnect, radio switch. While a unit is being added and a session unit exists, the line stays on the session unit (no "Scanning…" over it).
+- `wavgRender` rebuilds the picker options only when the list or the chosen window changes, and never while the picker has focus. Both pickers still follow a change made in either.
+
+**Files:** `index.html` (`calStatus`, `calAdd`, `calOnDisconnect`, `calRender`, `wavgRender`; 5 live version strings) · `sw.js` CACHE → `sen-ballistics-v2.0.1` · `tests/multicaltest.js` +4 (19) · `tests/README.md`.
+
+**Verify:** `node --check` clean · `runtests.js` 93/93 · `domtest.js` 14/14 · `storagetest.js` 22/22 · `importtest.js` 28/28 · `sharetest.js` 24/24 · `windtest.js` 22/22 · `unittest.js` 18/18 · `coursetest.js` 21/21 · `layouttest.js` 18/18 · `rendertest.js` 22/22 · `bcmigtest.js` 11/11 · `formulatest.js` 19/19 · `swtest.js` 6/6 · `homelayouttest.js` 31/31 · `courserunnertest.js` 20/20 · `calypsotest.js` 18/18 · `windavgtest.js` 28/28 · `stabtest.js` 12/12 · `flighttest.js` 16/16 · `pressuretest.js` 12/12 · `truedroptest.js` 20/20 · **`multicaltest.js` 19/19** · `index.html` byte-identical to `RTI-SEN-Ballistic-Calculator-V2.0.1.html`.
+
+---
+
 ## V2.0.0 — major — SenBle device transport (CORE-07); any number of Calypsos at once; LAB-07 graduation checklist
 
 **Why major.** Architecture decision A-07 / CORE-07: all device I/O now goes through one transport layer. The single global Calypso connection is gone.

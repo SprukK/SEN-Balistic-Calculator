@@ -46,14 +46,22 @@ queue.push(A);await w.eval('toggleBLE()');await wait(250);
 await stream(A,wu(3.0,90));
 chk('unit A: own token, live, feeds the session',J('CALS.length')===1&&A.writes.filter(s=>s.startsWith(':DU')).join()===T1&&/feeds session/.test(rows()[0])&&J('bleLastSpd')===3);
 chk('"+ Connect another Calypso" offered once a unit is connected',w.document.getElementById('cal-add').style.display==='');
-queue.push(B);await w.eval('calAdd()');await wait(250);
+queue.push(B);const addB=w.eval('calAdd()');await wait(100);
+chk('V2.0.1: while B activates, the status line still shows the session unit A',txt('ble-status-text')==='Connected: WDOT-B1F9A6',txt('ble-status-text'));
+await addB;await wait(150);
 await stream(B,wu(5.0,270),4);await stream(A,wu(3.2,92),2);
 chk('unit B: own token, both units listed and live together',J('CALS.length')===2&&B.writes.filter(s=>s.startsWith(':DU')).join()===T2&&rows().length===2&&rows().every(r=>!/signal lost|activating/.test(r)),rows().join(' | '));
 chk('session wind still from A (B streams alongside)',J('bleLastSpd')===3.2&&J('bleLastDir')===92&&/WDOT-B1F9A6.*feeds session/.test(rows()[0])&&!/feeds session/.test(rows()[1]));
 chk('each unit keeps its own wind buffer',J('CALS[0].buf.length')===5&&J('CALS[1].buf.length')===4&&J('wavgBuf===CALS[0].buf'));
 chk('battery per unit (A 64 %, B 87 %)',/64%/.test(rows()[0])&&/87%/.test(rows()[1]),rows().join(' | '));
 // Switch the session unit.
+const opt0=w.document.querySelector('#ble-avg-win option'),optH=w.document.querySelector('#home-avg-win option');
+await stream(A,wu(3.2,92),3);await stream(B,wu(5.0,270),3);
+chk('V2.0.1: readings don\'t rebuild the average-window pickers (no flicker)',opt0&&optH&&w.document.querySelector('#ble-avg-win option')===opt0&&w.document.querySelector('#home-avg-win option')===optH);
 w.document.querySelectorAll('#cal-units input[type=radio]')[1].click();await wait(20);
+chk('V2.0.1: status line follows the radio to B',txt('ble-status-text')==='Connected: WDOT-E2896A'&&txt('ble-service-list')==='',txt('ble-status-text'));
+w.eval('setWavgWin(900)');
+chk('V2.0.1: changing the window still updates both pickers',w.document.getElementById('ble-avg-win').value==='900'&&w.document.getElementById('home-avg-win').value==='900');
 w.eval("Bus.setWind(0,0,'manual');useBLEWind()");
 chk('radio → B feeds the session: Sensors shows B, session wind = B\'s average',J('calPrimaryId')==='idB'&&J('wavgBuf===CALS[1].buf')&&J('S.wind.speed')>4.9&&J('S.wind.dir')===270&&parseFloat(txt('ble-speed'))===5,J('S.wind'));
 // Keepalive to both, overlapping writes queued.
