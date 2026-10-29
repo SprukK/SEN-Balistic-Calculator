@@ -162,6 +162,10 @@ chk('full test shape = 60.759160 gr (scipy)', bm(full).gr, 60.759160, 1e-5);
 chk('… CG = 6.015521 mm from the base (scipy)', bm(full).cg, 6.015521, 1e-5);
 chk('… SD = 0.138878 (§9H)', bm(full).sd, 0.138878, 1e-6);
 chk('cone cavity = ⅓ of the cylinder cavity (Ø 2 × 3 mm in a 12.9 mm cylinder)', (bm({bearL:12.9}).V-bm({bearL:12.9,bcD:2,bcDep:3,bcShape:'cone'}).V)/(bm({bearL:12.9}).V-bm({bearL:12.9,bcD:2,bcDep:3,bcShape:'cyl'}).V), 1/3, 1e-9);
+chk('V2.6.1 ball-end hollow point Ø2 × 3 removes πa²(h−a) + ⅔πa³', bm({bearL:12.9}).V-bm({bearL:12.9,hpD:2,hpDep:3,hpShape:'ball'}).V, Math.PI*2+2/3*Math.PI, 1e-6);
+chk('V2.6.1 dish at full depth (Ø2 × 1) = hemisphere ⅔πa³', bm({bearL:12.9}).V-bm({bearL:12.9,hpD:2,hpDep:1,hpShape:'dish'}).V, 2/3*Math.PI, 1e-6);
+chk('V2.6.1 dish deeper than its radius → refused (no undercut ball)', bm({bearL:12.9,hpD:2,hpDep:1.5,hpShape:'dish'}).err?1:0, 1);
+chk('V2.6.1 ball end shallower than its radius → refused', bm({bearL:12.9,hpD:2,hpDep:0.5,hpShape:'ball'}).err?1:0, 1);
 chk('Pb–Sb 4.48 % ≈ measured 10.983 (Papović 2024)', alloyDensity({alloy:'sb',sb:4.48}), 10.983, 0.03);
 chk('Pb–Sb 10 % ≈ DIN 1741 GB-PbSb10 10.6', alloyDensity({alloy:'sb',sb:10}), 10.6, 0.02);
 

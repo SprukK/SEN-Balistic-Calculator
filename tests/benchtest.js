@@ -85,6 +85,20 @@ type('bn-bcd',0);type('bn-nose',1);type('bn-mep',5);type('bn-base',4.5);type('bn
 chk('hollow point reaching into the boat tail breaks the wall → error with the position',/breaks through the wall at 0\.\d\d mm from the base/.test(err()),err());
 type('bn-nose',5.5);type('bn-mep',1.5);type('bn-base',5);type('bn-hpd',1);type('bn-hpdep',2);type('bn-bcd',4.5);
 chk('back to the test shape → same mass',Math.abs(J('benchMass(benchCur()).gr')-60.759160)<1e-4);
+// ── V2.6.1 dish / ball end ────────────────────────────────────────────────────────────────────────
+type('bn-mep',3);type('bn-hpd',2.5);type('bn-hpdep',2.5);pick('bn-hpshape','dish');
+chk('dish deeper than its radius → refused, points to Ball end',/A dish hollow point can be at most a hemisphere \(depth ≤ 1\.25 mm, half its Ø\)\. For a deeper cavity use Ball end\./.test(err()),err());
+type('bn-hpdep',1.25);
+const cmax=J('(()=>{const G=benchGeom(benchCur());let m=0;for(let i=0;i<=2000;i++){const t=1.25*i/2000;m=Math.max(m,G.c(G.oal-t));}return m})()');
+chk('dish at full depth = hemisphere: never wider than the opening (centre in the middle of the opening)',Math.abs(cmax-1.25)<1e-12&&!/hemisphere/.test(err()),cmax);
+pick('bn-hpshape','ball');type('bn-hpdep',0.6);
+chk('ball end shallower than its radius → refused, points to Dish',/needs a depth of at least 1\.25 mm/.test(err()));
+type('bn-hpdep',2.5);
+const wBall=J('benchMass(benchCur()).V'),wNone=J('benchMass({...benchCur(),hpD:0}).V');
+chk('ball end Ø 2.5 × 2.5: removes πa²(h−a) + ⅔πa³ exactly',Math.abs(wNone-wBall-(Math.PI*1.25**2*1.25+2/3*Math.PI*1.25**3))<1e-6,(wNone-wBall).toFixed(6));
+chk('ball end drawn as a cavity',$('bn-draw').querySelectorAll('[data-part=cavity]').length>=1);
+pick('bn-hpshape','cyl');type('bn-mep',1.5);type('bn-hpd',1);type('bn-hpdep',2);
+chk('back to the test shape → same mass',Math.abs(J('benchMass(benchCur()).gr')-60.759160)<1e-4);
 // ── alloy ─────────────────────────────────────────────────────────────────────────────────────────
 chk('Sb % and custom density rows hidden for pure lead',$('bn-sbrow').style.display==='none'&&$('bn-densrow').style.display==='none');
 pick('bn-alloy','sb');type('bn-sb',6);

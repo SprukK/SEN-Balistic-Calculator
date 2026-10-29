@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.6.0</title>
+<title>SEN Ballistics V2.6.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -300,7 +300,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.6.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.6.1 · patch<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -679,10 +679,10 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="fgrid3">
       <div class="fld"><label>Hollow point Ø mm</label><input type="number" id="bn-hpd" step="0.05" oninput="benchInput()"></div>
       <div class="fld"><label>Hollow point depth mm</label><input type="number" id="bn-hpdep" step="0.05" oninput="benchInput()"></div>
-      <div class="fld"><label>Hollow point shape</label><select id="bn-hpshape" onchange="benchInput()"><option value="cyl">Cylinder</option><option value="cone">Cone</option><option value="dish">Dish</option></select></div>
+      <div class="fld"><label>Hollow point shape</label><select id="bn-hpshape" onchange="benchInput()"><option value="cyl">Cylinder</option><option value="cone">Cone</option><option value="dish">Dish (≤ hemisphere)</option><option value="ball">Ball end</option></select></div>
       <div class="fld"><label>Base cavity Ø mm</label><input type="number" id="bn-bcd" step="0.05" oninput="benchInput()"></div>
       <div class="fld"><label>Base cavity depth mm</label><input type="number" id="bn-bcdep" step="0.05" oninput="benchInput()"></div>
-      <div class="fld"><label>Base cavity shape</label><select id="bn-bcshape" onchange="benchInput()"><option value="dish">Dish</option><option value="cyl">Cylinder</option><option value="cone">Cone</option></select></div>
+      <div class="fld"><label>Base cavity shape</label><select id="bn-bcshape" onchange="benchInput()"><option value="dish">Dish (≤ hemisphere)</option><option value="cyl">Cylinder</option><option value="cone">Cone</option><option value="ball">Ball end</option></select></div>
     </div>
   </div>
   <div class="panel">
@@ -915,7 +915,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.6.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.6.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1136,13 +1136,15 @@ function mcgyroShape(p){
                                  ending in a flat meplat; Ln = 0 → flat front at the body Ø
    Tangent ogive with a meplat: R_T = (Ln² + (rb − rm)²) / (2·(rb − rm)); secant: R = R_T / (Rt/R), the arc
    through (0, rb) and (Ln, rm) with its centre on the axis side of the chord.
-   Cavities (hollow point from the tip, base cavity from the base): cylinder, cone or dish (spherical cap).
+   Cavities (hollow point from the tip, base cavity from the base): cylinder, cone, dish (spherical cap, at most a
+   hemisphere: centre on the axis, in the middle of the opening at full depth) or ball end (cylinder with a
+   hemispherical bottom — what a ball-end cutter leaves; V2.6.1).
    Mass = ρ·∫π(r² − c²)dx by composite Simpson between breakpoints (skill §11: numerical integration of the
    profile of revolution); CG = ∫x·A dx / V; SD = mass_gr / (7000·d_in²) (§9H). Verified against closed forms
    and scipy quadrature (Formulas page). Designs are theoretical until made and measured (§10A): they live in
    DB.designs only and never reach the calculator, the anchors or the tests as data. */
 const SB_GCC=6.697;                       // antimony, g/cm³
-const BENCH_SHAPES=['cyl','cone','dish'];
+const BENCH_SHAPES=['cyl','cone','dish','ball'];
 const BENCH_LIM={diam:[1,20],bearL:[0,60],noseL:[0,60],rtr:[0,1],meplat:[0,20],btL:[0,30],baseD:[0,20],hpD:[0,20],hpDep:[0,60],bcD:[0,20],bcDep:[0,60],sb:[0,12],dens:[1,25]};
 function designClean(d){
   const o={id:isStr(d.id)?d.id:uid(),name:(isStr(d.name)&&d.name.trim()?d.name.trim():'Design').slice(0,60),notes:isStr(d.notes)?d.notes.slice(0,500):'',fav:d.fav===true};
@@ -1161,6 +1163,7 @@ function cavR(shape,a,h,t){
   if(!(a>0)||!(h>0)||t<0||t>h)return 0;
   if(shape==='cone')return a*(1-t/h);
   if(shape==='dish'){const R=(a*a+h*h)/(2*h),z=R-h+t;return Math.sqrt(Math.max(0,R*R-z*z));}
+  if(shape==='ball'){const u=t-(h-a);return u<=0?a:Math.sqrt(Math.max(0,a*a-u*u));}   // sphere centre at depth h − a
   return a;
 }
 function benchGeom(g){
@@ -1189,6 +1192,12 @@ function benchGeom(g){
   if(hasHp&&hpA>=rb)return err('The hollow point is as wide as the body.');
   if(hasBc&&bcA>=rbase)return err('The base cavity is as wide as the base.');
   if(hasHp&&hasBc&&hpH+bcH>=oal)return err('The hollow point and the base cavity meet.');
+  // V2.6.1: a dish deeper than its opening radius would bulge wider than the opening (undercut, not machinable);
+  // a ball end shallower than its radius is a dish.
+  const shapeErr=(on,shape,a,h,what)=>!on?null:shape==='dish'&&h>a+1e-9?'A dish '+what+' can be at most a hemisphere (depth ≤ '+ut('bullet',a)+', half its Ø). For a deeper cavity use Ball end.'
+    :shape==='ball'&&h<a-1e-9?'A ball-end '+what+' needs a depth of at least '+ut('bullet',a)+' (half its Ø). For a shallower one use Dish.':null;
+  const se=shapeErr(hasHp,g.hpShape,hpA,hpH,'hollow point')||shapeErr(hasBc,g.bcShape,bcA,bcH,'base cavity');
+  if(se)return err(se);
   const c=x=>Math.max(hasBc?cavR(g.bcShape,bcA,bcH,x):0,hasHp?cavR(g.hpShape,hpA,hpH,oal-x):0);
   // Wall check at the cavity mouths and along their depth.
   for(let i=0;i<=400;i++){const x=oal*i/400;if(c(x)>0&&c(x)>=r(x)-1e-6)return err('A cavity breaks through the wall at '+ut('bullet',x)+' from the base.');}
@@ -3354,7 +3363,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.6.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.6.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3930,7 +3939,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.6.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.6.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4688,6 +4697,8 @@ const FORMULAS=[
              {l:'Secant ogive Rt/R 0.5, same nose (scipy quad 91.04707 mm³)',got:()=>fxBench({noseL:5.5,meplat:1.5,rtr:0.5}).V,want:91.047071,tol:1e-4,u:'mm³'},
              {l:'Boat tail 2 mm, Ø 5.0 → 6.35 (frustum πh/3·(R²+Rr+r²) = 50.82704 mm³)',got:()=>fxBench({btL:2,baseD:5}).V,want:50.827042,tol:1e-4,u:'mm³'},
              {l:'Full test shape: BT + bearing + ogive + HP cylinder + base dish (scipy 60.75916 gr)',got:()=>fxBench({btL:2,baseD:5,bearL:6,noseL:5.5,meplat:1.5,hpD:1,hpDep:2,hpShape:'cyl',bcD:4.5,bcDep:0.3,bcShape:'dish'}).gr,want:60.759160,tol:1e-4,u:'gr'},
+             {l:'Ball-end hollow point Ø 2 × 3 mm: π a²(h−a) + ⅔π a³ = 8.37758 mm³ removed',got:()=>fxBench({bearL:12.9}).V-fxBench({bearL:12.9,hpD:2,hpDep:3,hpShape:'ball'}).V,want:Math.PI*2+2/3*Math.PI,tol:1e-6,u:'mm³'},
+             {l:'Dish at full depth (Ø 2 × 1) = hemisphere ⅔π a³ = 2.09440 mm³',got:()=>fxBench({bearL:12.9}).V-fxBench({bearL:12.9,hpD:2,hpDep:1,hpShape:'dish'}).V,want:2/3*Math.PI,tol:1e-6,u:'mm³'},
              {l:'… its CG from the base (scipy 6.015521 mm)',got:()=>fxBench({btL:2,baseD:5,bearL:6,noseL:5.5,meplat:1.5,hpD:1,hpDep:2,hpShape:'cyl',bcD:4.5,bcDep:0.3,bcShape:'dish'}).cg,want:6.015521,tol:1e-4,u:'mm'}]},
   {name:'Lead–antimony density (ideal mixing)',status:'est',eq:'1/ρ = (1−w)/11.34 + w/6.697 (w = Sb mass fraction)',
     src:'ideal mixing by mass; checked against measured Pb–Sb alloys (Papović et al. 2024, Proc. 0018) and DIN 1741 GB-PbSb10 (10.6 g/cm³) — within about 1 % up to 11 % Sb',used:'Design Bench alloy',

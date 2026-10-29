@@ -7,6 +7,21 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.6.1 — patch — Design Bench: dish cavity capped at a hemisphere; new Ball-end cavity
+
+**Problem (owner report).** A dish cavity was a spherical cap through the opening edge, with the depth free. Deeper than its opening radius, the sphere's centre moved inside the slug and the cavity bulged wider than its own opening: Ø 2.5 × 2.5 mm reached Ø 3.1 inside. That undercut can't be machined from the front, and the mass was wrong for the cavity that would actually be cut.
+
+**Fix.**
+- **Dish ("≤ hemisphere"):** depth up to half the opening Ø. At full depth the sphere's centre is in the middle of the opening (a hemisphere); shallower is a bowl from a larger sphere, as before. A deeper dish is refused, with a message pointing to Ball end.
+- **New Ball end** for hollow points and base cavities: a cylinder of the opening Ø with a hemispherical bottom, centre on the axis at depth − radius (what a ball-end cutter leaves). It needs a depth of at least half its Ø; a shallower one is refused, pointing to Dish.
+- Formulas page: two new anchors (ball end, full-depth dish).
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.6.1.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.6.1`), `tests/runtests.js`, `tests/benchtest.js`, `tests/README.md`, this log.
+
+**Verify.** Closed forms: a ball-end Ø 2 × 3 mm removes πa²(h−a) + ⅔πa³ = 8.37758 mm³; a full-depth dish Ø 2 × 1 removes ⅔πa³ = 2.09440 mm³ (app within 1e-9). The full-depth dish is never wider than its opening (max radius = a exactly). `runtests.js` 128/128 (4 new), `benchtest.js` 49/49 (6 new), all 28 suites green.
+
+---
+
 ## V2.6.0 — minor — Design Bench: projectile geometry → mass, SD and CG (BENCH-01 + BENCH-02)
 
 **Problem.** The Design Bench (Fork 2) had no home in the app. Mass and SD for a planned or measured shape were worked out by hand, and nothing in the app could check whether a shape model and an alloy density reproduce a real slug's weight.
