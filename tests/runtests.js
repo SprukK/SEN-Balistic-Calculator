@@ -149,6 +149,22 @@ const s1=solveShot(wq,nearestPt,50,150,0,3,90,260,0.1,0,90),s2=solveShot(wq,near
 chk('solveShot without stations unchanged (lag rule)', s1.windDriftMm===windDrift(nearestPt(wq,150).tof,150,260,3)&&s2.windDriftMm===s1.windDriftMm?1:0, 1);
 chk('solveShot with a field uses it', solveShot(wq,nearestPt,50,150,0,3,90,260,0.1,0,90,crossField([{x:10,cross:4},{x:120,cross:-2}],'nearest')).windDriftMm, WF([{x:10,cross:4},{x:120,cross:-2}],'nearest',150), 1e-12);
 
+console.log('\n=== V2.6.0 BENCH-01/02: MASS FROM GEOMETRY (closed forms + scipy quad, independent Python) ===');
+const bm=g=>benchMass(designClean({diam:6.35,bearL:0,noseL:0,rtr:1,meplat:0,btL:0,alloy:'pb',...g}));
+chk('cylinder Ø6.35 × 12.9, lead = 71.494461 gr (π r² L)', bm({bearL:12.9}).gr, 71.494461, 1e-5);
+chk('hemisphere Ø6.35 = 67.033177 mm³ (⅔ π r³)', bm({noseL:3.175}).V, 67.033177, 1e-5);
+chk('tangent ogive 5.5, meplat 1.5 = 110.317592 mm³ (scipy)', bm({noseL:5.5,meplat:1.5}).V, 110.317592, 1e-5);
+chk('secant ogive Rt/R 0.5 = 91.047071 mm³ (scipy)', bm({noseL:5.5,meplat:1.5,rtr:0.5}).V, 91.047071, 1e-5);
+chk('cone (Rt/R 0) 5.5, meplat 1.5 = πh/3·(R²+Rr+r²) = 72.535357 mm³', bm({noseL:5.5,meplat:1.5,rtr:0}).V, Math.PI*5.5/3*(3.175**2+3.175*0.75+0.75**2), 1e-6);
+chk('boat tail 2 mm, Ø 5.0 → 6.35 = 50.827042 mm³ (frustum)', bm({btL:2,baseD:5}).V, 50.827042, 1e-5);
+const full={btL:2,baseD:5,bearL:6,noseL:5.5,meplat:1.5,hpD:1,hpDep:2,hpShape:'cyl',bcD:4.5,bcDep:0.3,bcShape:'dish'};
+chk('full test shape = 60.759160 gr (scipy)', bm(full).gr, 60.759160, 1e-5);
+chk('… CG = 6.015521 mm from the base (scipy)', bm(full).cg, 6.015521, 1e-5);
+chk('… SD = 0.138878 (§9H)', bm(full).sd, 0.138878, 1e-6);
+chk('cone cavity = ⅓ of the cylinder cavity (Ø 2 × 3 mm in a 12.9 mm cylinder)', (bm({bearL:12.9}).V-bm({bearL:12.9,bcD:2,bcDep:3,bcShape:'cone'}).V)/(bm({bearL:12.9}).V-bm({bearL:12.9,bcD:2,bcDep:3,bcShape:'cyl'}).V), 1/3, 1e-9);
+chk('Pb–Sb 4.48 % ≈ measured 10.983 (Papović 2024)', alloyDensity({alloy:'sb',sb:4.48}), 10.983, 0.03);
+chk('Pb–Sb 10 % ≈ DIN 1741 GB-PbSb10 10.6', alloyDensity({alloy:'sb',sb:10}), 10.6, 0.02);
+
 console.log('\n=== V1.16.0 NEW BEHAVIOUR ===');
 chk('trajReason defined',            typeof trajReason, 'string');
 chk('runTraj accepts silent arg',    runTraj.length, 1);

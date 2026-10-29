@@ -7,6 +7,44 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.6.0 — minor — Design Bench: projectile geometry → mass, SD and CG (BENCH-01 + BENCH-02)
+
+**Problem.** The Design Bench (Fork 2) had no home in the app. Mass and SD for a planned or measured shape were worked out by hand, and nothing in the app could check whether a shape model and an alloy density reproduce a real slug's weight.
+
+**Fix.**
+- **New More page "Design Bench" (geometry · mass · SD):** a list of designs with new, rename, duplicate, delete and pick. Designs live in `DB.designs`, separate from projectiles, and never reach the calculator, the anchors or the tests (§10A); a banner says so.
+- **Geometry editor (BENCH-01):** a profile of revolution from base to tip.
+  - Body Ø and bearing length.
+  - Nose length, McCoy Rt/R (1 = tangent ogive, between 0 and 1 = secant, 0 = cone) and meplat Ø. Tangent ogive with a meplat: R_T = (Ln² + (rb−rm)²)/(2(rb−rm)); secant R = R_T/(Rt/R). Nose length 0 = flat front.
+  - Boat tail: length and base Ø; the angle is derived and checked against skill §12C (warning above 10°).
+  - Hollow point and base cavity: Ø × depth, as a cylinder, cone or dish.
+  - Every length follows the Settings bullet unit (mm or in); the values are stored in mm.
+- **Live drawing to scale:** the computed profile with cavities cut out, a CG marker, and OAL, nose, Ø and base-Ø/angle dimensions in the display unit. SVG via `createElementNS`.
+- **Mass and SD (BENCH-02):** mass = ρ·∫π(r² − c²)dx by composite Simpson between breakpoints (skill §11), CG = ∫x·A dx / V, SD = mass_gr/(7000·d_in²) (§9H) with its kg/m² equivalent, plus OAL and L/D.
+- **Alloy:** pure lead 11.34 g/cm³; lead–antimony 0–12 % Sb by ideal mixing (1/ρ = (1−w)/11.34 + w/6.697), within about 1 % of measured alloys (estimate); or a custom density.
+- **Flags:** OAL against the Mora's 22 mm magazine and 25 mm single-shot limits (a first piece of BENCH-05); the boat-tail angle; the McGyro calibre values for the shape.
+- **Geometry errors are explained, not computed:** meplat ≥ body Ø, hollow point wider than the meplat, cavities meeting, a cavity breaking through the wall (with its position).
+- **Export and import:** designs go through the whitelist sanitiser (values clamped, enums defaulted, a diameter required). There is no SCHEMA key, so the Lab reader is unaffected (`maindatatest` 13/13).
+
+**Found while building.** The first integration counted the hollow-point mouth twice: Simpson evaluated the cavity at the end of the interval before it (1.6e-4 gr on the test shape). Interval endpoints are now taken just inside (one-sided limits); the result matches scipy to 1e-10.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.6.0.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.6.0`), `tests/benchtest.js` (new), `tests/runtests.js`, `tests/domtest.js` (9 More pages), `tests/layouttest.js` (14 tabs), `tests/formulatest.js` (six estimates), `tests/README.md`, this log.
+
+**Verify.**
+- Closed forms and scipy quadrature (independent Python):
+  - cylinder 71.494461 gr;
+  - hemisphere 67.033177 mm³;
+  - tangent ogive 110.317592 mm³; secant (Rt/R 0.5) 91.047071 mm³;
+  - cone 72.535 mm³; boat-tail frustum 50.827042 mm³;
+  - full test shape 60.759160 gr, CG 6.015521 mm, SD 0.138878.
+  - App: all within 1e-9.
+- `benchtest.js` also checks the test shape against an independent midpoint integration written in the test.
+- Pb–Sb density against Papović et al. 2024 (4.48 % → 10.983 measured, 10.998 computed) and DIN 1741 GB-PbSb10 (10.6).
+- `runtests.js` 124/124 (12 new), new `benchtest.js` 43/43, all 28 suites green, Lab `maindatatest` 13/13. Real Chromium at 412 and 780 px: no sideways scroll, no errors.
+- **Owner check still open:** enter a measured Queen and King as designs and compare the predicted mass with the scale.
+
+---
+
 ## V2.5.0 — minor — McGyro stability next to Miller (BENCH-03 step 2); dimension drawings; range test sheet
 
 **Problem.** The app's only stability model is Miller (Berger's calculator), fitted on supersonic rifle bullets. Its velocity factor (V/2800)^⅓ is the least certain part for subsonic airgun slugs, and nothing in the app could check it.

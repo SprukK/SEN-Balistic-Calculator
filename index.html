@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.5.0</title>
+<title>SEN Ballistics V2.6.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -110,6 +110,7 @@ input.man{border-color:var(--gold);border-style:dashed;background:var(--src-man)
 .cal-unit .cal-pick input[type=radio]{width:16px;height:16px;flex:0 0 auto;margin:0;padding:0}
 .cal-unit .cal-info{grid-area:info;font-family:var(--mono)}.cal-unit .cal-batt{grid-area:batt;font-family:var(--mono);color:var(--text3)}.cal-unit button{grid-area:x}
 .stn{padding:8px 0;border-bottom:1px solid var(--border)}.stn .stn-head{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:end}
+.bndraw svg{width:100%;max-width:520px;height:auto;display:block;margin:2px auto 10px}
 .projdia svg{width:100%;max-width:440px;height:auto;display:block;margin:2px auto 10px}
 .stn .stn-live{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:6px}
 .flag{font-family:var(--mono);font-size:10px;padding:9px 12px;border-radius:6px;margin-top:8px;line-height:1.6}
@@ -299,7 +300,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.5.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.6.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Live solution"><div class="rail-head" id="rail-head">—</div></aside>
@@ -646,6 +647,56 @@ details.disc .dbody{padding:0 14px 14px}
   </div>
 </div>
 
+<!-- ═══════════ DESIGN BENCH (V2.6.0, BENCH-01/02) ═══════════ -->
+<div class="page" id="page-bench">
+  <div class="panel">
+    <h2>Design Bench · designs</h2>
+    <div class="fgrid"><div class="fld"><label>Design</label><select id="bn-sel" onchange="benchPick(this.value)"></select></div></div>
+    <div class="btnrow"><button class="btn" onclick="benchNew()">+ New design</button><button class="btn-xs" id="bn-ren" onclick="benchRename()">Rename</button><button class="btn-xs" id="bn-dup" onclick="benchDup()">Duplicate</button><button class="btn-xs" id="bn-del" onclick="benchDelete()">Delete</button></div>
+    <div class="note" id="bn-empty">No design yet. A design is a planned or measured shape: geometry → mass, SD and centre of gravity. Designs stay on the Bench — they are never used by the calculator (§10A).</div>
+  </div>
+  <div id="bn-form">
+  <div class="outcard">
+    <div class="bndraw" id="bn-draw"></div>
+    <div class="scs" id="bn-outs"></div>
+    <div id="bn-flags"></div>
+  </div>
+  <div class="panel">
+    <h2>Body · nose · boat tail</h2>
+    <div class="fgrid3">
+      <div class="fld"><label>Body Ø mm</label><input type="number" id="bn-diam" step="0.01" oninput="benchInput()"></div>
+      <div class="fld"><label>Bearing length mm</label><input type="number" id="bn-bear" step="0.05" oninput="benchInput()"></div>
+      <div class="fld"><label>Nose length mm</label><input type="number" id="bn-nose" step="0.05" oninput="benchInput()"></div>
+      <div class="fld"><label>Nose Rt/R</label><input type="number" id="bn-rtr" step="0.05" min="0" max="1" oninput="benchInput()"></div>
+      <div class="fld"><label>Meplat Ø mm</label><input type="number" id="bn-mep" step="0.05" oninput="benchInput()"></div>
+      <div class="fld"><label>Boat-tail length mm</label><input type="number" id="bn-btl" step="0.05" oninput="benchInput()"></div>
+      <div class="fld"><label>Base Ø mm</label><input type="number" id="bn-base" step="0.01" oninput="benchInput()"></div>
+    </div>
+    <div class="note">Nose Rt/R: 1 = tangent ogive (round nose when the nose length is half the Ø and no meplat), between 0 and 1 = secant ogive, 0 = cone. Nose length 0 = flat front. Base Ø applies with a boat tail.</div>
+  </div>
+  <div class="panel">
+    <h2>Cavities</h2>
+    <div class="fgrid3">
+      <div class="fld"><label>Hollow point Ø mm</label><input type="number" id="bn-hpd" step="0.05" oninput="benchInput()"></div>
+      <div class="fld"><label>Hollow point depth mm</label><input type="number" id="bn-hpdep" step="0.05" oninput="benchInput()"></div>
+      <div class="fld"><label>Hollow point shape</label><select id="bn-hpshape" onchange="benchInput()"><option value="cyl">Cylinder</option><option value="cone">Cone</option><option value="dish">Dish</option></select></div>
+      <div class="fld"><label>Base cavity Ø mm</label><input type="number" id="bn-bcd" step="0.05" oninput="benchInput()"></div>
+      <div class="fld"><label>Base cavity depth mm</label><input type="number" id="bn-bcdep" step="0.05" oninput="benchInput()"></div>
+      <div class="fld"><label>Base cavity shape</label><select id="bn-bcshape" onchange="benchInput()"><option value="dish">Dish</option><option value="cyl">Cylinder</option><option value="cone">Cone</option></select></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Alloy</h2>
+    <div class="fgrid3">
+      <div class="fld"><label>Material</label><select id="bn-alloy" onchange="benchInput()"><option value="pb">Pure lead 11.34 g/cm³</option><option value="sb">Lead–antimony</option><option value="custom">Custom density</option></select></div>
+      <div class="fld" id="bn-sbrow"><label>Antimony % (by mass)</label><input type="number" id="bn-sb" step="0.5" min="0" max="12" oninput="benchInput()"></div>
+      <div class="fld" id="bn-densrow"><label>Density g/cm³</label><input type="number" id="bn-dens" step="0.01" oninput="benchInput()"></div>
+    </div>
+    <div class="note">Mass = density × the volume of the profile of revolution minus the cavities (numerical integration, skill §11). SD = mass_gr / (7000·d_in²) (§9H). Check a design against a real slug by entering its measured dimensions and comparing the mass with the scale.</div>
+  </div>
+  </div>
+</div>
+
 <!-- ═══════════ WIND DRIFT (A4) ═══════════ -->
 <div class="page" id="page-wind">
   <div class="outcard">
@@ -864,7 +915,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.5.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.6.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1076,6 +1127,176 @@ function mountProjDiagrams(root){(root||document).querySelectorAll('.projdia').f
 function mcgyroShape(p){
   if(!p||!(p.diam>0)||!(p.oal>0)||!(p.noseL>0)||p.rtr==null||p.meplat==null||!(p.baseD>0))return null;
   const d=p.diam;return{L:p.oal/d,Ln:p.noseL/d,rtr:p.rtr,db:p.baseD/d,dm:p.meplat/d,rho:p.dens>0?p.dens:LEAD_GCC};
+}
+/* ═════════ BENCH-01 + BENCH-02 (V2.6.0) — DESIGN BENCH: GEOMETRY → MASS · SD ═════════
+   A design is a profile of revolution, base (x = 0) to tip (x = OAL), all lengths in mm:
+     boat tail  [0, Lt]          straight taper from the base Ø to the body Ø (none when Lt = 0)
+     bearing    [Lt, Lt+Lb]      cylinder at the body Ø
+     nose       [Lt+Lb, OAL]     ogive with McCoy's Rt/R (1 = tangent ogive, 0 < Rt/R < 1 secant, 0 = cone),
+                                 ending in a flat meplat; Ln = 0 → flat front at the body Ø
+   Tangent ogive with a meplat: R_T = (Ln² + (rb − rm)²) / (2·(rb − rm)); secant: R = R_T / (Rt/R), the arc
+   through (0, rb) and (Ln, rm) with its centre on the axis side of the chord.
+   Cavities (hollow point from the tip, base cavity from the base): cylinder, cone or dish (spherical cap).
+   Mass = ρ·∫π(r² − c²)dx by composite Simpson between breakpoints (skill §11: numerical integration of the
+   profile of revolution); CG = ∫x·A dx / V; SD = mass_gr / (7000·d_in²) (§9H). Verified against closed forms
+   and scipy quadrature (Formulas page). Designs are theoretical until made and measured (§10A): they live in
+   DB.designs only and never reach the calculator, the anchors or the tests as data. */
+const SB_GCC=6.697;                       // antimony, g/cm³
+const BENCH_SHAPES=['cyl','cone','dish'];
+const BENCH_LIM={diam:[1,20],bearL:[0,60],noseL:[0,60],rtr:[0,1],meplat:[0,20],btL:[0,30],baseD:[0,20],hpD:[0,20],hpDep:[0,60],bcD:[0,20],bcDep:[0,60],sb:[0,12],dens:[1,25]};
+function designClean(d){
+  const o={id:isStr(d.id)?d.id:uid(),name:(isStr(d.name)&&d.name.trim()?d.name.trim():'Design').slice(0,60),notes:isStr(d.notes)?d.notes.slice(0,500):'',fav:d.fav===true};
+  Object.entries(BENCH_LIM).forEach(([k,[lo,hi]])=>{o[k]=isNum(d[k])?Math.min(hi,Math.max(lo,d[k])):null;});
+  o.hpShape=BENCH_SHAPES.includes(d.hpShape)?d.hpShape:'cyl';o.bcShape=BENCH_SHAPES.includes(d.bcShape)?d.bcShape:'dish';
+  o.alloy=['pb','sb','custom'].includes(d.alloy)?d.alloy:'pb';
+  return o;
+}
+function alloyDensity(g){
+  if(g.alloy==='custom')return g.dens>0?g.dens:null;
+  if(g.alloy==='sb'){const w=(g.sb||0)/100;return 1/((1-w)/LEAD_GCC+w/SB_GCC);}   // ideal mixing by mass
+  return LEAD_GCC;
+}
+// Cavity radius at depth t from its opening (a = opening radius, h = depth).
+function cavR(shape,a,h,t){
+  if(!(a>0)||!(h>0)||t<0||t>h)return 0;
+  if(shape==='cone')return a*(1-t/h);
+  if(shape==='dish'){const R=(a*a+h*h)/(2*h),z=R-h+t;return Math.sqrt(Math.max(0,R*R-z*z));}
+  return a;
+}
+function benchGeom(g){
+  const n=v=>v>0?v:0,rb=n(g.diam)/2,Lt=n(g.btL),Lb=n(g.bearL),Ln=n(g.noseL);
+  const rm=Ln>0?n(g.meplat)/2:rb,rbase=Lt>0?n(g.baseD)/2:rb,oal=Lt+Lb+Ln,rtr=g.rtr==null?1:g.rtr;
+  const err=t=>({err:t});
+  if(!(rb>0))return err('Enter the body diameter.');
+  if(!(oal>0))return err('Enter the bearing and/or nose length.');
+  if(Ln>0&&rm>=rb)return err('The meplat must be smaller than the body diameter.');
+  if(Lt>0&&!(rbase>0))return err('Enter the base Ø for the boat tail.');
+  if(Lt>0&&rbase>rb)return err('The base Ø can\'t be larger than the body Ø.');
+  let nose;
+  if(Ln>0){
+    const d=rb-rm,RT=(Ln*Ln+d*d)/(2*d);
+    if(rtr<1e-6)nose={kind:'cone',r:s=>rb-d*s/Ln};
+    else{
+      const R=RT/rtr,c=Math.hypot(Ln,d),h=Math.sqrt(Math.max(0,R*R-c*c/4)),xc=Ln/2-h*d/c,yc=(rb+rm)/2-h*Ln/c;
+      nose={kind:rtr>=1-1e-9?'tangent':'secant',R,xc,yc,r:s=>yc+Math.sqrt(Math.max(0,R*R-(s-xc)*(s-xc)))};
+    }
+  }
+  const x1=Lt,x2=Lt+Lb;
+  const r=x=>x<x1?rbase+(rb-rbase)*x/Lt:x<=x2||!nose?rb:nose.r(Math.min(Ln,x-x2));
+  const hpA=n(g.hpD)/2,hpH=Math.min(n(g.hpDep),oal),bcA=n(g.bcD)/2,bcH=Math.min(n(g.bcDep),oal);
+  const hasHp=hpA>0&&hpH>0,hasBc=bcA>0&&bcH>0;
+  if(hasHp&&Ln>0&&hpA>rm+1e-9)return err('The hollow point is wider than the meplat.');
+  if(hasHp&&hpA>=rb)return err('The hollow point is as wide as the body.');
+  if(hasBc&&bcA>=rbase)return err('The base cavity is as wide as the base.');
+  if(hasHp&&hasBc&&hpH+bcH>=oal)return err('The hollow point and the base cavity meet.');
+  const c=x=>Math.max(hasBc?cavR(g.bcShape,bcA,bcH,x):0,hasHp?cavR(g.hpShape,hpA,hpH,oal-x):0);
+  // Wall check at the cavity mouths and along their depth.
+  for(let i=0;i<=400;i++){const x=oal*i/400;if(c(x)>0&&c(x)>=r(x)-1e-6)return err('A cavity breaks through the wall at '+ut('bullet',x)+' from the base.');}
+  const br=[...new Set([0,x1,x2,oal,hasBc?bcH:0,hasHp?oal-hpH:oal].filter(x=>x>=0&&x<=oal))].sort((a,b)=>a-b);
+  const A=x=>Math.PI*(r(x)**2-c(x)**2);
+  let V=0,M1=0;
+  for(let k=0;k<br.length-1;k++){
+    const a=br[k],b=br[k+1],N=1000,h=(b-a)/N;if(!(h>0))continue;
+    let sv=0,sm=0;
+    // endpoints taken just inside the interval: a cavity mouth is a step in c(x), and the step belongs to
+    // one side only (one-sided limits; the 1e-9 nudge changes nothing else measurable)
+    for(let i=0;i<=N;i++){const x=a+i*h,w=i===0||i===N?1:i%2?4:2,ax=A(i===0?a+1e-9*(b-a):i===N?b-1e-9*(b-a):x);sv+=w*ax;sm+=w*x*ax;}
+    V+=sv*h/3;M1+=sm*h/3;
+  }
+  return{oal,rb,rm,rbase,Lt,Lb,Ln,x1,x2,rtr,nose,r,c,V,cg:M1/V,hasHp,hasBc,btAngle:Lt>0?Math.atan((rb-rbase)/Lt)*180/Math.PI:0};
+}
+function benchMass(g){
+  const G=benchGeom(g);if(G.err)return G;
+  const rho=alloyDensity(g);if(!(rho>0))return{err:'Enter the alloy density.'};
+  const gram=G.V/1000*rho,gr=gram/(GR2KG*1000);
+  return{...G,rho,gram,gr,sd:calcSD(gr,g.diam)};
+}
+/* Live drawing to scale: the computed profile (sampled), cavities cut out, CG marker, dimensions in the
+   display unit. createElementNS / textContent only. */
+function benchDraw(g,G){
+  const NS='http://www.w3.org/2000/svg',mk=(t,a,txt)=>{const e=document.createElementNS(NS,t);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));if(txt!=null)e.textContent=txt;return e;};
+  const W=380,H=212,s=Math.min(270/G.oal,95/(2*G.rb)),X=x=>58+x*s,ym=106,Y=r=>ym-r*s;
+  const svg=mk('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'Design profile to scale'});
+  const xs=[];for(let i=0;i<=240;i++)xs.push(G.oal*i/240);[G.x1,G.x2].forEach(x=>xs.push(x));xs.sort((a,b)=>a-b);
+  const pts=xs.map(x=>[X(x),Y(G.r(x))]),low=xs.slice().reverse().map(x=>[X(x),ym+G.r(x)*s]);
+  const P=a=>a.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+' '+y.toFixed(2)).join('')+'Z';
+  svg.appendChild(mk('path',{d:P(pts.concat(low)),fill:'var(--bg4)',stroke:'var(--text2)','stroke-width':1.2,'data-part':'body'}));
+  if(G.hasHp||G.hasBc){
+    const cx=xs.filter(x=>G.c(x)>0);
+    if(cx.length){const seg=(f)=>{const up=f.map(x=>[X(x),ym-G.c(x)*s]),dn=f.slice().reverse().map(x=>[X(x),ym+G.c(x)*s]);svg.appendChild(mk('path',{d:P(up.concat(dn)),fill:'var(--bg)',stroke:'var(--text3)','stroke-width':0.8,'data-part':'cavity'}));};
+      const bc=xs.filter(x=>G.hasBc&&x<=Math.min(G.oal,+g.bcDep||0)),hp=xs.filter(x=>G.hasHp&&x>=G.oal-Math.min(G.oal,+g.hpDep||0));
+      if(bc.length>1)seg(bc);if(hp.length>1)seg(hp);}
+  }
+  svg.appendChild(mk('line',{x1:X(0)-12,y1:ym,x2:X(G.oal)+12,y2:ym,stroke:'var(--text3)','stroke-width':0.6,'stroke-dasharray':'8 3 2 3'}));
+  const col='var(--accent)',dim=(x1,y1,x2,y2,tx,ty,anchor,t,key)=>{const gr=mk('g',{'data-dim':key});
+    gr.append(mk('line',{x1,y1,x2,y2,stroke:col,'stroke-width':1}),mk('text',{x:tx,y:ty,'text-anchor':anchor,'font-size':10,fill:col},t));svg.appendChild(gr);};
+  const top=Y(G.rb)-22;
+  [[X(0),Y(G.rbase)],[X(G.oal),Y(G.rm)]].forEach(([x,y])=>svg.appendChild(mk('line',{x1:x,y1:y-3,x2:x,y2:top-4,stroke:'var(--text3)','stroke-width':0.5})));
+  dim(X(0),top,X(G.oal),top,(X(0)+X(G.oal))/2,top-5,'middle','OAL '+ut('bullet',G.oal),'oal');
+  if(G.Ln>0)dim(X(G.x2),top+12,X(G.oal),top+12,(X(G.x2)+X(G.oal))/2,top+9,'middle','nose '+ut('bullet',G.Ln),'nose');
+  const xd=X(G.x1+(G.x2-G.x1)/2);
+    // labels below the body on their own rows: CG (+11), Ø (+28), base Ø (+44) — they never overlap
+  dim(xd,Y(G.rb),xd,ym+G.rb*s,xd,ym+G.rb*s+28,'middle','Ø '+ut('bullet',2*G.rb),'diam');
+  if(G.Lt>0)dim(X(0)-8,Y(G.rbase),X(0)-8,ym+G.rbase*s,X(0)-10,ym+G.rb*s+44,'start','base Ø '+ut('bullet',2*G.rbase)+' · '+G.btAngle.toFixed(1)+'°','base');
+  const cgx=X(G.cg);svg.appendChild(mk('path',{d:`M${cgx} ${ym+G.rb*s+3}l-5 8h10z`,fill:col,'data-part':'cg'}));
+  svg.appendChild(mk('text',{x:cgx+8,y:ym+G.rb*s+11,'font-size':10,fill:col},'CG'));
+  return svg;
+}
+const BENCH_IN={diam:'bn-diam',bearL:'bn-bear',noseL:'bn-nose',rtr:'bn-rtr',meplat:'bn-mep',btL:'bn-btl',baseD:'bn-base',hpD:'bn-hpd',hpDep:'bn-hpdep',bcD:'bn-bcd',bcDep:'bn-bcdep',sb:'bn-sb',dens:'bn-dens'};
+const benchCur=()=>(DB.designs||[]).find(d=>d.id===APP.benchId)||(DB.designs||[])[0]||null;
+function benchNew(){
+  const nm=prompt('Name for the design:','Design '+((DB.designs||[]).length+1));if(nm===null)return;
+  // Starting values only (a plain .25 round-nose shape) — edit to the real or planned dimensions.
+  const d=designClean({name:nm,diam:6.35,bearL:6,noseL:3.5,rtr:1,meplat:1.5,btL:0,alloy:'pb'});
+  DB.designs.push(d);APP.benchId=d.id;saveDB();benchRender();
+}
+function benchRename(){const d=benchCur();if(!d)return;const nm=prompt('Rename the design:',d.name);if(nm===null||!nm.trim())return;d.name=nm.trim().slice(0,60);saveDB();benchRender();}
+function benchDup(){const d=benchCur();if(!d)return;const c=designClean({...d,id:uid(),name:(d.name+' copy').slice(0,60)});DB.designs.push(c);APP.benchId=c.id;saveDB();benchRender();}
+function benchDelete(){const d=benchCur();if(!d||!confirm('Delete the design "'+d.name+'"?'))return;DB.designs=DB.designs.filter(x=>x!==d);APP.benchId=DB.designs.length?DB.designs[0].id:null;saveDB();benchRender();}
+function benchPick(id){APP.benchId=id;saveDB();benchRender();}
+function benchInput(){
+  const d=benchCur();if(!d)return;
+  Object.entries(BENCH_IN).forEach(([k,id])=>{const v=document.getElementById(id).value;d[k]=v===''?null:+v;});
+  ['hpShape','bcShape','alloy'].forEach(k=>{d[k]=document.getElementById('bn-'+k.toLowerCase()).value;});
+  Object.assign(d,designClean(d));saveDBSoon();benchCalc();
+}
+function benchRender(){
+  const sel=document.getElementById('bn-sel');if(!sel)return;
+  const d=benchCur();APP.benchId=d?d.id:null;
+  const opt=(v,t)=>{const o=document.createElement('option');o.value=v;o.textContent=t;return o;};
+  sel.replaceChildren(...(DB.designs.length?DB.designs.map(x=>opt(x.id,x.name)):[opt('','— no design yet —')]));if(d)sel.value=d.id;
+  document.getElementById('bn-form').style.display=d?'':'none';
+  ['bn-ren','bn-dup','bn-del'].forEach(id=>{document.getElementById(id).disabled=!d;});
+  if(!d){document.getElementById('bn-empty').style.display='';return;}
+  document.getElementById('bn-empty').style.display='none';
+  Object.entries(BENCH_IN).forEach(([k,id])=>{document.getElementById(id).value=d[k]==null?'':d[k];});
+  ['hpShape','bcShape','alloy'].forEach(k=>{document.getElementById('bn-'+k.toLowerCase()).value=d[k];});
+  benchCalc();
+}
+function benchCalc(){
+  const d=benchCur(),outs=document.getElementById('bn-outs'),flags=document.getElementById('bn-flags'),draw=document.getElementById('bn-draw');if(!d||!outs)return;
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const card=(l,v,u)=>{const c=el('div','sc');c.append(el('div','sl',l),el('div','sv',v),el('div','su',u));return c;};
+  const flag=(cls,t)=>el('div','flag '+cls,t);
+  document.getElementById('bn-sbrow').style.display=d.alloy==='sb'?'':'none';
+  document.getElementById('bn-densrow').style.display=d.alloy==='custom'?'':'none';
+  const m=benchMass(d);
+  if(m.err){outs.replaceChildren();draw.replaceChildren();flags.replaceChildren(flag('warn',m.err));return;}
+  draw.replaceChildren(benchDraw(d,m));
+  outs.replaceChildren(
+    card('Mass',m.gr.toFixed(2)+' gr',m.gram.toFixed(3)+' g · '+(m.V/1000).toFixed(4)+' cm³ × '+m.rho.toFixed(3)+' g/cm³'),
+    card('SD (§9H)',m.sd.toFixed(4),'lb/in² · '+(m.sd*LB2KGM2).toFixed(1)+' kg/m²'),
+    card('OAL',ut('bullet',m.oal),'L/D '+(m.oal/(2*m.rb)).toFixed(2)),
+    card('CG from base',ut('bullet',m.cg),(m.cg/m.oal*100).toFixed(1)+' % of OAL'));
+  const f=[flag('info','Design — theoretical until made and measured (§10A). Never used by the calculator, anchors or tests.')];
+  if(m.oal>25)f.push(flag('warn','OAL '+ut('bullet',m.oal)+' is over the Mora\'s '+ut('bullet',25)+' single-shot limit.'));
+  else if(m.oal>22)f.push(flag('warn','OAL '+ut('bullet',m.oal)+' is over the '+ut('bullet',22)+' magazine limit — single-shot only (≤ '+ut('bullet',25)+').'));
+  else f.push(flag('ok','OAL '+ut('bullet',m.oal)+' fits the magazine (≤ '+ut('bullet',22)+').'));
+  if(m.Lt>0)f.push(flag(m.btAngle>10?'warn':'info','Boat-tail angle '+m.btAngle.toFixed(1)+'° — skill §12C: 7–9° (G7 standard 7.5°), above 10° the flow separates.'));
+  if(d.alloy==='sb')f.push(flag('info','Pb–Sb density by ideal mixing: '+m.rho.toFixed(3)+' g/cm³ — within about 1 % of measured alloys up to 11 % Sb (estimate).'));
+  const cal=x=>(x/(2*m.rb)).toFixed(3);
+  f.push(el('div','note','For McGyro: length '+cal(m.oal)+' cal · nose '+cal(m.Ln)+' cal · Rt/R '+(m.Ln>0?m.rtr.toFixed(2):'—')+' · meplat '+cal(2*m.rm)+' cal · base '+cal(2*m.rbase)+' cal · density '+m.rho.toFixed(2)+' g/cm³'));
+  flags.replaceChildren(...f);
 }
 const isHollowPoint=p=>/hollow|\bHP\b/i.test((p.name||'')+' '+(p.notes||''));
 function twistForSg(sg,mass_gr,d_mm,oal_mm,mv_ms,C,tC,hPa){
@@ -1334,7 +1555,7 @@ const QDEF={
 };
 let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',tsize:'mm',alt:'m',regp:'bar'};
 let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',tsize:'off',alt:'off',regp:'off'};
-let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,solverStations:false,turretMode:'match',solverCor:false,solverSpin:false,lat:46.05};
+let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,solverStations:false,turretMode:'match',solverCor:false,solverSpin:false,lat:46.05,benchId:null};
 /* FIX-14b/c — apply display preferences (boot + on change) */
 function applyDisplayPrefs(){
   const h=document.documentElement;
@@ -1500,10 +1721,10 @@ function migrateDopeCard(c){
   });
   return c;
 }
-let DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[]};let currentDopeId=null;
+let DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],designs:[]};let currentDopeId=null;
 let _idb=null,storeError=null,storeBytes=0,storePersisted=null;
 function snapshotJSON(){return JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,session:{rifleId:S.rifleId,projId:S.projId,zeroWxId:S.zeroWxId,curWxId:S.curWxId,zero_m:S.zero_m,dist_m:S.dist_m,drag:S.drag}});}
-function applySnapshot(d){DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],...d};UNITS={...UNITS,...(d.units||{})};SUNITS={...SUNITS,...(d.sunits||{})};APP={...APP,...(d.app2||{})};if(d.session)Object.assign(S,d.session);}
+function applySnapshot(d){DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],designs:[],...d};UNITS={...UNITS,...(d.units||{})};SUNITS={...SUNITS,...(d.sunits||{})};APP={...APP,...(d.app2||{})};if(d.session)Object.assign(S,d.session);}
 function schemaNewerThanApp(d){return Object.keys(SCHEMA).filter(k=>d&&d.schema&&(d.schema[k]||0)>SCHEMA[k]);}
 function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
 function idbRun(mode,op){return new Promise((res,rej)=>{const tx=_idb.transaction(IDB_STORE,mode);const q=op(tx.objectStore(IDB_STORE));tx.oncomplete=()=>res(q.result);tx.onerror=tx.onabort=()=>rej(tx.error||new Error('transaction aborted'));});}
@@ -2054,7 +2275,7 @@ function renderActBar(){
 /* ═════ V1.17.0 — bottom sheets: More menu + inline session pickers ═════
    Every picker writes through the SAME Bus calls the Trajectory selects use, so there is exactly
    one code path into the session state and the V1.16.0 auto-solve fires from all of them. */
-const MORE_PAGES=[['stab','Stability','Berger Sg · twist'],['truing','BC / Truing','BC, SD, MV–temp'],
+const MORE_PAGES=[['stab','Stability','Berger Sg · twist'],['bench','Design Bench','geometry · mass · SD'],['truing','BC / Truing','BC, SD, MV–temp'],
   ['holds','Holds','reticle holdover'],['profiles','Profiles','rifles, scopes, ammo'],
   ['sensors','Sensors','Calypso · chrono'],['layouts','Layouts','Home per match type'],['formulas','Formulas','§20A self-check'],['settings','Settings','units, display, field']];
 function openSheet(html){document.getElementById('sbox').innerHTML='<div class="sgrab"></div>'+html;document.getElementById('sheet').classList.add('open');}
@@ -2532,6 +2753,7 @@ function gotoPage(p){
   pg.classList.add('active');
   if(p==='profiles'){renderProfiles();setProfSub(profSub);}
   if(p==='settings')renderSettings();
+  if(p==='bench')benchRender();
   if(p==='home')renderQuick();
   if(p==='stab'&&getRifle()&&getProj())stabFromActive();
   if(p==='wind'){document.getElementById('wd-spd').value=S.wind.speed;document.getElementById('wd-dir').value=S.wind.dir;setWindMode(S.wind.source==='calypso'?'live':'manual');}
@@ -3132,7 +3354,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.5.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.6.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3708,7 +3930,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.5.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.6.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -3725,8 +3947,8 @@ function importAll(input){
    content, or same name) are never resolved silently: the review sheet offers Overwrite /
    Save as copy / Skip per item. References inside the import (rifle→scope→reticle, dope
    card→rifle/projectile/weather) follow whatever was chosen for their target. */
-const IMPORT_ORDER=['reticles','scopes','rifles','projectiles','weathers','dopeCards','ranges'];
-const IMPORT_LABEL={reticles:'Reticle',scopes:'Scope',rifles:'Rifle',projectiles:'Projectile',weathers:'Weather',dopeCards:'Dope card',ranges:'Range'};
+const IMPORT_ORDER=['reticles','scopes','rifles','projectiles','weathers','dopeCards','ranges','designs'];
+const IMPORT_LABEL={reticles:'Reticle',scopes:'Scope',rifles:'Rifle',projectiles:'Projectile',weathers:'Weather',dopeCards:'Dope card',ranges:'Range',designs:'Design'};
 const IMPORT_FIELDS={
   rifles:{id:'s',name:'s',cal:'s',twist:'n',twistDir:'s',blen:'n',sight:'n',mv:'n',zero:'n',notes:'s',scopeId:'s',railOn:'b',railMrad:'n',railUnit:'s',downClicks:'ns',zwSpd:'n',zwDir:'n',zTemp:'n',zPres:'n',zPresType:'s',zAlt:'n',zRH:'n',reg1:'ns',reg2:'ns',ssj:'b',regDelta:'ns',dwell:'ns',fav:'b',mvt:'mvt'},
   scopes:{id:'s',name:'s',sku:'s',adjUnit:'s',click:'n',elev:'n',wind:'n',cpr:'n',magMin:'n',magMax:'n',reticleId:'s0',source:'s',notes:'s',fav:'b'},
@@ -3734,9 +3956,10 @@ const IMPORT_FIELDS={
   projectiles:{id:'s',name:'s',cal:'s',mfg:'s',type:'s',diam:'n',mass:'n',oal:'n',bcg7:'n',bcg1:'n',c:'n',ff:'n',notes:'s',fav:'b',noseL:'n',rtr:'n',meplat:'n',baseD:'n',dens:'n'},
   weathers:{id:'s',name:'s',temp:'n',pres:'n',presType:'s',rh:'n',alt:'n',notes:'s',fav:'b'},
   dopeCards:{id:'s',name:'s',rifleId:'s0',projId:'s0',cwxId:'s0',mv:'n',zero:'n',notes:'s',stages:'stages',fav:'b'},
-  ranges:{id:'s',name:'s',notes:'s',mode:'s',stations:'stns',fav:'b'}   // V2.2.0 CORE-17 wind-station placements
+  ranges:{id:'s',name:'s',notes:'s',mode:'s',stations:'stns',fav:'b'},   // V2.2.0 CORE-17 wind-station placements
+  designs:{id:'s',name:'s',notes:'s',fav:'b',diam:'n',bearL:'n',noseL:'n',rtr:'n',meplat:'n',btL:'n',baseD:'n',hpD:'n',hpDep:'n',hpShape:'s',bcD:'n',bcDep:'n',bcShape:'s',alloy:'s',sb:'n',dens:'n'}   // V2.6.0 BENCH-01/02
 };
-const IMPORT_REQUIRED={scopes:['click'],projectiles:['diam','mass']};
+const IMPORT_REQUIRED={scopes:['click'],projectiles:['diam','mass'],designs:['diam']};
 const isNum=v=>typeof v==='number'&&isFinite(v);
 const isStr=v=>typeof v==='string'&&v.length<=2000;
 const IMPORT_CHECK={
@@ -3760,6 +3983,7 @@ function sanitiseRecord(type,raw){
     migrateDopeCard(rec);
   }
   if(type==='ranges'){rec.mode=rec.mode==='nearest'?'nearest':'blend';rec.stations=(rec.stations||[]).map(stnClean);}
+  if(type==='designs')Object.assign(rec,designClean(rec));
   if(!rec.id)rec.id=uid();
   return{rec};
 }
@@ -4368,6 +4592,7 @@ function renderCourse(tr){
 const FX_ENV=()=>({rho:airDensity(20,1010,65),aS:sos(20)});
 const fxAt=(pts,r)=>pts.find(p=>Math.abs(p.range-r)<1e-6);
 const fxBerger=(m,oal,tw)=>calcSg(m,6.35,oal,tw*25.4,853*0.3048,millerC(6.35,oal).c,10,980); // Berger page: 853 fps, 50 °F, 978 ft ≈ 980 hPa
+const fxBench=g=>benchMass(designClean({diam:6.35,bearL:0,noseL:0,rtr:1,meplat:0,btL:0,alloy:'pb',...g}));
 const FORMULAS=[
   {name:'Wind average (vector mean)',status:'ok',eq:'x̄ = Σ s·cos d / n, ȳ = Σ s·sin d / n → speed √(x̄²+ȳ²), direction atan2(ȳ, x̄); steadiness = speed / mean(s)',
     src:'resultant (vector-averaged) wind — EPA-454/R-99-005 Meteorological Monitoring Guidance; anchors are exact trigonometry, random data reproduced independently in windavgtest.js — CALC-20',used:'Calypso average window → session wind',
@@ -4455,6 +4680,20 @@ const FORMULAS=[
   {name:'MV spread → vertical spread',status:'est',eq:'Δy ≈ g·t²·ΔV/V₀ (fixed launch angle, small ΔV)',src:'first-order from the point-mass equations; reproduced against py-ballisticcalc fixed-angle runs (V1.26.0) within 2.5 % to 100 m',used:'Home › Chrono module',
     anchors:[{l:'Queen G7 0.128, 255 m/s, ES 5 m/s — 50 m (pbc 7.54 mm)',got:()=>{const e=FX_ENV();return mvSpreadVert(fxAt(rk4traj(255,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),50).tof,5,255);},want:7.54,tol:0.25,u:'mm'},
              {l:'… 100 m (pbc 30.74 mm)',got:()=>{const e=FX_ENV();return mvSpreadVert(fxAt(rk4traj(255,0.128,60,50,100,0.044,e.rho,e.aS,1,'g7',0.245,null),100).tof,5,255);},want:30.74,tol:1.0,u:'mm'}]},
+  {name:'Mass from geometry (profile of revolution)',status:'ok',eq:'m = ρ·∫π(r(x)² − c(x)²)dx (composite Simpson between breakpoints); CG = ∫x·A dx / m; tangent ogive R_T = (Ln² + (rb−rm)²)/(2(rb−rm)), secant R = R_T/(Rt/R)',
+    src:'skill §11 (numerical integration of the profile of revolution); reproduced against closed forms and scipy quad (independent Python)',used:'Design Bench (BENCH-01/02)',
+    anchors:[{l:'Cylinder Ø 6.35 × 12.9 mm, pure lead (π r² L → 71.4945 gr)',got:()=>fxBench({bearL:12.9}).gr,want:71.494461,tol:1e-4,u:'gr'},
+             {l:'Hemisphere Ø 6.35 (tangent ogive, nose = r, no meplat): 67.0332 mm³',got:()=>fxBench({noseL:3.175}).V,want:67.033177,tol:1e-4,u:'mm³'},
+             {l:'Tangent ogive 5.5 mm, meplat 1.5 (scipy quad 110.31759 mm³)',got:()=>fxBench({noseL:5.5,meplat:1.5}).V,want:110.317592,tol:1e-4,u:'mm³'},
+             {l:'Secant ogive Rt/R 0.5, same nose (scipy quad 91.04707 mm³)',got:()=>fxBench({noseL:5.5,meplat:1.5,rtr:0.5}).V,want:91.047071,tol:1e-4,u:'mm³'},
+             {l:'Boat tail 2 mm, Ø 5.0 → 6.35 (frustum πh/3·(R²+Rr+r²) = 50.82704 mm³)',got:()=>fxBench({btL:2,baseD:5}).V,want:50.827042,tol:1e-4,u:'mm³'},
+             {l:'Full test shape: BT + bearing + ogive + HP cylinder + base dish (scipy 60.75916 gr)',got:()=>fxBench({btL:2,baseD:5,bearL:6,noseL:5.5,meplat:1.5,hpD:1,hpDep:2,hpShape:'cyl',bcD:4.5,bcDep:0.3,bcShape:'dish'}).gr,want:60.759160,tol:1e-4,u:'gr'},
+             {l:'… its CG from the base (scipy 6.015521 mm)',got:()=>fxBench({btL:2,baseD:5,bearL:6,noseL:5.5,meplat:1.5,hpD:1,hpDep:2,hpShape:'cyl',bcD:4.5,bcDep:0.3,bcShape:'dish'}).cg,want:6.015521,tol:1e-4,u:'mm'}]},
+  {name:'Lead–antimony density (ideal mixing)',status:'est',eq:'1/ρ = (1−w)/11.34 + w/6.697 (w = Sb mass fraction)',
+    src:'ideal mixing by mass; checked against measured Pb–Sb alloys (Papović et al. 2024, Proc. 0018) and DIN 1741 GB-PbSb10 (10.6 g/cm³) — within about 1 % up to 11 % Sb',used:'Design Bench alloy',
+    anchors:[{l:'PbSb 4.48 % measured 10.983 g/cm³',got:()=>alloyDensity({alloy:'sb',sb:4.48}),want:10.983,tol:0.03,u:'g/cm³'},
+             {l:'PbSb 9.1 % measured 10.771 (±0.156)',got:()=>alloyDensity({alloy:'sb',sb:9.1}),want:10.771,tol:0.12,u:'g/cm³'},
+             {l:'DIN 1741 GB-PbSb10: 10.6',got:()=>alloyDensity({alloy:'sb',sb:10}),want:10.6,tol:0.02,u:'g/cm³'}]},
   {name:'MV–temperature model',status:'est',eq:'v(t) = a + b·t, least squares',src:'regression is exact; linear behaviour is an assumption until chrono data across temperatures exists',used:'Truing → MV–temp',
     anchors:[{l:'270 m/s at 0 °C, 280 at 20 °C → 10 °C',got:()=>mvtFit([{t:0,v:270},{t:20,v:280}]).at(10),want:275,tol:1e-9,u:'m/s'}]}
 ];
@@ -4550,13 +4789,13 @@ const UNIT_FIELDS={
   temp:['tr-ct','tu-temp','mvt-t','st-temp','rf-ztemp','wf-temp'],
   pres:['tr-cp','tu-pres','st-pres','rf-zpres','wf-pres'],
   sight:['tr-sight','rf-sight'],
-  bullet:['bc-diam','bc-oal','st-diam','st-oal','pf-diam','pf-oal','rf-blen','pf-nose','pf-mep','pf-base','st-nose','st-mep','st-base'],
+  bullet:['bc-diam','bc-oal','st-diam','st-oal','pf-diam','pf-oal','rf-blen','pf-nose','pf-mep','pf-base','st-nose','st-mep','st-base','bn-diam','bn-bear','bn-nose','bn-mep','bn-btl','bn-base','bn-hpd','bn-hpdep','bn-bcd','bn-bcdep'],
   alt:['wf-alt','rf-zalt'],
   '-':['home-railoff','hm-tbrg','hm-wbrg','home-angle','tr-bc','tr-crh','tu-rh','bc-mass','bc-ff','bc-g1',
        'st-mass','st-twist','st-c','wd-dir','wd-xf','sv-angle','sv-cant','home-cant','sv-wdir','sv-lat','sv-az','cal-m-brg','mw-dir',
        'rf-downclicks','rf-reg1','rf-reg2','rf-twist','rf-railmrad','rf-zwdir','rf-zrh','rf-dwell',
        'sc-click','sc-elev','sc-wind','sc-cpr','sc-magmin','sc-magmax','rt-dot',
-       'pf-mass','pf-c','pf-bcg7','pf-bcg1','pf-ff','wf-rh','pf-rtr','pf-dens','st-rtr','st-dens']
+       'pf-mass','pf-c','pf-bcg7','pf-bcg1','pf-ff','wf-rh','pf-rtr','pf-dens','st-rtr','st-dens','bn-rtr','bn-sb','bn-dens']
 };
 const FIELD_Q=Object.fromEntries(Object.entries(UNIT_FIELDS).flatMap(([q,ids])=>ids.map(id=>[id,q])));
 const NATIVE_VALUE=typeof HTMLInputElement!=='undefined'?Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value'):null;

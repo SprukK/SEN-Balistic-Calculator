@@ -26,11 +26,11 @@ chk('clicking More throws nothing',errs.length===before,errs.slice(before).join(
 const sheetOpen=$('#sheet').classList.contains('open');
 chk('More opens the sheet',sheetOpen);
 const items=$$('#sbox .navsheet button');
-chk('More sheet lists 8 pages',items.length===8,items.map(b=>b.dataset.page).join(','));
+chk('More sheet lists 9 pages (V2.6.0: + Design Bench)',items.length===9,items.map(b=>b.dataset.page).join(','));
 
 // 2. every More item navigates
 let navFails=[];
-for(const id of ['stab','truing','holds','profiles','sensors','settings']){
+for(const id of ['stab','bench','truing','holds','profiles','sensors','settings']){
   click($('#nav-more'));
   const b=$$('#sbox .navsheet button').find(x=>x.dataset.page===id);
   if(!b){navFails.push(id+':missing');continue;}
