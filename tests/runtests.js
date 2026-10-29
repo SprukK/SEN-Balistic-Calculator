@@ -169,6 +169,15 @@ chk('V2.6.1 ball end shallower than its radius → refused', bm({bearL:12.9,hpD:
 chk('Pb–Sb 4.48 % ≈ measured 10.983 (Papović 2024)', alloyDensity({alloy:'sb',sb:4.48}), 10.983, 0.03);
 chk('Pb–Sb 10 % ≈ DIN 1741 GB-PbSb10 10.6', alloyDensity({alloy:'sb',sb:10}), 10.6, 0.02);
 
+console.log('\n=== V2.8.0 CALC-06: AERODYNAMIC JUMP (Litz) ===');
+chk('Litz worked example Sg 1.49, L 5.32 = 0.034132 MOA/mph', litzJumpPerMph(1.49,5.32), 0.034132, 1e-9);
+chk('… Sg 1.79 = 0.037132 MOA/mph', litzJumpPerMph(1.79,5.32), 0.037132, 1e-9);
+chk('ballistics-engine known answer: Sg 1.75, L 4, 10 mph from the right, RH = +0.399 MOA', aeroJumpMoa(1.75,4,10*0.44704,'right'), 0.399, 1e-9);
+chk('wind from the left, RH twist → −0.399 (low)', aeroJumpMoa(1.75,4,-10*0.44704,'right'), -0.399, 1e-9);
+chk('left twist reverses', aeroJumpMoa(1.75,4,10*0.44704,'left'), -0.399, 1e-9);
+chk('Sg below 1 → not computed', aeroJumpMoa(0.95,2,3,'right')===null?1:0, 1);
+chk('smooth bore → not computed', aeroJumpMoa(1.5,2,3,'smooth')===null?1:0, 1);
+
 console.log('\n=== V1.16.0 NEW BEHAVIOUR ===');
 chk('trajReason defined',            typeof trajReason, 'string');
 chk('runTraj accepts silent arg',    runTraj.length, 1);

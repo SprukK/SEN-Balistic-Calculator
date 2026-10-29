@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.7.0</title>
+<title>SEN Ballistics V2.8.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -309,7 +309,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.7.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.8.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Second pane"><div class="pane-sw" id="pane-sw"></div><div class="rail-head" id="rail-head">—</div></aside><button class="btn-xs" id="pane-show" style="display:none" onclick="setPaneMode(curPage(),'rail')">◧ Solution</button>
@@ -763,6 +763,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Latitude ° (N+, S−)</label><input type="number" id="sv-lat" step="0.01" value="46.05" oninput="APP.lat=+this.value;saveDB();solve()"></div>
       <div class="fld"><label>Azimuth ° (0=N · 90=E)</label><input type="number" id="sv-az" step="1" value="0" oninput="setTargetBearing(this.value===''?null:+this.value,'manual');solve()"></div>
       <div class="fld"><label>Spin drift (Litz EST ⚠)</label><div class="seg"><button id="sv-sd-off" onclick="svSetSpin(false)">Off</button><button id="sv-sd-on" onclick="svSetSpin(true)">On</button></div></div>
+      <div class="fld"><label>Aerodynamic jump (Litz EST ⚠)</label><div class="seg"><button id="sv-aj-off" onclick="svSetAJ(false)">Off</button><button id="sv-aj-on" onclick="svSetAJ(true)">On</button></div></div>
     </div>
     <div class="note">Coriolis is exact physics (integrated over the actual RK4 trajectory) — negligible below ~<span data-uv="range|300">300 m</span>, grows with TOF. Spin drift uses the Litz empirical fit (1.25·(Sg+1.2)·TOF^1.83) derived from SUPERSONIC rifle bullets — <b>unvalidated for subsonic slugs</b>; treat as an estimate until field-verified. When ON, corrections are included in the dial above and itemised in the flags. n/a for pellets and smooth bores.</div>
   </div>
@@ -924,7 +925,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.7.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.8.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1534,6 +1535,18 @@ const OMEGA=7.292115e-5, DEG=Math.PI/180;
 function xTimeIntegral(pts,tp){let I=0,px=0,pt=0;for(const p of pts){if(p.range>tp.range+1e-9)break;I+=(p.range+px)/2*(p.tof-pt);px=p.range;pt=p.tof;}return I;} // ∫x dt, m·s
 function coriolisH_mm(pts,tp,lat){return 2*OMEGA*Math.sin(lat*DEG)*xTimeIntegral(pts,tp)*1000;}
 function coriolisV_mm(pts,tp,lat,az){return 2*OMEGA*Math.cos(lat*DEG)*Math.sin(az*DEG)*xTimeIntegral(pts,tp)*1000;}
+/* V2.8.0 CALC-06 — aerodynamic jump from a crosswind (Litz, Applied Ballistics for Long-Range Shooting, 2nd ed.
+   pp. 75–83): Y = 0.01·Sg − 0.0024·L + 0.032 MOA per mph of crosswind, L = length in calibres. A launch-angle
+   change (shift = angle × range). Right-hand twist: wind FROM THE RIGHT → UP, from the left → down; left twist
+   reverses. Sign derived (x forward, y left, z up: the overturning moment of a nose yawed right precesses a
+   right-spin axis downward) and matching the ballistics-engine crate's Litz implementation and tests. Fitted on
+   rifle bullets near Sg 1.75 — an estimate for airgun slugs. Returns MOA, + = up; null when not applicable. */
+const MPH_MS=0.44704;
+const litzJumpPerMph=(sg,Lcal)=>0.01*sg-0.0024*Lcal+0.032;
+function aeroJumpMoa(sg,Lcal,crossFromRight_ms,twistDir){
+  if(!(sg>=1)||!(Lcal>0)||twistDir==='smooth')return null;
+  return(twistDir==='left'?-1:1)*litzJumpPerMph(sg,Lcal)*crossFromRight_ms/MPH_MS;
+}
 function spinDrift_mm(sg,tof,twistDir){if(!(sg>0)||twistDir==='smooth')return null;return(twistDir==='left'?-1:1)*1.25*(sg+1.2)*Math.pow(tof,1.83)*25.4;}
 /* E2 · MV–temperature model — least-squares linear fit over per-rifle observations
    [{t,v},…]. Needs ≥2 points at distinct temperatures for a slope. */
@@ -1574,7 +1587,7 @@ const QDEF={
 };
 let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',tsize:'mm',alt:'m',regp:'bar'};
 let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',tsize:'off',alt:'off',regp:'off'};
-let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,solverStations:false,turretMode:'match',solverCor:false,solverSpin:false,lat:46.05,benchId:null};
+let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,solverStations:false,turretMode:'match',solverCor:false,solverSpin:false,solverAJ:false,lat:46.05,benchId:null};
 /* FIX-14b/c — apply display preferences (boot + on change) */
 function applyDisplayPrefs(){
   const h=document.documentElement;
@@ -2367,6 +2380,19 @@ function sessionSg(){
   if(!cInfo.valid)return null;
   return{sg:calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,cInfo.c,ct,cp),est:cInfo.est,twistDir:r.twistDir};
 }
+/* V2.8.0: the jump for the current muzzle crosswind minus the jump already in the zero (the rifle was sighted
+   in with the zero session's crosswind, at the zero air's Sg). MOA, + = up; {why} when not computed. */
+function sessionJump(crossNow,crossZero){
+  const r=getRifle(),p=getProj();
+  if(p&&p.type==='pellet')return{why:'pellet (drag-stabilised, no Sg)'};
+  if(r&&r.twistDir==='smooth')return{why:'smooth bore'};
+  const now=sessionSg();if(!now)return{why:'no Sg for this projectile'};
+  if(now.sg<1)return{why:'Sg '+now.sg.toFixed(2)+' below 1.0 — not gyroscopically stable'};
+  const z=zeroConds(),L=p.oal/p.diam,sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,projC(p).c,z.temp,z.pres);
+  const jNow=aeroJumpMoa(now.sg,L,crossNow,now.twistDir),jZero=crossZero?aeroJumpMoa(sgZ,L,crossZero,now.twistDir):0;
+  if(jNow==null||jZero==null)return{why:'Sg below 1.0 in the zero air'};
+  return{moa:jNow-jZero,jNow,jZero,sg:now.sg,sgZ,L,perMph:litzJumpPerMph(now.sg,L),est:now.est};
+}
 /* ═════════ HOME DASHBOARD ═════════
    Auto-computes a trajectory from the active session (rifle/proj/weather) so the
    home screen is useful without visiting Trajectory first. Reuses the same physics
@@ -2595,6 +2621,7 @@ let homeLive=false, homeWindSrc='avg'; // 'avg' (stable) or 'inst' (live gust)
 let turretElevMode='match', dialedElev=0, dialedWind=0;
 function svSetCor(b){APP.solverCor=b;saveDB();solve();}
 function svSetSpin(b){APP.solverSpin=b;saveDB();solve();}
+function svSetAJ(b){APP.solverAJ=b===true;saveDB();solve();}
 function setTurretMode(m){turretElevMode=m;APP.turretMode=m;saveDB();renderQuick();}
 function turretStep(axis,d){if(axis==='e'){if(turretElevMode!=='manual')return;dialedElev+=d;}else dialedWind+=d;renderQuick();}
 function turretReset(){dialedElev=0;dialedWind=0;renderQuick();}
@@ -3180,7 +3207,12 @@ function solve(){
   let coH=0,coV=0,sdMm=null,sgI=null,advNote='';
   if(APP.solverCor){coH=coriolisH_mm(pts,tp,lat);coV=coriolisV_mm(pts,tp,lat,az);}
   if(APP.solverSpin){sgI=sessionSg();if(sgI)sdMm=spinDrift_mm(sgI.sg,tp.tof,sgI.twistDir);}
-  const mrElev=sol.mrElev-(APP.solverCor?coV/tdist:0);
+  // V2.8.0 aerodynamic jump: crosswind at the muzzle (+ = from the right) — station wind at the firing line when stations are in use.
+  document.getElementById('sv-aj-off').classList.toggle('on',!APP.solverAJ);
+  document.getElementById('sv-aj-on').classList.toggle('on',!!APP.solverAJ);
+  const xNow=fld?fld(0):wspd*Math.sin(wdir*Math.PI/180),xZero=(zc.wSpd||0)*Math.sin((zc.wDir||0)*Math.PI/180);
+  const aj=APP.solverAJ?sessionJump(xNow,xZero):null,ajMm=aj&&aj.moa!=null?aj.moa*Math.PI/10800*tdist*1000:0;
+  const mrElev=sol.mrElev-(APP.solverCor?coV/tdist:0)-ajMm/tdist;
   const mrWind=sol.mrWind-((APP.solverCor?coH:0)+(sdMm??0))/tdist;
   const clElev=mrElev/clickStep, clWind=mrWind/clickStep;
   const elevDisp=angInUnit(mrElev,au).toFixed(2), windDisp=angInUnit(mrWind,au).toFixed(2);
@@ -3209,6 +3241,12 @@ function solve(){
   if(APP.solverSpin)fl+=sdMm!=null
     ?`<div class="flag warn">Spin drift (Litz EST ⚠ unvalidated subsonic): Sg ${sgI.sg.toFixed(2)}${sgI.est?' (C EST)':''} → impact ${sdMm>=0?'R':'L'} ${uq('drop',Math.abs(sdMm))} → dial ${(-sdMm/tdist).toFixed(2)} mrad (included above).</div>`
     :`<div class="flag info">Spin drift n/a — pellet, smooth bore, or no verified C for this projectile.</div>`;
+  if(APP.solverAJ){
+    if(aj.moa==null)fl+=`<div class="flag info">Aerodynamic jump n/a — ${esc(aj.why)}.</div>`;
+    else if(Math.abs(xNow)<1e-9&&Math.abs(xZero)<1e-9)fl+=`<div class="flag info">Aerodynamic jump: no crosswind at the muzzle (and none in the zero) → no jump.</div>`;
+    else{const side=x=>Math.abs(x)<1e-9?'no crosswind':uq('wind',Math.abs(x))+' from the '+(x>0?'right':'left');
+      fl+=`<div class="flag warn">Aerodynamic jump (Litz EST ⚠ fitted on rifle bullets near Sg 1.75; unvalidated for airgun slugs): Sg ${aj.sg.toFixed(2)}${aj.est?' (C EST)':''}, L ${aj.L.toFixed(2)} cal → ${aj.perMph.toFixed(4)} MOA per mph · muzzle crosswind ${side(xNow)}${xZero?` minus the zero's ${side(xZero)}`:''} → impact ${ajMm>=0?'HIGH':'LOW'} ${uq('drop',Math.abs(ajMm))} (${Math.abs(aj.moa).toFixed(3)} MOA) → dial ${(-ajMm/tdist).toFixed(3)} mrad (included above).${aj.sg<1.3?' Sg is far below the fitted range — treat as rough.':''}</div>`;}
+  }
   if((APP.solverCor||APP.solverSpin)&&tdist<300&&APP.solverCor)fl+=`<div class="flag info">Coriolis below 300 m is sub-click — shown for completeness.</div>`;
   document.getElementById('sv-flags').innerHTML=fl;
 }
@@ -3374,7 +3412,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.7.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.8.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3950,7 +3988,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.7.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.8.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4716,10 +4754,17 @@ const FORMULAS=[
     anchors:[{l:'PbSb 4.48 % measured 10.983 g/cm³',got:()=>alloyDensity({alloy:'sb',sb:4.48}),want:10.983,tol:0.03,u:'g/cm³'},
              {l:'PbSb 9.1 % measured 10.771 (±0.156)',got:()=>alloyDensity({alloy:'sb',sb:9.1}),want:10.771,tol:0.12,u:'g/cm³'},
              {l:'DIN 1741 GB-PbSb10: 10.6',got:()=>alloyDensity({alloy:'sb',sb:10}),want:10.6,tol:0.02,u:'g/cm³'}]},
+  {name:'Aerodynamic jump (Litz)',status:'est',eq:'Y = 0.01·Sg − 0.0024·L + 0.032 MOA per mph of crosswind (L in calibres); right twist: wind from the right → up; shift = angle × range; minus the jump in the zero',
+    src:'Litz, Applied Ballistics for Long-Range Shooting, 2nd ed., pp. 75–83 (worked example quoted on longrangehunting.com); sign and known answer from the ballistics-engine crate (MIT/Apache) — fitted on rifle bullets near Sg 1.75: estimate for airgun slugs',used:'Solver › Advanced corrections (toggle)',
+    anchors:[{l:'Litz worked example: Sg 1.49, L 5.32 → 0.0341 MOA/mph (300 RUM, sea level)',got:()=>litzJumpPerMph(1.49,5.32),want:0.034132,tol:1e-9,u:'MOA/mph'},
+             {l:'… Sg 1.79 at 6,000 ft → 0.0371',got:()=>litzJumpPerMph(1.79,5.32),want:0.037132,tol:1e-9,u:'MOA/mph'},
+             {l:'ballistics-engine test: Sg 1.75, L 4.0, 10 mph from the right, right twist → +0.399 MOA',got:()=>aeroJumpMoa(1.75,4,10*MPH_MS,'right'),want:0.3990,tol:1e-9,u:'MOA'},
+             {l:'Sign: wind from the left, right twist → down (−0.399)',got:()=>aeroJumpMoa(1.75,4,-10*MPH_MS,'right'),want:-0.3990,tol:1e-9,u:'MOA'},
+             {l:'Left twist reverses (+0.399 from the left)',got:()=>aeroJumpMoa(1.75,4,-10*MPH_MS,'left'),want:0.3990,tol:1e-9,u:'MOA'}]},
   {name:'MV–temperature model',status:'est',eq:'v(t) = a + b·t, least squares',src:'regression is exact; linear behaviour is an assumption until chrono data across temperatures exists',used:'Truing → MV–temp',
     anchors:[{l:'270 m/s at 0 °C, 280 at 20 °C → 10 °C',got:()=>mvtFit([{t:0,v:270},{t:20,v:280}]).at(10),want:275,tol:1e-9,u:'m/s'}]}
 ];
-const FX_NOT_MODELLED=['GA diabolo drag model — pellets use G1 (warning above Mach 0.80)','Aerodynamic jump','Custom Cd–Mach tables (needs Doppler data)','Stability for L/D < 2.0 (Berger not validated)','Transonic BC behaviour (±30 %, Doppler only)'];
+const FX_NOT_MODELLED=['GA diabolo drag model — pellets use G1 (warning above Mach 0.80)','Custom Cd–Mach tables (needs Doppler data)','Stability for L/D < 2.0 (Berger not validated)','Transonic BC behaviour (±30 %, Doppler only)'];
 // full=false (boot): skips anchors marked slow (the truing round trip, ~0.5 s) — truing never
 // feeds the dope directly; they run whenever the Formulas page opens.
 function fxRun(full){

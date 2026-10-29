@@ -7,6 +7,36 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.8.0 — minor — Aerodynamic jump in the Solver (CALC-06, last open correction)
+
+**Problem.** A crosswind at the muzzle also moves the impact vertically (aerodynamic jump). The app listed it as "not modelled", which left CALC-06 (advanced corrections) incomplete.
+
+**Fix.**
+- **Solver › Advanced corrections: "Aerodynamic jump (Litz EST ⚠)", Off/On,** next to Spin drift and working the same way. It's off by default; when on it is included in the elevation answer, with a flag that shows the working.
+- **Formula:** Litz, *Applied Ballistics for Long-Range Shooting*, 2nd ed., pp. 75–83: Y = 0.01·Sg − 0.0024·L + 0.032 MOA per mph of crosswind, L = length in calibres. It is a launch-angle change, so the shift = angle × range.
+- **Sign:** right-hand twist, wind from the right → high, from the left → low; a left twist reverses it.
+  - Derived in right-handed axes: the overturning moment on a nose yawed right precesses a right-spin axis downward.
+  - It matches the ballistics-engine crate's Litz implementation and its tests (MIT/Apache).
+  - A first derivation with left-handed axes had the sign wrong; it was caught against the crate before any code was written.
+- **Muzzle crosswind:** from the wind inputs, or the station wind at the firing line when "Live wind stations" is on.
+- **The jump already in the zero is subtracted:** the zero-session crosswind, at the zero air's Sg. A calm zero subtracts nothing.
+- Sg is the app's Miller value in current air.
+- **Not computed:** pellets, a smooth bore, or Sg below 1.0. The flag says why.
+- **The flag states the fit's limits:** Litz fitted the formula on rifle bullets near Sg 1.75; airgun slugs are below that ("treat as rough" under Sg 1.3).
+  - Queen, Sg 1.22 at 255 m/s, L 2.03: 0.0393 MOA/mph. A 3 m/s crosswind gives 7.7 mm at 100 m (under one 0.1 mrad click); 4 m/s gives 10.2 mm.
+- **Home is unchanged,** like spin drift (Solver only).
+- **Formulas page:** new estimate entry with five anchors. "Aerodynamic jump" is removed from the "not modelled" list.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.8.0.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.8.0`), `tests/ajtest.js` (new), `tests/runtests.js`, `tests/formulatest.js` (seven estimates), `tests/README.md`, this log.
+
+**Verify.**
+- Litz's worked example as quoted (Sg 1.49, L 5.32 → 0.0341 MOA/mph; Sg 1.79 → 0.0371) and the crate's known answer (Sg 1.75, L 4, 10 mph → 0.399 MOA): exact.
+- `ajtest.js` recomputes the jump independently for the app's Sg and L.
+- `runtests.js` 135/135 (7 new), new `ajtest.js` 18/18, all 29 suites green. Real Chromium at 412 and 780 px: no sideways scroll, no errors.
+- **Field check open:** a steady crosswind from each side at the same distance should show the vertical split, if the effect is real for slugs.
+
+---
+
 ## V2.7.0 — minor — Context-aware second pane on the unfolded screen (CORE-18)
 
 **Problem.** On the inner fold screen, the right pane always showed the solution rail, whatever the page. On the Design Bench, Stability or BC / Truing, the results sat below the inputs on the left while the rail took the other half. On Settings or Profiles the rail was just in the way. Wide desktop screens got a single column.

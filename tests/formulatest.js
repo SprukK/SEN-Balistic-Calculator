@@ -8,7 +8,7 @@ const FILE=process.argv[2];
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 let pass=0,fail=0;
 const chk=(n,ok,extra)=>{console.log((ok?'  PASS  ':'  FAIL  ')+n+(extra?'   '+extra:''));ok?pass++:fail++;};
-const EST=['McGyro gyroscopic stability (McCoy 1986)','Spin drift (Litz)','G1 ≈ G7 / 0.509','MV spread → vertical spread','Lead–antimony density (ideal mixing)','MV–temperature model'];
+const EST=['McGyro gyroscopic stability (McCoy 1986)','Spin drift (Litz)','G1 ≈ G7 / 0.509','MV spread → vertical spread','Lead–antimony density (ideal mixing)','Aerodynamic jump (Litz)','MV–temperature model'];
 
 (async()=>{
 console.log('=== FORMULA PANEL TEST: '+FILE+' ===');
@@ -36,7 +36,7 @@ chk('no ✗ anywhere, no red card',d.querySelectorAll('#fx-list .fx-no').length=
 // 3. Registry content rules.
 const F=J("FORMULAS.map(f=>({name:f.name,status:f.status,eq:f.eq,src:f.src,used:f.used,n:f.anchors.length,labels:f.anchors.map(a=>a.l)}))");
 chk('every formula has equation, source, use and at least one anchor',F.every(f=>f.eq&&f.src&&f.used&&f.n>0&&/^(ok|est)$/.test(f.status)));
-chk('exactly the six estimates are flagged EST (V2.6.0: + Pb–Sb density)',JSON.stringify(F.filter(f=>f.status==='est').map(f=>f.name))===JSON.stringify(EST),F.filter(f=>f.status==='est').map(f=>f.name).join(', '));
+chk('exactly the seven estimates are flagged EST (V2.6.0: + Pb–Sb density; V2.8.0: + aerodynamic jump)',JSON.stringify(F.filter(f=>f.status==='est').map(f=>f.name))===JSON.stringify(EST),F.filter(f=>f.status==='est').map(f=>f.name).join(', '));
 chk('no theoretical SEN design used as an anchor',!F.flatMap(f=>f.labels).some(l=>/\bSEN\b|LRAI|LR-\d/.test(l)));
 chk('V1.30.0: no C lookup from theoretical designs; nothing mentions SEN design constants',!F.some(f=>/C lookup/.test(f.name))&&!F.some(f=>/2\.699|3\.822|1\.877|2\.283/.test(f.eq+f.src)));
 chk('Miller anchors are Berger\'s own results (Queen 1.18, King 1.07/1.48/1.67)',['1.18','1.07','1.48','1.67'].every(v=>J("FORMULAS.find(f=>/^Miller twist rule/.test(f.name)).anchors.map(a=>a.want.toFixed(2))").includes(v)));
