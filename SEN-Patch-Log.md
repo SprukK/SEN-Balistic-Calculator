@@ -7,6 +7,47 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.10.0 — minor — LabRadar LX live into the chrono shot string; chrono session analysis (CALC-07)
+
+**Problem.** Main took only a typed MV, ES and SD. The chrono shot-string work (CALC-07) was built on 29 Oct as V2.6.0 but parked on the local branch `calc-07-chrono` and never shipped. The LabRadar LX protocol was decoded and confirmed live in the Lab (Probe V1.7.0, 31 Oct), but Main couldn't connect to it.
+
+**Fix.**
+- **CALC-07 carried over unchanged from the parked build** (its V2.6.0 patch-log text is kept here). Comment annotations were renumbered to V2.10.0.
+  - **Shot string on Sensors → Chronograph:** typed or pasted velocities, or a Garmin Xero CSV import.
+  - **Statistics of the kept shots:** n, mean, ES, SD (sample) and the production-target flag, with the Xero summary cross-checked.
+  - **Tap a shot to exclude it.** "Use mean, ES, SD → session MV" fills the session MV.
+  - **Vertical spread from MV:** the exact session trajectory re-run at each MV with the zero angle held. The solver gains `rk4traj` `flight.mv` and `homeTraj(…, mvFlight)`; without them every result is bit-identical.
+  - **Formulas page:** "MV spread → vertical spread (solver re-run)", verified against py-ballisticcalc 3.1.1 and Python `statistics`.
+- **New Sensors panel "Chronograph · LabRadar LX (live)":** Connect / Disconnect; tiles for last V₀, radar armed / stopped with the series, and battery; a status line.
+  - **Driver on SenBle.** It sends the LabRadar app's own start sequence: enable byte, cmd 06, cmd 1A with the fixed 64-byte app key, then a status poll every 10 s.
+  - Frames are reassembled across notifications and CRC-checked: CRC-16, reflected CCITT polynomial, init 0xBEEF, final XOR 0xFFFF. Frames with a bad CRC are dropped.
+- **Each shot's V₀ (event 0x20) is appended live** to the shot string. A typed or imported string is replaced by a new "LabRadar <unit> · series n" string; a LabRadar string is continued, e.g. after a reconnect. All CALC-07 tools work on it.
+- **Only V₀ is used (owner ruling 2026-10-31).** Ignored:
+  - the mass, power factor and BC typed into the LabRadar (the selected projectile is used instead);
+  - the velocity at the distance point, which the LabRadar extrapolates when its track ends short (CSV tracks ended at 6.2–7.0 m).
+- **Status from the unit.** Armed / stopped follows event 0x25, which fires for the unit's own button too, and the armed flag in the status reply. Battery comes from status byte 1 (owner-confirmed).
+- **Honest status messages:**
+  - "app key refused" when the unit refuses the key: a message, and no poll;
+  - "link silent" after 25 s without a reply;
+  - "Disconnected" with the last shot kept.
+- **Reconnect fix (found by the test):** Chrome reuses characteristic objects when the same device reconnects, so a listener from the earlier connection would have added every shot twice. The LabRadar and rangefinder drivers now ignore frames for a connection that is no longer current.
+- **Graduation: LabRadar LX driver (Lab Probe V1.7.0).**
+  1. **Real device:** in the Lab on the Honor, the key was accepted from a client other than the LabRadar app. The live shot of 31 Oct (1004.7 fps) equalled the unit's screen. Arm / stop events come from the unit's button. Battery byte confirmed by the owner. **Owner checks after release:** a string in Main, disconnect / reconnect, screen off/on. Protocol in `SEN-Device-BLE-Handoff-V1.md`.
+  2. **On SenBle:** one unit at a time; a cancelled chooser changes nothing.
+  3. **Data honest:** measured V₀ only, the source shown ("LabRadar live"), a silent link flagged. No new formula.
+  4. **Tests:** new `labradartest.js` (simulated unit as above); `chronotest.js`; full suite and Lab `maindatatest` green; Chromium at 412 and 780 px.
+  5. **Code:** text only; storage `APP.chronoStr` (Main namespace), with `src: 'labradar'` added to its whitelist.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.10.0.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.10.0`), `tests/labradartest.js` (new), `tests/chronotest.js` (from the parked build), `tests/runtests.js` (CALC-07 anchors), `tests/README.md`, this log.
+
+**Verify.**
+- `labradartest.js` 23/23. The simulated LabRadar runs an independent CRC, accepts only the real key, follows the real-Chrome GATT rules, and replays the owner's 30 and 31 Oct shot frames: V₀ = CSV × 0.3048, and 1004.7 fps → 306.24 m/s.
+- `chronotest.js` 45/45. `runtests.js` gains the CALC-07 anchors (py-ballisticcalc fixed-angle MV spread; Xero statistics against Python).
+- All 32 suites green. Lab `maindatatest.js` 13/13 against this build.
+- Real Chromium at 412 and 780 px with a simulated LabRadar sending three shots: no sideways scroll, no errors.
+
+---
+
 ## V2.9.0 — minor — Rangefinder auto-fill: Element Titan 3K / Helix 1.5K (CALC-09)
 
 **Problem.** A ranged distance and shot angle had to be read off the rangefinder and typed into Home or the Solver. The Element protocol was decoded and confirmed in the Lab (LAB-04, Probe V1.7.0), but Main couldn't connect to it.

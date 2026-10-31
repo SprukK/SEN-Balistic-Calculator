@@ -178,6 +178,21 @@ chk('left twist reverses', aeroJumpMoa(1.75,4,10*0.44704,'left'), -0.399, 1e-9);
 chk('Sg below 1 → not computed', aeroJumpMoa(0.95,2,3,'right')===null?1:0, 1);
 chk('smooth bore → not computed', aeroJumpMoa(1.5,2,3,'smooth')===null?1:0, 1);
 
+console.log('\n=== V2.10.0 CALC-07: MV SPREAD AT A FIXED LAUNCH ANGLE (py-ballisticcalc 3.1.1) ===');
+// Queen G7 0.128, 60 gr, 44 mm sight, zero 50 m at 255 m/s, 20 °C / 1010 hPa / 65 %; pbc: set_weapon_zero, then fire at 255 ± ΔV.
+const mvq=mv=>rk4traj(255,0.128,60,50,160,0.044,env.rho,env.aS,1,'g7',0.245,null,undefined,{mv});
+const mvAt=(t,r)=>t.find(p=>Math.abs(p.range-r)<1e-6).drop;
+const mvHi=mvq(257.5),mvLo=mvq(252.5),mvH2=mvq(256.4),mvL2=mvq(253.6);
+chk('±2.5 m/s at 50 m = 7.537 mm (pbc)', mvAt(mvHi,50)-mvAt(mvLo,50), 7.537, 0.03);
+chk('±2.5 m/s at 100 m = 30.743 mm (pbc)', mvAt(mvHi,100)-mvAt(mvLo,100), 30.743, 0.05);
+chk('±2.5 m/s at 150 m = 70.577 mm (pbc)', mvAt(mvHi,150)-mvAt(mvLo,150), 70.577, 0.1);
+chk('±1.4 m/s at 100 m = 17.214 mm (pbc)', mvAt(mvH2,100)-mvAt(mvL2,100), 17.214, 0.05);
+chk('flight.mv = zero MV → bit-identical', mvq(255).every((p,i)=>p.drop===mvAt(rk4traj(255,0.128,60,50,160,0.044,env.rho,env.aS,1,'g7',0.245,null),p.range))?1:0, 1);
+const xs=chStats(XERO_ANCHOR);
+chk('Xero string (48 shots): mean 280.604167 fps (Python statistics.mean)', xs.mean, 280.604167, 1e-6);
+chk('… SD 1.426640 fps (statistics.stdev, n−1)', xs.sd, 1.426640, 1e-6);
+chk('… ES 5.9 fps', xs.es, 5.9, 1e-9);
+
 console.log('\n=== V1.16.0 NEW BEHAVIOUR ===');
 chk('trajReason defined',            typeof trajReason, 'string');
 chk('runTraj accepts silent arg',    runTraj.length, 1);

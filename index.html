@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.9.0</title>
+<title>SEN Ballistics V2.10.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -116,6 +116,11 @@ input.man{border-color:var(--gold);border-style:dashed;background:var(--src-man)
 .flag{font-family:var(--mono);font-size:10px;padding:9px 12px;border-radius:6px;margin-top:8px;line-height:1.6}
 .flag.warn{background:rgba(224,122,95,.08);border:1px solid rgba(224,122,95,.28);color:var(--warn)}
 .flag.ok{background:rgba(122,184,122,.06);border:1px solid rgba(122,184,122,.22);color:var(--green)}
+.chshots{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.chshot{font-family:var(--mono);font-size:10px;padding:4px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-variant-numeric:tabular-nums}
+.chshot.off{text-decoration:line-through;opacity:.45}
+.chstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px;margin-top:8px;font-family:var(--mono);font-size:11px}
+.chstats b{display:block;font-size:9px;color:var(--text2);font-weight:normal}
 .flag.info{background:rgba(111,168,200,.06);border:1px solid rgba(111,168,200,.22);color:var(--blue)}
 
 /* ── tables / chart ── */
@@ -309,7 +314,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.9.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.10.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Second pane"><div class="pane-sw" id="pane-sw"></div><div class="rail-head" id="rail-head">—</div></aside><button class="btn-xs" id="pane-show" style="display:none" onclick="setPaneMode(curPage(),'rail')">◧ Solution</button>
@@ -906,8 +911,26 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="fgrid"><div class="fld"><label>Speed m/s</label><input type="number" id="mw-spd" step="0.1" value="0"></div><div class="fld"><label>Direction °</label><input type="number" id="mw-dir" step="5" value="90"></div></div>
     <div class="btnrow"><button class="btn" onclick="Bus.setWind(+document.getElementById('mw-spd').value,+document.getElementById('mw-dir').value,'manual')">Set as session wind</button></div>
   </div>
+  <div class="panel" id="lr-panel">
+    <h2>Chronograph · LabRadar LX (live)</h2>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span><span class="ble-dot" id="lr-dot"></span><span style="font-family:var(--mono);font-size:11px" id="lr-status">Not connected</span></span>
+      <button class="btn-xs" id="lr-btn" onclick="lrToggle()" style="margin-left:auto">Connect</button>
+    </div>
+    <div class="scs">
+      <div class="sc accent"><div class="sl">Last V₀</div><div class="sv" id="lr-v0">—</div><div class="su" data-ul="vel">m/s</div></div>
+      <div class="sc"><div class="sl">Radar</div><div class="sv" id="lr-arm" style="font-size:16px">—</div><div class="su" id="lr-ser">series —</div></div>
+      <div class="sc"><div class="sl">Battery</div><div class="sv" id="lr-batt" style="font-size:16px">—</div><div class="su">%</div></div>
+    </div>
+    <div class="note" id="lr-note"></div>
+    <div class="flag info" style="margin-top:10px">Each shot's <b>V₀</b> is added live to the shot string below. Arm and stop on the LabRadar as usual. Only V₀ is taken: the projectile mass, power factor and BC typed into the LabRadar are ignored (your projectile profile is used), and its velocity at the distance point is not used because the LabRadar extrapolates it when its track ends short (owner ruling 2026-10-31). The app sends the LabRadar app's own start sequence and a status check every 10 s.</div>
+  </div>
   <div class="panel">
-    <h2>Chronograph · manual MV (Garmin Xero C1 Pro)</h2>
+    <h2>Chronograph · shot string + MV (Garmin Xero C1 Pro)</h2>
+    <div class="fld"><label>Shot string</label><textarea id="ch-str" rows="3" style="width:100%;font-family:var(--mono);font-size:12px" placeholder="282.3 283.0 281.5 …"></textarea><div class="note" id="ch-hint">Velocities in <span data-ul="vel">m/s</span>, separated by spaces, commas or new lines — or paste a Garmin Xero CSV.</div></div>
+    <div class="btnrow"><button class="btn" onclick="chReadString()">Read shots</button><button class="btn" onclick="document.getElementById('ch-file').click()">Import Xero CSV</button><button class="btn-xs" onclick="chClear()">Clear</button><input type="file" id="ch-file" accept=".csv,text/csv,text/plain" style="display:none" onchange="chImportFile(this)"></div>
+    <div id="ch-msg"></div>
+    <div id="ch-res"></div>
     <div class="fgrid3"><div class="fld"><label>MV m/s</label><input type="number" id="ch-mv" step="0.1"></div><div class="fld"><label>ES m/s</label><input type="number" id="ch-es" step="0.1"></div><div class="fld"><label>SD m/s</label><input type="number" id="ch-sd" step="0.1"></div></div>
     <div class="btnrow"><button class="btn" onclick="useChronoMV()">Use MV → session</button></div>
     <div id="ch-flags"></div>
@@ -939,7 +962,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.9.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.10.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1035,7 +1058,10 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
   for(let i=0;i<60;i++){const m=(lo+hi)/2;finalY(m)>0?hi=m:lo=m;}
   const za=(lo+hi)/2;
   // PASS 2 — current-atmosphere integration with the fixed zero angle.
-  let x=0,y=-sight_m,vx=mv*Math.cos(za),vy=mv*Math.sin(za),t=0,next=0,out=[];
+  // V2.10.0 (CALC-07): flight.mv launches this pass at another MV with the same zero angle (the shot-to-shot
+  // MV spread of a real rifle). Omitted → mv: bit-identical to before.
+  const mvF=fl.mv>0?fl.mv:mv;
+  let x=0,y=-sight_m,vx=mvF*Math.cos(za),vy=mvF*Math.sin(za),t=0,next=0,out=[];
   // FIX-6: the bail-out guard exists to abort absurd inputs, not to cap legitimate drop.
   // Subsonic ELR drops exceed 80 m well before 1 km — scale the guard with requested range
   // (30% of max_m, floor 80 m) so 800 m+ trajectories complete instead of reporting OOR.
@@ -1056,7 +1082,7 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
       const f=x>px?(next-px)/(x-px):0;
       const iy=py+f*(y-py),ivx=pvx+f*(vx-pvx),ivy=pvy+f*(vy-pvy),it=pt+f*dt;
       const v=Math.sqrt(ivx*ivx+ivy*ivy),mach=v/cur.aS,E=0.5*mass_gr*GR2KG*v*v;
-      out.push({range:next,drop:iy*1000,v,mach,E,tof:it,lag:it-next/mv,vx:ivx});
+      out.push({range:next,drop:iy*1000,v,mach,E,tof:it,lag:it-next/mvF,vx:ivx});
       next+=stepOut;
     }
   }
@@ -2411,7 +2437,7 @@ function sessionJump(crossNow,crossZero){
    Auto-computes a trajectory from the active session (rifle/proj/weather) so the
    home screen is useful without visiting Trajectory first. Reuses the same physics
    path as A3 (atmosphere-corrected BC + Sg penalty) and the shared solveShot. */
-function homeTraj(maxOver,bcOverride){  // V1.14.0: maxOver lets the Holds page extend the computed range
+function homeTraj(maxOver,bcOverride,mvFlight){  // V1.14.0: maxOver lets the Holds page extend the computed range; V2.10.0 mvFlight: flight-pass MV (CALC-07)
   const r=getRifle(),p=getProj(),cw=getWx(S.curWxId);
   if(!r||!p||S.mv==null)return null;
   const z=zeroConds();
@@ -2440,7 +2466,7 @@ function homeTraj(maxOver,bcOverride){  // V1.14.0: maxOver lets the Holds page 
   const bc7=drag==='g7'?bcEff:p.bcg7, bc1=drag==='g1'?bcEff:p.bcg1;
   const zEnv={rho:rhoZ,aS:sos(z.temp),bc7:drag==='g7'?bcBase*sgPZ:p.bcg7,bc1:drag==='g1'?bcBase*sgPZ:p.bcg1};
   const maxR=Math.max(maxOver||0,S.dist_m+25,z.range+25,150);
-  const pts=rk4traj(S.mv,bc7,p.mass,z.range,maxR,(S.sight_mm??r.sight??44)/1000,rhoC,aS,1,drag,bc1,projBands(p,drag),zEnv);
+  const pts=rk4traj(S.mv,bc7,p.mass,z.range,maxR,(S.sight_mm??r.sight??44)/1000,rhoC,aS,1,drag,bc1,projBands(p,drag),zEnv,mvFlight>0?{mv:mvFlight}:undefined);
   return{pts,click:rifleScope(r)?.click||0.1,sg,sgP,zrange:z.range,cValid:cInfo.valid,cWhy:cInfo.why};
 }
 let homeRailOff=0, reticleMag=null; // reticleMag = displayed magnification (× power); null → scope min
@@ -2815,6 +2841,7 @@ function gotoPage(p){
   if(p==='profiles'){renderProfiles();setProfSub(profSub);}
   if(p==='settings')renderSettings();
   if(p==='bench')benchRender();
+  if(p==='sensors'){chRender();lrRender();}
   if(p==='home')renderQuick();
   if(p==='stab'&&getRifle()&&getProj())stabFromActive();
   if(p==='wind'){document.getElementById('wd-spd').value=S.wind.speed;document.getElementById('wd-dir').value=S.wind.dir;setWindMode(S.wind.source==='calypso'?'live':'manual');}
@@ -3426,7 +3453,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.9.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.10.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4002,7 +4029,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.9.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.10.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4288,6 +4315,7 @@ async function rfAdd(){
   }
 }
 function rfFrame(d,b){
+  if(!RFS.includes(d))return; // a listener left from an earlier connection of the same unit
   const r=rfParse(b);if(!r)return; // not a ranging frame — ignored
   d.last={m:r.m,deg:r.deg,t:Date.now()};d.n++;
   if(APP.rfFill!==false)rfFill(d);
@@ -4341,6 +4369,104 @@ function rfSrcRender(){
     n.textContent=same?'Distance + angle from '+f.name+' · '+rfTime(f.t)+' (LOS)':'Distance / angle typed — last ranging '+rfDist(f.m)+' at '+(f.deg>0?'+':'')+f.deg+'° ('+f.name+' · '+rfTime(f.t)+')';
     n.classList.toggle('man',!same);
   });
+}
+
+/* ═════ V2.10.0 — LabRadar LX driver (live V₀ into the CALC-07 shot string; graduated from Lab V1.7.0) ═════
+   Service da2b84f1…; commands written to bf03260c…, replies + events notified on 18cda784…; the app first writes
+   01 to a87988b9…. Frame: 01 · cmd · seq u16 BE · len u32 BE · payload · CRC16 BE; reply = cmd|0x80, events
+   seq 0. CRC: reflected CCITT polynomial 0x8408, init 0xBEEF, final XOR 0xFFFF (all 341 captured frames).
+   Start (as the LabRadar app): enable 01 → cmd 06 → cmd 1A with the fixed 64-byte app key (9A 00 = accepted,
+   identical in two sessions and accepted from the Lab) → cmd 01 status every 10 s (81: byte 1 battery %,
+   byte 3 armed). Events: 25 = armed 01 / stopped 00 (also for the unit's own button), 27 = series, 20 = shot
+   (float32 BE: [5] V₀ m/s — the only value used, owner ruling 2026-10-31). Protocol: SEN-Device-BLE-Handoff-V1. */
+const LR_SVC='da2b84f1-6279-48de-bdc0-afbea0226079',LR_CMD='bf03260c-7205-4c25-af43-93b1c299d159',
+  LR_EVT='18cda784-4bd3-4370-85bb-bfed91ec86af',LR_EN='a87988b9-694c-479c-900e-95dfa6c00a24';
+const LR_KEY=[0x72,0xd5,0x64,0xce,0x01,0xf0,0xe2,0x6a,0x7b,0x32,0x3b,0x6c,0x9c,0x30,0xa2,0x0a,0x86,0x5b,0x44,0x49,0x08,0x81,0x5e,0x50,0x9c,0x65,0x3c,0x7f,0x3b,0x89,0x7f,0x6f,
+  0x11,0x34,0x12,0x6c,0x75,0x0d,0x7f,0xf1,0x79,0x85,0x77,0xa1,0x56,0xa0,0x2e,0x2b,0xf9,0x85,0x52,0x3f,0xa2,0xa3,0xc8,0xe6,0xa2,0x88,0xf0,0xe1,0x09,0x52,0x4f,0xe9];
+let LR=null; // one LabRadar at a time: {link,cmd,seq,buf,key,armed,series,batt,last,lastRx,poll}
+function lrCrc(b){let c=0xBEEF;for(const x of b){c^=x;for(let i=0;i<8;i++)c=(c&1)?(c>>>1)^0x8408:c>>>1;}return(c^0xFFFF)&0xFFFF;}
+function lrFrame(cmd,seq,payload){
+  const p=payload||[],L=p.length,f=[1,cmd,(seq>>8)&255,seq&255,(L>>>24)&255,(L>>16)&255,(L>>8)&255,L&255,...p],c=lrCrc(f);
+  return new Uint8Array([...f,c>>8,c&255]);
+}
+function lrTake(d,b){ // frames reassembled across notifications; junk skipped, bad CRC dropped
+  d.buf=d.buf.concat(Array.from(b));const out=[];
+  for(;;){
+    const B=d.buf,i=B.indexOf(1);if(i<0){d.buf=[];break;}if(i>0)B.splice(0,i);
+    if(B.length<10)break;
+    const L=((B[4]<<24)>>>0)+(B[5]<<16)+(B[6]<<8)+B[7];
+    if(L>4096){B.splice(0,1);continue;}
+    if(B.length<10+L)break;
+    const f=B.splice(0,10+L);
+    if(lrCrc(f.slice(0,-2))===((f[f.length-2]<<8)|f[f.length-1]))out.push({cmd:f[1],p:f.slice(8,-2)});
+  }
+  return out;
+}
+const lrV0=p=>{if(p.length<66)return null;const v=new DataView(new Uint8Array(p).buffer).getFloat32(20,false);return v>0&&v<1500?v:null;};
+async function lrSend(d,cmd,payload){d.seq=(d.seq+1)&0xffff;await d.link.write(d.cmd,lrFrame(cmd,d.seq,payload));}
+async function lrToggle(){if(LR&&LR.link.connected()){LR.link.disconnect();return;}await lrConnect();}
+async function lrConnect(){
+  if(!SenBle.supported()){alert('Web Bluetooth not supported.\nUse Chrome on Android or Chrome/Edge on desktop. (iOS blocks Web Bluetooth — type the shot string or import the CSV.)');return;}
+  try{
+    lrUi('scan','Scanning for LabRadar…');
+    const link=await SenBle.connect({filters:[{namePrefix:'LLX'},{services:[LR_SVC]}],optionalServices:[LR_SVC],onDisconnect:lrOnDisconnect});
+    lrStop();
+    const d={link,cmd:null,seq:0,buf:[],key:'sending…',armed:null,series:null,batt:null,last:null,lastRx:0,poll:null};LR=d;
+    const ch=await link.chars(LR_SVC),get=u=>ch.find(c=>c.uuid.toLowerCase()===u)||null;
+    d.cmd=get(LR_CMD);const evt=get(LR_EVT),en=get(LR_EN);
+    if(!d.cmd||!evt)throw new Error('LabRadar command / event characteristic not found');
+    if(en)await link.write(en,new Uint8Array([1]));
+    await link.notify(evt,v=>lrRx(d,new Uint8Array(v.buffer,v.byteOffset,v.byteLength)));
+    lrRender();
+    await lrSend(d,0x06);await new Promise(r=>setTimeout(r,150));
+    await lrSend(d,0x1a,LR_KEY);
+  }catch(e){
+    if(e&&e.name==='NotFoundError'){lrRender();return;}
+    lrStop();LR=null;lrUi('',(e&&e.message)||'Connect failed');
+  }
+}
+function lrRx(d,b){
+  if(LR!==d)return; // a listener left from an earlier connection (Chrome reuses the characteristic objects on reconnect)
+  for(const fr of lrTake(d,b)){
+    const p=fr.p;d.lastRx=Date.now();
+    if(fr.cmd===0x9a){d.key=p[0]===0?'accepted':'refused ('+(p[0]||0)+')';
+      if(p[0]===0&&!d.poll){d.poll=setInterval(()=>{if(d.link.connected())lrSend(d,0x01).catch(()=>{});lrRender();},10000);lrSend(d,0x01).catch(()=>{});}}
+    else if(fr.cmd===0x81&&p.length>=4){d.batt=p[1];d.armed=p[3]===1;}
+    else if(fr.cmd===0x27&&p.length>=2)d.series=(p[0]<<8)|p[1];
+    else if(fr.cmd===0x25)d.armed=p[0]===1;
+    else if(fr.cmd===0x20){const v=lrV0(p);if(v!=null)lrShot(d,v);}
+  }
+  lrRender();
+}
+// V₀ only (owner ruling): appended to the CALC-07 shot string. A LabRadar string already there is continued
+// (e.g. after a reconnect); a typed or imported string is replaced by a new LabRadar string (Clear starts over).
+function lrShot(d,v){
+  d.last={v,t:Date.now()};
+  let c=chClean(APP.chronoStr);
+  if(!c||c.src!=='labradar')c={shots:[],off:[],name:'LabRadar '+(d.link.name||'')+(d.series!=null?' · series '+d.series:''),date:new Date().toISOString().slice(0,10),src:'labradar',unit:'ms'};
+  if(c.shots.length>=CH_MAX){chMsg('Shot string full ('+CH_MAX+' shots): clear it to keep recording.');return;}
+  c.shots.push(v);
+  const ta=document.getElementById('ch-str');if(ta)ta.value=c.shots.map(x=>un('vel',x)).join(' ');
+  chSet(c);
+}
+function lrStop(){if(LR&&LR.poll){clearInterval(LR.poll);LR.poll=null;}}
+function lrOnDisconnect(link){if(LR&&LR.link===link){lrStop();LR.gone=true;}lrRender();}
+function lrUi(cls,txt){const dot=document.getElementById('lr-dot'),st=document.getElementById('lr-status');if(dot)dot.className='ble-dot'+(cls?' '+cls:'');if(st)st.textContent=txt;}
+function lrRender(){
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  const d=LR,on=!!(d&&!d.gone&&d.link.connected());
+  const btn=document.getElementById('lr-btn');if(btn)btn.textContent=on?'Disconnect':'Connect';
+  if(!d){lrUi('','Not connected');set('lr-note','');return;}
+  lrUi(on?'connected':'',on?'Connected: '+(d.link.name||'LabRadar')+' · app key '+d.key:'Disconnected');
+  set('lr-v0',d.last?un('vel',d.last.v):'—');
+  set('lr-arm',d.armed==null?'—':d.armed?'armed':'stopped');
+  set('lr-ser','series '+(d.series!=null?d.series:'—'));
+  set('lr-batt',d.batt!=null?String(d.batt):'—');
+  const silent=on&&d.poll&&d.lastRx&&Date.now()-d.lastRx>25000;
+  set('lr-note',!on?(d.last?'Last shot '+uq('vel',d.last.v)+' · '+new Date(d.last.t).toTimeString().slice(0,8):''):
+    /^refused/.test(d.key)?'The LabRadar refused the app key: no shots will arrive. Save a Lab log and send it over.':
+    silent?'No reply from the LabRadar for '+Math.round((Date.now()-d.lastRx)/1000)+' s: link silent.':
+    d.last?'Last shot '+uq('vel',d.last.v)+' · '+new Date(d.last.t).toTimeString().slice(0,8):d.key==='accepted'?'Ready: arm the LabRadar and shoot.':'Starting…');
 }
 
 /* ═════ Calypso driver (V2.0.0: any number of units at once) ═════
@@ -4499,6 +4625,152 @@ function useChronoMV(){
   document.getElementById('ch-flags').innerHTML=f;
   Bus.notify();
 }
+
+/* ═════════ CALC-07 (V2.10.0) — CHRONO SESSION ANALYSIS ═════════
+   A shot string, typed or pasted in the display velocity unit or imported from a Garmin Xero CSV, gives
+   n, mean, ES and SD (sample, n−1) of the shots kept; any shot can be excluded by tapping it.
+   Vertical spread from MV variation, per distance: the session trajectory re-run at other MVs with the
+   launch angle held at the session-MV zero (rk4traj flight.mv) — what a real rifle does shot to shot.
+   Verified against py-ballisticcalc fixed-angle runs (Formulas page). MV only: BC variation, wind and the
+   shooter add to a real group. Stored in m/s in APP.chronoStr; cleaned on every read (imports included). */
+const CH_MAX=200;
+function chClean(o){
+  if(!o||typeof o!=='object')return null;
+  const shots=(Array.isArray(o.shots)?o.shots:[]).filter(v=>isNum(v)&&v>0&&v<1500).slice(0,CH_MAX);
+  if(!shots.length)return null;
+  let off=[...new Set((Array.isArray(o.off)?o.off:[]).filter(i=>Number.isInteger(i)&&i>=0&&i<shots.length))];
+  if(off.length>=shots.length)off=[];   // at least one shot is always kept
+  const str=(v,n)=>isStr(v)?v.slice(0,n):'';
+  const xo=o.xero&&typeof o.xero==='object'?o.xero:{},xero={};
+  ['avg','sd','es'].forEach(k=>{if(isNum(xo[k])&&xo[k]>=0)xero[k]=xo[k];});
+  return{shots,off,name:str(o.name,60),date:str(o.date,60),src:o.src==='xero'?'xero':o.src==='labradar'?'labradar':'typed',unit:o.unit==='fps'?'fps':'ms',xero:Object.keys(xero).length?xero:null};
+}
+function chStats(v){
+  const n=v.length;if(!n)return null;
+  const mean=v.reduce((a,b)=>a+b,0)/n,min=Math.min(...v),max=Math.max(...v),ss=v.reduce((a,x)=>a+(x-mean)**2,0);
+  return{n,mean,min,max,es:max-min,sd:n>1?Math.sqrt(ss/(n-1)):null,sdPop:Math.sqrt(ss/n)};
+}
+const chNum=t=>{t=String(t??'').replace(/\s/g,'');return /^\+?\d+([.,]\d+)?$/.test(t)?+t.replace(',','.'):NaN;};
+function chParseTyped(txt){
+  const u=UNITS.vel,shots=[];
+  for(const t of String(txt).split(/[\s,;]+/)){
+    if(!t)continue;
+    const x=/^\+?\d+(\.\d+)?$/.test(t)?+t:NaN;
+    if(!(x>0))return{err:'"'+t.slice(0,12)+'" is not a velocity'};
+    shots.push(QDEF.vel.from[u](x));
+  }
+  if(!shots.length)return{err:'No velocities found.'};
+  if(shots.length>CH_MAX)return{err:'More than '+CH_MAX+' shots.'};
+  return{shots,src:'typed',unit:u};
+}
+/* Garmin Xero CSV (export from the Garmin app): a session-name line, a header row with "SPEED (FPS)" or
+   "SPEED (M/S)", one row per shot numbered 1…n, then AVERAGE SPEED / STD DEV / SPREAD / DATE rows. The
+   delimiter (comma, semicolon or tab) is taken from the header line; quoted fields are honoured. */
+function chCsvRows(txt){
+  const lines=String(txt).replace(/^\uFEFF/,'').split(/\r?\n/);
+  const hdr=lines.find(l=>/SPEED\s*\(/i.test(l))||'';
+  const dl=[',',';','\t'].sort((a,b)=>hdr.split(b).length-hdr.split(a).length)[0];
+  return lines.map(l=>{const f=[];let cur='',q=false;
+    for(let i=0;i<l.length;i++){const c=l[i];
+      if(q){if(c==='"'){if(l[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=c;}
+      else if(c==='"')q=true;else if(c===dl){f.push(cur.trim());cur='';}else cur+=c;}
+    f.push(cur.trim());return f;});
+}
+function chParseXero(txt){
+  const rows=chCsvRows(txt),isSpd=c=>/^SPEED\s*\(/i.test(c),h=rows.findIndex(r=>r.some(isSpd));
+  if(h<0)return{err:'No SPEED column: not a Garmin Xero CSV.'};
+  const col=rows[h].findIndex(isSpd),uTxt=((rows[h][col].match(/\(([^)]*)\)/)||[])[1]||'').trim();
+  const unit=/^fps$/i.test(uTxt)?'fps':/^m\/s$/i.test(uTxt)?'ms':null;
+  if(!unit)return{err:'Unknown speed unit "'+uTxt.slice(0,10)+'".'};
+  const toMs=QDEF.vel.from[unit],shots=[],xero={};let date='';
+  rows.slice(h+1).forEach(r=>{
+    const k=(r[0]||'').toUpperCase(),val=chNum(r[col]!==''&&r[col]!=null?r[col]:r[1]);
+    if(/^\d+$/.test(r[0]||'')){if(chNum(r[col])>0)shots.push(toMs(chNum(r[col])));}
+    else if(k==='AVERAGE SPEED'&&val>=0)xero.avg=toMs(val);
+    else if(k==='STD DEV'&&val>=0)xero.sd=toMs(val);
+    else if(k==='SPREAD'&&val>=0)xero.es=toMs(val);
+    else if(k==='DATE')date=r[col]||r[1]||'';
+  });
+  if(!shots.length)return{err:'No shots found in the file.'};
+  if(shots.length>CH_MAX)return{err:'More than '+CH_MAX+' shots.'};
+  return{shots,name:h>0?(rows[0][0]||''):'',date,src:'xero',unit,xero};
+}
+function chMsg(t){const m=document.getElementById('ch-msg');if(!m)return;m.replaceChildren();if(t){const d=document.createElement('div');d.className='flag warn';d.textContent=t;m.append(d);}}
+function chSet(o){APP.chronoStr=chClean(o);saveDB();chRender();}
+function chReadString(){
+  const t=document.getElementById('ch-str').value,r=/SPEED\s*\(/i.test(t)?chParseXero(t):chParseTyped(t);
+  chMsg(r.err||'');if(!r.err)chSet(r);
+}
+function chImportFile(inp){
+  const f=inp.files&&inp.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{const r=chParseXero(rd.result);chMsg(r.err||'');if(r.err)return;
+    document.getElementById('ch-str').value=r.shots.map(v=>un('vel',v)).join(' ');chSet(r);};
+  rd.readAsText(f);inp.value='';
+}
+function chClear(){APP.chronoStr=null;saveDB();document.getElementById('ch-str').value='';chMsg('');chRender();}
+function chKept(c){return c.shots.filter((_,i)=>!c.off.includes(i));}
+function chToggle(i){
+  const c=chClean(APP.chronoStr);if(!c)return;
+  const k=c.off.indexOf(i);if(k<0){if(c.shots.length-c.off.length<=1)return;c.off.push(i);}else c.off.splice(k,1);
+  APP.chronoStr=c;saveDB();chRender();
+}
+function chUse(){
+  const c=chClean(APP.chronoStr),st=c&&chStats(chKept(c));if(!st)return;
+  const r3=x=>Math.round(x*1000)/1000;
+  document.getElementById('ch-mv').value=r3(st.mean);document.getElementById('ch-es').value=r3(st.es);
+  document.getElementById('ch-sd').value=st.sd!=null?r3(st.sd):'';
+  useChronoMV();
+}
+/* Vertical spread rows at round distances in the display unit (25 apart) out to the session distance
+   (at least 100). Deviations are taken around the session MV, which the rifle is zeroed with. */
+function chVert(st){
+  if(!st||st.n<2)return{msg:'Needs at least 2 shots.'};
+  const base=homeTraj(0);
+  if(!base||!(S.mv>0))return{msg:'Needs a rifle, projectile, MV and current weather (Home).'};
+  if(base.bcPending)return{msg:'BC pending for '+base.projName+'.'};
+  const u=UNITS.range,step=QDEF.range.from[u](25),maxD=Math.max(S.dist_m,QDEF.range.from[u](100));
+  const ds=[];for(let d=step;d<=maxD+1e-6;d+=step)ds.push(d);
+  if(!ds.some(d=>Math.abs(d-S.dist_m)<0.5))ds.push(S.dist_m);ds.sort((a,b)=>a-b);
+  const run=mv=>homeTraj(maxD+5,undefined,mv).pts;
+  const up=run(S.mv+st.sd),dn=run(S.mv-st.sd),fast=run(S.mv+(st.max-st.mean)),slow=run(S.mv-(st.mean-st.min));
+  const at=(pts,d)=>nearestPt(pts,d).drop;
+  return{rows:ds.map(d=>({d,sd:(at(up,d)-at(dn,d))/2,es:at(fast,d)-at(slow,d)}))};
+}
+function chRender(){
+  const box=document.getElementById('ch-res');if(!box)return;
+  const c=chClean(APP.chronoStr);
+  if(!c){box.replaceChildren();return;}
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const kept=chKept(c),st=chStats(kept),out=[];
+  out.push(el('div','note',(c.src==='xero'?'Xero CSV':c.src==='labradar'?'LabRadar live':'Typed')+(c.name?' · '+c.name:'')+(c.date?' · '+c.date:'')+' · '+c.shots.length+' shots'+(c.off.length?' · '+c.off.length+' excluded':'')));
+  const g=el('div','chstats'),cell=(k,v)=>{const d=el('div');d.append(el('b',null,k),document.createTextNode(v));g.append(d);};
+  cell('Shots',String(st.n));cell('Mean',uq('vel',st.mean));cell('ES',uq('vel',st.es));cell('SD',st.sd!=null?uq('vel',st.sd):'—');cell('Min – max',un('vel',st.min)+' – '+un('vel',st.max)+' '+lab2('vel'));
+  out.push(g);
+  if(st.n>=2){const ok=st.es<=5&&st.sd<=1.5;out.push(el('div','flag '+(ok?'ok':'warn'),(ok?'✓ Within production target':'⚠ Outside production target')+' — ES ≤ '+ut('vel',5)+' · SD ≤ '+ut('vel',1.5)+(st.n<10?' (target is over 10 shots)':'')));}
+  if(c.xero){
+    const x=c.xero,tol=(c.unit==='fps'?0.05*0.3048:0.05)+1e-9,all=chStats(c.shots);
+    const same=(x.avg==null||Math.abs(x.avg-all.mean)<=tol)&&(x.es==null||Math.abs(x.es-all.es)<=tol)&&(x.sd==null||Math.abs(x.sd-all.sd)<=tol||Math.abs(x.sd-all.sdPop)<=tol);
+    const xs='avg '+un('vel',x.avg)+' · SD '+un('vel',x.sd)+' · ES '+un('vel',x.es)+' '+lab2('vel');
+    out.push(el('div','flag '+(same?'info':'warn'),same?'Xero summary (all shots) matches: '+xs:'⚠ Xero summary differs from these shots: '+xs+'. The file may leave shots out; check the string and exclude them here.'));
+  }
+  const chips=el('div','chshots');
+  c.shots.forEach((v,i)=>{const off=c.off.includes(i),b=el('button','chshot'+(off?' off':''),(i+1)+': '+un('vel',v));
+    b.setAttribute('aria-pressed',String(!off));b.title=off?'Excluded — tap to include':'Tap to exclude';b.onclick=()=>chToggle(i);chips.append(b);});
+  out.push(chips,el('div','note','Tap a shot to exclude it (a flier, a cold-bore shot). Statistics and the table use the shots kept.'));
+  const use=el('div','btnrow'),ub=el('button','btn','Use mean, ES, SD → session MV');ub.onclick=chUse;use.append(ub);out.push(use);
+  if(Math.abs(st.mean-(S.mv||0))>1&&S.mv>0)out.push(el('div','flag info','Session MV is '+uq('vel',S.mv)+'; this string averages '+uq('vel',st.mean)+'. Use it if this string is from today\'s setup.'));
+  const v=chVert(st);
+  const vh=el('h2',null,'Vertical spread from MV');vh.style.marginTop='16px';out.push(vh);
+  if(v.msg)out.push(el('div','note',v.msg));
+  else{
+    const t=el('table'),hr=el('tr');['Distance','±1 SD','ES (slowest–fastest)'].forEach(h=>hr.append(el('th',null,h)));t.append(hr);
+    v.rows.forEach(r=>{const tr=el('tr');tr.append(el('td',null,ut('range',r.d)),el('td',null,'±'+un('drop',r.sd)+' '+lab2('drop')),el('td',null,un('drop',r.es)+' '+lab2('drop')));t.append(tr);});
+    out.push(t,el('div','note','Zero held at the session MV '+uq('vel',S.mv)+'; each shot leaves at the same angle with its own MV (exact solver re-run). MV only: BC variation, wind and the shooter add to a real group.'));
+  }
+  box.replaceChildren(...out);
+}
+Bus.on(()=>{if(document.getElementById('page-sensors')?.classList.contains('active'))chRender();});
 
 
 /* ═════════ CORE-16 (V1.26.0) — HOME LAYOUTS ═════════
@@ -4753,6 +5025,9 @@ const FX_ENV=()=>({rho:airDensity(20,1010,65),aS:sos(20)});
 const fxAt=(pts,r)=>pts.find(p=>Math.abs(p.range-r)<1e-6);
 const fxBerger=(m,oal,tw)=>calcSg(m,6.35,oal,tw*25.4,853*0.3048,millerC(6.35,oal).c,10,980); // Berger page: 853 fps, 50 °F, 978 ft ≈ 980 hPa
 const fxBench=g=>benchMass(designClean({diam:6.35,bearL:0,noseL:0,rtr:1,meplat:0,btL:0,alloy:'pb',...g}));
+const fxMvSpread=(dv,d)=>{const e=FX_ENV(),q=mv=>fxAt(rk4traj(255,0.128,60,50,160,0.044,e.rho,e.aS,1,'g7',0.245,null,undefined,{mv}),d).drop;return q(255+dv)-q(255-dv);};
+// Owner's Garmin Xero export ("Air Rifle Pellet", 2024-02-15; screenshot supplied 2026-10-29): 48 shots in fps.
+const XERO_ANCHOR=[282.3,283.0,283.0,281.5,283.2,282.2,283.6,282.8,280.4,281.7,280.7,279.3,280.1,280.5,278.6,280.0,279.5,279.4,279.2,280.3,279.4,280.0,283.6,280.6,279.8,280.6,280.7,280.6,277.7,281.6,279.4,279.1,281.0,280.8,280.0,279.6,283.1,279.3,281.8,278.9,279.8,279.5,279.9,281.1,279.3,280.9,280.5,279.1];
 const FORMULAS=[
   {name:'Wind average (vector mean)',status:'ok',eq:'x̄ = Σ s·cos d / n, ȳ = Σ s·sin d / n → speed √(x̄²+ȳ²), direction atan2(ȳ, x̄); steadiness = speed / mean(s)',
     src:'resultant (vector-averaged) wind — EPA-454/R-99-005 Meteorological Monitoring Guidance; anchors are exact trigonometry, random data reproduced independently in windavgtest.js — CALC-20',used:'Calypso average window → session wind',
@@ -4863,6 +5138,14 @@ const FORMULAS=[
              {l:'ballistics-engine test: Sg 1.75, L 4.0, 10 mph from the right, right twist → +0.399 MOA',got:()=>aeroJumpMoa(1.75,4,10*MPH_MS,'right'),want:0.3990,tol:1e-9,u:'MOA'},
              {l:'Sign: wind from the left, right twist → down (−0.399)',got:()=>aeroJumpMoa(1.75,4,-10*MPH_MS,'right'),want:-0.3990,tol:1e-9,u:'MOA'},
              {l:'Left twist reverses (+0.399 from the left)',got:()=>aeroJumpMoa(1.75,4,-10*MPH_MS,'left'),want:0.3990,tol:1e-9,u:'MOA'}]},
+  {name:'MV spread → vertical spread (solver re-run)',status:'ok',eq:'Δy(d) = y(d; V₀+ΔV₁) − y(d; V₀−ΔV₂), launch angle fixed at the V₀ zero; ±1 SD row = half of ΔV = ±SD; ES row: fastest − slowest shot; SD = √(Σ(v−v̄)²/(n−1))',
+    src:'exact re-run of the session trajectory (rk4traj flight.mv) — reproduced against py-ballisticcalc 3.1.1 fixed-elevation shots (set_weapon_zero, then fire at other MVs); statistics against Python statistics.stdev',used:'Sensors › Chronograph › shot string (CALC-07)',
+    anchors:[{l:'Queen G7 0.128, zero 50 m @255 m/s, ±2.5 m/s — 50 m (pbc 7.537 mm)',got:()=>fxMvSpread(2.5,50),want:7.537,tol:0.03,u:'mm'},
+             {l:'… 100 m (pbc 30.743 mm)',got:()=>fxMvSpread(2.5,100),want:30.743,tol:0.05,u:'mm'},
+             {l:'… 150 m (pbc 70.577 mm)',got:()=>fxMvSpread(2.5,150),want:70.577,tol:0.1,u:'mm'},
+             {l:'… ±1.4 m/s at 100 m (pbc 17.214 mm)',got:()=>fxMvSpread(1.4,100),want:17.214,tol:0.05,u:'mm'},
+             {l:'Xero string, 48 shots: sample SD (Python stdev 1.426640 fps)',got:()=>chStats(XERO_ANCHOR).sd,want:1.426640,tol:1e-5,u:'fps'},
+             {l:'… mean (Python 280.604167 fps; Xero shows 280.6)',got:()=>chStats(XERO_ANCHOR).mean,want:280.604167,tol:1e-5,u:'fps'}]},
   {name:'MV–temperature model',status:'est',eq:'v(t) = a + b·t, least squares',src:'regression is exact; linear behaviour is an assumption until chrono data across temperatures exists',used:'Truing → MV–temp',
     anchors:[{l:'270 m/s at 0 °C, 280 at 20 °C → 10 °C',got:()=>mvtFit([{t:0,v:270},{t:20,v:280}]).at(10),want:275,tol:1e-9,u:'m/s'}]}
 ];
