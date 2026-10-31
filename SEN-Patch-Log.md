@@ -7,6 +7,47 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.9.0 — minor — Rangefinder auto-fill: Element Titan 3K / Helix 1.5K (CALC-09)
+
+**Problem.** A ranged distance and shot angle had to be read off the rangefinder and typed into Home or the Solver. The Element protocol was decoded and confirmed in the Lab (LAB-04, Probe V1.7.0), but Main couldn't connect to it.
+
+**Fix.**
+- **Sensors → new "Rangefinder · Element Titan / Helix" panel.**
+  - Connect, then "+ Connect another": the Titan and Helix can be connected at once.
+  - The device chooser lists devices named Titan / Tian / Helix, or anything offering the Nordic UART service.
+  - Each unit's row shows its last ranging, how long ago it came, and battery (a dash when the unit has no battery service).
+  - The driver sits on SenBle (CORE-07) and is **read-only**: nothing is written to a rangefinder.
+- **Each ranging fills the session.** The distance goes to `S.dist_m`, so Home, Trajectory, the Solver and the act bar all follow. The shot angle goes into both angle inputs (Home and Solver), and the Solver re-solves when it's open.
+  - Distances keep the unit's 0.1 m resolution and are shown in the display unit.
+- **Switch "Each ranging fills target distance + shot angle"**, On by default and stored in `APP.rfFill`. With it Off, rangings only show on the panel.
+- **Source line (§20E)** under the distance and angle inputs on Home and the Solver: "Distance + angle from Titan 3K · hh:mm:ss (LOS)". Once you type a different distance or angle it changes to "typed — last ranging …". The next ranging takes over again.
+- **Honest data.** The panel asks for **LOS mode**, because the unit sends the distance of the mode on its display and the frame doesn't say which (owner tests). It also states that the angle comes in whole degrees. Junk, zero-distance and short frames are ignored.
+- **Graduation: Element rangefinder driver (LAB-04, Lab Probe V1.7.0).**
+  1. **Real device:** owner-confirmed on the Honor Magic V5 in the Lab: 25.0 / 5.9 / 42.9 / 39.8 / 1134.5 m at −1 / −13 / +31 / +5 / +5°, LOS. The Titan card was confirmed populating on 2026-10-31. The Helix uses the same protocol. **Still owner-checks after release:** disconnect + reconnect and screen off/on in Main. Protocol facts are in `SEN-Device-BLE-Handoff-V1.md` (Project knowledge).
+  2. **On SenBle:** connect, chars, notify, battery and the disconnect callback all go through SenBle. Several units can be connected at once. A missing battery service fails soft. A cancelled chooser changes nothing.
+  3. **Data honest:** only measured values are used (distance, angle), and the source is visible with override kept. A ranging is an event, not a stream, so instead of "signal lost" the panel shows the ranging's age. No formula is involved.
+  4. **Tests:** new `rangefindertest.js`, with a simulated unit following the real-Chrome GATT rules (overlapping operations rejected). Full suite green; Lab `maindatatest` green. Chromium checked at 412 and 780 px.
+  5. **Code:** text only (no HTML sinks); `APP` namespace only; no renames.
+- AEA BC1500 is not included: it's still open whether it sends LOS or horizontal distance (LAB-05).
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.9.0.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.9.0`), `tests/rangefindertest.js` (new), `tests/README.md`, this log.
+
+**Verify.**
+- `rangefindertest.js` 26/26:
+  - the owner's real rangings replayed;
+  - fills Home / Trajectory / Solver / act bar;
+  - re-solve, the source line and override;
+  - switch Off survives a restart;
+  - imperial (109.4 yd);
+  - two units;
+  - disconnect / reconnect without a reload;
+  - zero writes, zero GATT collisions.
+- `unittest.js`: the panel note was reworded so it shows no metric value in imperial (CORE-15).
+- All 30 suites green: runtests 135/135, domtest 14/14, layouttest 36/36, rendertest 22/22, …. Lab `maindatatest.js` 13/13 against this build.
+- Real Chromium at 412 and 780 px with a simulated Titan ranging 1134.5 m: Sensors, Home and Solver have no sideways scroll and no script errors.
+
+---
+
 ## V2.8.0 — minor — Aerodynamic jump in the Solver (CALC-06, last open correction)
 
 **Problem.** A crosswind at the muzzle also moves the impact vertically (aerodynamic jump). The app listed it as "not modelled", which left CALC-06 (advanced corrections) incomplete.

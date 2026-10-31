@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.8.0</title>
+<title>SEN Ballistics V2.9.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -309,7 +309,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.8.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="ver">V2.9.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
 </div>
 
 <aside id="sol-rail" aria-label="Second pane"><div class="pane-sw" id="pane-sw"></div><div class="rail-head" id="rail-head">—</div></aside><button class="btn-xs" id="pane-show" style="display:none" onclick="setPaneMode(curPage(),'rail')">◧ Solution</button>
@@ -473,6 +473,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Cant ° (+ right)</label><input type="number" id="home-cant" step="0.5" value="0" oninput="homeInput('angle',+this.value)"></div>
       <div class="fld"><label>Muzzle velocity</label><input type="number" id="home-mv" step="0.1" oninput="homeInput('mv',+this.value)"></div>
     </div>
+    <div class="note" id="rf-src-home"></div>
     <div class="note" id="home-status"></div>
   </div>
 
@@ -753,6 +754,7 @@ details.disc .dbody{padding:0 14px 14px}
     </div>
     <div class="fld" style="margin-top:8px"><label>Wind from</label><div class="seg"><button id="sv-ws-in" class="on" onclick="svSetStations(false)">The inputs above</button><button id="sv-ws-st" onclick="svSetStations(true)">Live wind stations</button></div></div>
     <div class="note" id="sv-ws-note"></div>
+    <div class="note" id="rf-src-sv"></div>
     <div class="note">Clicks relative to zero range (zero = 0 by construction). Angle: the trajectory is re-solved along the slope (slant range); a head/tailwind component is integrated too. Wind clicks are the delta vs the wind already held at zero range.</div>
     <div class="btnrow"><button class="btn primary" onclick="solve()">Solve</button></div>
   </div>
@@ -887,6 +889,18 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="note" id="stn-summary"></div>
     <div class="note">Each station: a name, which Calypso, its distance from you and its angle off the line of fire (0 = on the line, + right, − left), and where its mark points — at the target, or at north (the same magnetic compass as the target bearing on Home; needs that bearing). With two or more live stations and live wind on, Home's dial and windage use all of them along the flight (crosswind and head/tailwind). Otherwise Home uses the session unit, exactly as before. A station with no reading for 3 s drops out.</div>
   </div>
+  <div class="panel" id="rf-panel">
+    <h2>Rangefinder · Element Titan / Helix</h2>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span><span class="ble-dot" id="rf-dot"></span><span style="font-family:var(--mono);font-size:11px" id="rf-status">Not connected</span></span>
+      <button class="btn-xs" id="rf-btn" onclick="rfAdd()" style="margin-left:auto">Connect</button>
+    </div>
+    <div id="rf-units"></div>
+    <div class="fld" style="margin-top:8px"><label>Each ranging fills target distance + shot angle</label>
+      <div class="seg"><button id="rf-fill-on" onclick="rfSetFill(true)">On</button><button id="rf-fill-off" onclick="rfSetFill(false)">Off</button></div></div>
+    <div class="note" id="rf-last"></div>
+    <div class="flag info" style="margin-top:10px">Keep the rangefinder in <b>LOS</b> mode: it sends the distance of the mode on its display and the frame doesn't say which (owner tests 2026-10-30). The solver works in slant range, which is LOS. The rangefinder always sends a metric distance with one decimal, whatever its own display unit, and the app shows it in yours; the angle comes in whole degrees. Nothing is written to the rangefinder. Typing a distance or angle overrides the ranging until the next one.</div>
+  </div>
   <div class="panel">
     <h2>Manual wind entry</h2>
     <div class="fgrid"><div class="fld"><label>Speed m/s</label><input type="number" id="mw-spd" step="0.1" value="0"></div><div class="fld"><label>Direction °</label><input type="number" id="mw-dir" step="5" value="90"></div></div>
@@ -925,7 +939,7 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.8.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.9.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1587,7 +1601,7 @@ const QDEF={
 };
 let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',tsize:'mm',alt:'m',regp:'bar'};
 let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',tsize:'off',alt:'off',regp:'off'};
-let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,solverStations:false,turretMode:'match',solverCor:false,solverSpin:false,solverAJ:false,lat:46.05,benchId:null};
+let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,solverStations:false,turretMode:'match',solverCor:false,solverSpin:false,solverAJ:false,lat:46.05,benchId:null,rfFill:true};
 /* FIX-14b/c — apply display preferences (boot + on change) */
 function applyDisplayPrefs(){
   const h=document.documentElement;
@@ -3412,7 +3426,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.8.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.9.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -3988,7 +4002,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.8.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.9.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4240,6 +4254,94 @@ const SenBle={
     return link;
   }
 };
+
+/* ═════ CALC-09 (V2.9.0) — rangefinder driver: Element Titan 3K / Helix 1.5K (graduated from Lab V1.7.0, LAB-04) ═════
+   Nordic UART service; the unit notifies one 4-byte frame per ranging on 6e400003: F5 · distance uint16
+   big-endian in 0.1 m (always metres, whatever the display unit) · angle int8 in whole degrees. Read-only.
+   It sends the distance of the mode on its display (LOS or HCD, no flag) → the panel asks for LOS. Owner
+   captures 2026-10-30/31: 25.0 / 5.9 / 42.9 / 39.8 / 1134.5 m at −1 / −13 / +31 / +5 / +5°, LOS. */
+const RF_NUS='6e400001-b5a3-f393-e0a9-e50e24dcca9e',RF_TX='6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+const RFS=[];let rfFilled=null; // rfFilled = the ranging last written into the session {m,deg,name,t}
+function rfParse(b){
+  if(!b||b.length!==4||b[0]!==0xF5)return null;
+  const m=((b[1]<<8)|b[2])/10,deg=b[3]>127?b[3]-256:b[3];
+  return m>0&&m<5000?{m,deg}:null;
+}
+async function rfAdd(){
+  if(!SenBle.supported()){alert('Web Bluetooth not supported.\nUse Chrome on Android or Chrome/Edge on desktop. (iOS blocks Web Bluetooth — type the distance and angle.)');return;}
+  let d=null;
+  try{
+    rfStatus('scan','Scanning for Titan / Helix…');
+    const link=await SenBle.connect({filters:[{namePrefix:'Titan'},{namePrefix:'TITAN'},{namePrefix:'Tian'},{namePrefix:'Helix'},{namePrefix:'HELIX'},{services:[RF_NUS]}],
+      optionalServices:[RF_NUS,0x180F],onDisconnect:rfOnDisconnect});
+    const old=RFS.find(x=>x.link.id===link.id);if(old)rfDrop(old);
+    d={link,last:null,n:0,batt:null};RFS.push(d);
+    const tx=(await link.chars(RF_NUS)).find(c=>c.uuid.toLowerCase()===RF_TX);
+    if(!tx)throw new Error('Nordic UART notify characteristic (6e400003) not found');
+    await link.notify(tx,v=>rfFrame(d,new Uint8Array(v.buffer,v.byteOffset,v.byteLength)));
+    link.battery(b=>{d.batt=b;rfRender();}).catch(()=>{});
+    rfRender();
+  }catch(e){
+    if(d)rfDrop(d);
+    if(e&&e.name==='NotFoundError'){rfRender();return;} // chooser cancelled
+    rfStatus('',(e&&e.message)||'Connect failed');
+  }
+}
+function rfFrame(d,b){
+  const r=rfParse(b);if(!r)return; // not a ranging frame — ignored
+  d.last={m:r.m,deg:r.deg,t:Date.now()};d.n++;
+  if(APP.rfFill!==false)rfFill(d);
+  rfRender();
+}
+// Write a ranging into the session: S.dist_m (all pages) and both shot-angle inputs (Home, Solver).
+function rfFill(d){
+  const L=d.last;if(!L)return;
+  rfFilled={m:L.m,deg:L.deg,name:d.link.name||'rangefinder',t:L.t};
+  S.dist_m=L.m;
+  ['home-angle','sv-angle'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=L.deg;});
+  const sv=document.getElementById('sv-tdist');if(sv)sv.value=S.dist_m;
+  Bus.notify();
+  if(curPage()==='solver')solve();
+  rfSrcRender();
+}
+function rfSetFill(b){APP.rfFill=b===true;saveDB();rfRender();}
+function rfDrop(d){const i=RFS.indexOf(d);if(i>=0)RFS.splice(i,1);rfRender();}
+function rfOnDisconnect(link){const d=RFS.find(x=>x.link===link);if(d){d.gone=true;rfRender();}}
+function rfStatus(cls,txt){const dot=document.getElementById('rf-dot'),st=document.getElementById('rf-status');if(dot)dot.className='ble-dot'+(cls?' '+cls:'');if(st)st.textContent=txt;}
+const rfAge=t=>{const s=Math.round((Date.now()-t)/1000);return s<60?s+' s ago':Math.round(s/60)+' min ago';};
+const rfTime=t=>new Date(t).toTimeString().slice(0,8);
+const rfDist=m=>cv('range',m,UNITS.range).toFixed(1)+' '+lab('range',UNITS.range); // the unit's 0.1 m resolution, in the display unit
+function rfRender(){
+  const box=document.getElementById('rf-units');if(!box)return;
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  box.replaceChildren(...RFS.map(d=>{
+    const row=el('div','cal-unit'),on=!d.gone&&d.link.connected();
+    const info=el('span','cal-info',d.last?rfDist(d.last.m)+' · '+(d.last.deg>0?'+':'')+d.last.deg+'° · '+rfAge(d.last.t):(on?'waiting for a ranging…':''));
+    const x=el('button','btn-xs',on?'Disconnect':'Remove');x.onclick=()=>{if(on)d.link.disconnect();else rfDrop(d);};
+    row.append(el('span','ble-dot'+(on?' connected':'')),el('b',null,d.link.name||'(no name)'),info,el('span','cal-batt',d.batt!=null?d.batt+'%':'—'),
+      el('span','cal-info',on?'':'disconnected'),x);return row;}));
+  const live=RFS.filter(d=>!d.gone&&d.link.connected());
+  if(live.length)rfStatus('connected','Connected: '+live.map(d=>d.link.name||'?').join(', '));else if(RFS.length)rfStatus('','Disconnected');else rfStatus('','Not connected');
+  const btn=document.getElementById('rf-btn');if(btn)btn.textContent=live.length?'+ Connect another':'Connect';
+  document.getElementById('rf-fill-on').classList.toggle('on',APP.rfFill!==false);
+  document.getElementById('rf-fill-off').classList.toggle('on',APP.rfFill===false);
+  const lastD=RFS.filter(d=>d.last).sort((a,b)=>b.last.t-a.last.t)[0];
+  document.getElementById('rf-last').textContent=lastD?'Last ranging: '+rfDist(lastD.last.m)+' at '+(lastD.last.deg>0?'+':'')+lastD.last.deg+'° from '+(lastD.link.name||'rangefinder')+' · '+rfTime(lastD.last.t)+(APP.rfFill===false?' (not filled: switch is off)':''):'';
+  rfSrcRender();
+}
+// Source line under the distance/angle inputs on Home and the Solver: "from <unit>" while the session
+// still holds that ranging, "typed" once either value differs from it (§20E: source visible, override kept).
+function rfSrcRender(){
+  const f=rfFilled;
+  ['home','sv'].forEach(k=>{
+    const n=document.getElementById('rf-src-'+k);if(!n)return;
+    if(!f){n.textContent='';return;}
+    const ang=document.getElementById(k==='home'?'home-angle':'sv-angle');
+    const same=Math.abs(S.dist_m-f.m)<0.05&&ang&&+ang.value===f.deg;
+    n.textContent=same?'Distance + angle from '+f.name+' · '+rfTime(f.t)+' (LOS)':'Distance / angle typed — last ranging '+rfDist(f.m)+' at '+(f.deg>0?'+':'')+f.deg+'° ('+f.name+' · '+rfTime(f.t)+')';
+    n.classList.toggle('man',!same);
+  });
+}
 
 /* ═════ Calypso driver (V2.0.0: any number of units at once) ═════
    One driver per connected unit: its own unlock, handshake, 10 s keepalive, :WU parser, battery and
@@ -5354,6 +5456,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
 /* ═════════ boot ═════════ */
 Bus.on(()=>{renderActBar();syncTrajInputs();refreshSelects();if(homeVisible())renderQuick();autoTraj();});
+// V2.9.0 CALC-09: the ranging source line follows every session change and every typed distance / angle.
+Bus.on(()=>rfSrcRender());
+document.addEventListener('input',e=>{if(e.target&&['home-angle','sv-angle','home-dist','sv-tdist'].includes(e.target.id))rfSrcRender();});
+rfRender();
 async function boot(){
 await loadDB();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();migrateMillerC();migratePressureType();
 DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (V1.13.2): legacy free-text cleanup
