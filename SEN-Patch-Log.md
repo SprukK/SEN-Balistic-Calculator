@@ -7,6 +7,24 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.14.1 — patch — Drive: printable dope card as a Google Doc; shot strings and wind snapshots as Google Sheets
+
+**Problem (owner, 2026-11-05, on the Honor).** "Save to Drive" on a dope card put a `.html` print copy in Drive. Drive doesn't render HTML, so it showed the page source.
+
+**Fix.**
+- **Printable dope card** is uploaded as HTML and converted by Drive to a **Google Doc** ("Dope — <card> (print)"): metadata `mimeType` `application/vnd.google-apps.document`, media `text/html` (Drive v3 import conversion; no new permission). Tables carry `border="1"` so the Doc keeps the grid. The JSON copy is unchanged.
+- **Shot strings and wind snapshots (owner: "+ sheets")**: the CSV is converted to a **Google Sheet** (`application/vnd.google-apps.spreadsheet`), named without an extension. The JSON copies are unchanged.
+- Queue items carry the target type (`as`, Doc or Sheet only; anything else is dropped). Restore still lists JSON files only.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.14.1.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.14.1`), `tests/drivetest.js` (37), this log.
+
+**Verify.**
+- `drivetest.js` 37/37: the dope print is a Doc request with an HTML body and table borders; the shot-string and wind CSVs are Sheet requests with `text/csv` bodies (values checked as before); a foreign conversion type is never requested.
+- Full regression green (42 runs); Lab `maindatatest.js` 13/13. `chronotest.js` crashed once inside a full run (unrelated, intermittent under load); green standalone 4/4 and in the next full run.
+- Old `.html` copies in Drive can be deleted.
+
+---
+
 ## V2.14.0 — minor — Dope cards: no wind columns; windage = spin drift on every stage; the table fits the phone
 
 **Problem (owner, 2026-11-05).** On Dope → Stages the target table was wider than the outer screen and scrolled sideways. Owner ruling: remove the Wind and Dir° columns — wind is solved live when shooting.

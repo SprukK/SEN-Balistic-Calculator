@@ -110,18 +110,18 @@ chk('profile → Profiles/"Rifle — <name>.json", a share bundle with its scope
 w.eval(`gotoPage('dope');newDope()`);await wait(20);
 w.eval(`driveSaveDope()`);await wait(150);
 const dp=inDir('Dope cards');
-chk('dope card → JSON (importable) + printable HTML',dp.length===2&&dp.some(f=>/\.json$/.test(f.name)&&JSON.parse(f.body).dopeCard)&&dp.some(f=>/\(print\)\.html$/.test(f.name)&&f.mimeType==='text/html'&&/STAGE 1/.test(f.body)),dp.map(f=>f.name).join());
+chk('dope card → JSON (importable) + printable card converted to a Google Doc (V2.14.1: HTML sent, Doc requested, table borders)',dp.length===2&&dp.some(f=>/\.json$/.test(f.name)&&JSON.parse(f.body).dopeCard)&&dp.some(f=>/ \(print\)$/.test(f.name)&&f.mimeType==='application/vnd.google-apps.document'&&/text\/html/.test(f.ctype)&&/STAGE 1/.test(f.body)&&/<table border="1"/.test(f.body)),dp.map(f=>f.name+' '+f.mimeType).join());
 w.eval(`chSet({shots:[280.1,281.4,279.8,282.0],off:[3],name:'Queen test',src:'typed'})`);
 w.eval(`driveSaveShots()`);await wait(150);
-const sh=inDir('Shot strings'),csv=(sh.find(f=>/\.csv$/.test(f.name))||{}).body||'';
-chk('shot string → CSV (shot, m/s, fps, kept + stats of the kept shots) + JSON',sh.length===2&&/^shot,velocity_ms,velocity_fps,kept\n1,280\.10,919\.0,yes/.test(csv)&&/4,282\.00,925\.2,no/.test(csv)&&/\n3,280\.43,1\.60,/.test(csv),csv.slice(0,160));
+const sh=inDir('Shot strings'),shS=sh.find(f=>f.mimeType==='application/vnd.google-apps.spreadsheet')||{},csv=shS.body||'';
+chk('shot string → CSV converted to a Google Sheet (V2.14.1) (shot, m/s, fps, kept + stats of the kept shots) + JSON',sh.length===2&&/text\/csv/.test(shS.ctype)&&shS.name==='Queen test'&&/^shot,velocity_ms,velocity_fps,kept\n1,280\.10,919\.0,yes/.test(csv)&&/4,282\.00,925\.2,no/.test(csv)&&/\n3,280\.43,1\.60,/.test(csv),csv.slice(0,160));
 w.eval(`driveSaveWind()`);await wait(20);
 chk('wind snapshot with no Calypso: says so, nothing queued',/No wind readings/.test(w.alerts.pop()||'')&&J('drv.queue.length')===0);
 w.eval(`(()=>{const now=Date.now(),buf=[];for(let i=0;i<30;i++)buf.push({t:now-29000+i*1000,s:3+(i%3)*0.5,d:85+(i%5)});CALS.push({link:{name:'WDOT-B1F9A6',id:'x',connected:()=>true},buf});calPrimaryId='x';})()`);
 w.eval(`driveSaveWind()`);await wait(150);
-const wd=inDir('Wind'),wcsv=(wd.find(f=>/\.csv$/.test(f.name))||{}).body||'';
+const wd=inDir('Wind'),wS=wd.find(f=>f.mimeType==='application/vnd.google-apps.spreadsheet')||{},wcsv=wS.body||'';
 const wexp=J(`(()=>{const a=windAvg(wavgWin(),Date.now(),CALS[0].buf);return [a.spd.toFixed(2),a.min.toFixed(2),a.max.toFixed(2)];})()`);
-chk('wind snapshot → CSV (unit, window, readings, average, lull/gust, steadiness) + JSON with the session wind',wd.length===2&&/time,unit,session,window_s,readings,avg_ms,avg_dir_deg,mean_ms,lull_ms,gust_ms,steadiness,max_gap_s/.test(wcsv)&&new RegExp('WDOT-B1F9A6,true,\\d+,30,'+(+wexp[0])).test(wcsv)&&JSON.parse(wd.find(f=>/\.json$/.test(f.name)).body).stations[0].gust_ms===+wexp[2],wcsv);
+chk('wind snapshot → CSV as a Google Sheet (V2.14.1) (unit, window, readings, average, lull/gust, steadiness) + JSON with the session wind',wd.length===2&&/time,unit,session,window_s,readings,avg_ms,avg_dir_deg,mean_ms,lull_ms,gust_ms,steadiness,max_gap_s/.test(wcsv)&&new RegExp('WDOT-B1F9A6,true,\\d+,30,'+(+wexp[0])).test(wcsv)&&JSON.parse(wd.find(f=>/\.json$/.test(f.name)).body).stations[0].gust_ms===+wexp[2],wcsv);
 chk('folders created once each',folders()==='Backups,Dope cards,Profiles,SEN Ballistics,Shot strings,Wind',folders());
 
 // offline → queue → restart → online
@@ -163,6 +163,8 @@ const nW=w.eval('DB.weathers.length');[...w.document.querySelectorAll('#sbox .fl
 chk('…picking a backup runs the normal import (weathers back; settings choice offered or applied)',w.eval('DB.weathers.length')>nW||!!w.document.querySelector('#modal.open, .modal.open, #imp-review'),w.eval('DB.weathers.length')+' / '+nW);
 w.eval('closeModal&&closeModal()');
 
+{const q=JSON.parse(JSON.stringify(w.eval('drv.queue')));w.eval(`drv.queue=[];driveEnqueue('wind','x','text/csv','a,b','', 'application/x-evil')`);
+ chk('a conversion other than Google Doc / Sheet is never requested',!('as' in J('drv.queue[0]')));w.eval('drv.queue=[]');}
 // lost folder ids / trashed folder
 const nf=Object.keys(G.files).length;w.eval(`APP.drive.rootId=null;APP.drive.dirs={}`);w.eval('driveBackupNow()');await wait(150);
 chk('folder ids lost: the existing folders are found again (no duplicates)',folders()==='Backups,Dope cards,Profiles,SEN Ballistics,Shot strings,Wind'&&Object.keys(G.files).length===nf+1);

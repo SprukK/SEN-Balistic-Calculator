@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.14.0</title>
+<title>SEN Ballistics V2.14.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -1190,7 +1190,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.14.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.14.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -3859,7 +3859,7 @@ function dopeRfRender(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.14.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.14.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4435,7 +4435,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.14.0'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.14.1'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -6853,6 +6853,8 @@ const DRIVE_API='https://www.googleapis.com/drive/v3',DRIVE_UP='https://www.goog
 const DRIVE_ROOT='SEN Ballistics',DRIVE_FOLDER='application/vnd.google-apps.folder';
 const DRIVE_DIRS={backups:'Backups',profiles:'Profiles',dope:'Dope cards',shots:'Shot strings',wind:'Wind'};
 const DRIVE_Q_KEY='driveq',DRIVE_Q_MAX=30,DRIVE_Q_BYTES=8e6;
+// V2.14.1: Drive shows .html as source text — the printable dope card is converted to a Google Doc on upload, CSVs to Google Sheets
+const DRIVE_DOC='application/vnd.google-apps.document',DRIVE_SHEET='application/vnd.google-apps.spreadsheet',DRIVE_AS=[DRIVE_DOC,DRIVE_SHEET];
 let drv={token:null,exp:0,client:null,gis:null,sending:false,msg:'',err:false,queue:[]};
 const driveCfg=()=>{if(!APP.drive||typeof APP.drive!=='object')APP.drive={};return APP.drive;};
 const driveClientId=()=>{const c=driveCfg().clientId;return typeof c==='string'&&/^[\w-]+\.apps\.googleusercontent\.com$/.test(c)?c:DRIVE_CLIENT_ID;};
@@ -6864,12 +6866,12 @@ function appForExport(){const a={...APP};delete a.drive;return a;}
 function driveSay(msg,err){drv.msg=msg;drv.err=!!err;driveRender();}
 
 // ── queue (IndexedDB when available, else memory) ──
-async function driveQLoad(){try{if(_idb){const raw=await idbRun('readonly',st=>st.get(DRIVE_Q_KEY));const q=raw?JSON.parse(raw):[];drv.queue=Array.isArray(q)?q.filter(i=>i&&isStr(i.id)&&DRIVE_DIRS[i.dir]&&isStr(i.name)&&typeof i.body==='string'):[];}}catch(e){drv.queue=[];}}
+async function driveQLoad(){try{if(_idb){const raw=await idbRun('readonly',st=>st.get(DRIVE_Q_KEY));const q=raw?JSON.parse(raw):[];drv.queue=Array.isArray(q)?q.filter(i=>i&&isStr(i.id)&&DRIVE_DIRS[i.dir]&&isStr(i.name)&&typeof i.body==='string').map(i=>DRIVE_AS.includes(i.as)?i:{...i,as:undefined}):[];}}catch(e){drv.queue=[];}}
 function driveQSave(){if(!_idb)return;idbRun('readwrite',st=>st.put(JSON.stringify(drv.queue),DRIVE_Q_KEY)).catch(e=>storeFail('Drive queue: '+e.message));}
-function driveEnqueue(dir,name,mime,body,kind){
+function driveEnqueue(dir,name,mime,body,kind,as){   // as: convert to a Google Doc / Sheet on upload (V2.14.1)
   const bytes=drv.queue.reduce((a,i)=>a+i.body.length,0)+body.length;
   if(drv.queue.length>=DRIVE_Q_MAX||bytes>DRIVE_Q_BYTES){driveSay('Upload queue full ('+drv.queue.length+' files) — connect to send them first.',true);return false;}
-  drv.queue.push({id:uid(),dir,name:driveName(name),mime,body,kind:kind||'',t:Date.now()});driveQSave();return true;
+  drv.queue.push({id:uid(),dir,name:driveName(name),mime,body,kind:kind||'',...(DRIVE_AS.includes(as)?{as}:{}),t:Date.now()});driveQSave();return true;
 }
 
 // ── Google sign-in (loaded only when needed) ──
@@ -6934,7 +6936,7 @@ async function driveDir(key){
 }
 async function driveUpload(it){
   const dir=await driveDir(it.dir),b='sen'+uid().replace(/[^\w]/g,'');
-  const body='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify({name:it.name,parents:[dir],mimeType:it.mime})+
+  const body='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify({name:it.name,parents:[dir],mimeType:it.as||it.mime})+
     '\r\n--'+b+'\r\nContent-Type: '+it.mime+'; charset=UTF-8\r\n\r\n'+it.body+'\r\n--'+b+'--';
   return(await driveFetch(DRIVE_UP+'/files?uploadType=multipart&fields=id,name',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body})).json();
 }
@@ -6972,24 +6974,24 @@ function driveDisconnect(){
   drv.token=null;drv.exp=0;drv.queue=[];driveQSave();
   const keep=driveCfg().clientId;APP.drive=keep?{clientId:keep}:{};saveDB();driveSay('Disconnected.');
 }
-// files: [[dir, name, mime, body, kind?], …] — queued together, then one send (one sign-in at most)
+// files: [[dir, name, mime, body, kind?, as?], …] — queued together, then one send (one sign-in at most)
 function driveSave(files){
   if(!driveCfg().connected){alert('Connect Google Drive first: Settings → Google Drive.');return;}
   if(files.every(f=>driveEnqueue(...f)))driveTapSend();else driveRender();
 }
 function driveBackupNow(){
-  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.14.0'};
+  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.14.1'};
   driveSave([['backups','SEN backup '+driveStamp()+'.json','application/json',JSON.stringify(d,null,1),'backup']]);
 }
 function driveSaveProfile(t,id){
   const b=shareBundle(t,id),type=SHARE_TYPES[t],rec=b&&DB[type].find(x=>x.id===id);if(!b)return;
-  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.14.0'},null,1)]]);
+  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.14.1'},null,1)]]);
 }
 function driveSaveDope(){
   const c=getCard();if(!c)return;
-  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.14.0'},null,1)]];
+  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.14.1'},null,1)]];
   const h=dopePrintHTML(c);   // null when the card can't be computed — the JSON still goes
-  if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print).html','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title><style>body{font-family:sans-serif;margin:16px}table{border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #999;padding:3px 6px;font-size:13px;text-align:center}.sh{font-weight:700;margin:10px 0 4px}.pdm{color:#444;font-size:12px;margin-bottom:8px}</style>'+h]);
+  if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print)','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title>'+h.replace(/<table>/g,'<table border="1" cellpadding="4" style="border-collapse:collapse">'),'',DRIVE_DOC]);   // → Google Doc
   driveSave(f);
 }
 function driveSaveShots(){
@@ -6997,8 +6999,8 @@ function driveSaveShots(){
   const kept=c.shots.filter((v,i)=>!c.off.includes(i)),st=chStats(kept),nm=c.name||('Shots '+driveStamp());
   const csv='shot,velocity_ms,velocity_fps,kept\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes'].join(',')).join('\n')+
     '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n';
-  driveSave([['shots',nm+'.csv','text/csv',csv],
-    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,source:c.src,app:'SEN Ballistics V2.14.0',saved:new Date().toISOString()},null,1)]]);
+  driveSave([['shots',nm,'text/csv',csv,'',DRIVE_SHEET],   // → Google Sheet
+    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,source:c.src,app:'SEN Ballistics V2.14.1',saved:new Date().toISOString()},null,1)]]);
 }
 function driveWindRows(){
   const now=Date.now(),win=wavgWin();
@@ -7009,8 +7011,8 @@ function driveWindRows(){
 function driveSaveWind(){
   const rows=driveWindRows();if(!rows.length||rows.every(r=>!r.readings)){alert('No wind readings to save — connect a Calypso first.');return;}
   const t=new Date().toISOString(),keys=Object.keys(rows[0]);
-  driveSave([['wind','Wind '+driveStamp()+'.csv','text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n'],
-    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.14.0'},null,1)]]);
+  driveSave([['wind','Wind '+driveStamp(),'text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n','',DRIVE_SHEET],   // → Google Sheet
+    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.14.1'},null,1)]]);
 }
 // Restore: JSON files in Backups, Profiles and Dope cards, newest first → the normal import.
 async function driveRestoreList(){
