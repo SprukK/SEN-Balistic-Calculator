@@ -7,6 +7,59 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.13.0 — minor — Google Drive connector: backup, profiles, dope cards, shot strings, wind snapshots (CORE-26)
+
+**Problem (owner, 2026-11-05).** Getting data off the phone meant Export JSON and a manual upload. Shot strings and wind statistics had no export at all.
+- Owner rulings: Drive is the backup of record (it replaces the hand-uploaded zip of A-11 for app data); no backup reminder.
+- Google Cloud project "SEN Ballistics" on spruk.k@gmail.com, in Testing; client ID built in.
+
+**Fix.**
+- **Sign-in:** Google Identity Services, token model, loaded only when needed from `accounts.google.com/gsi/client`. The offline app is unchanged and the service worker doesn't touch it.
+  - Permissions: `drive.file` (only files this app creates; non-sensitive) plus `openid email` to show the account.
+  - The client ID is built in. Settings → Google Drive → "Google client ID" takes another Google client ID (validated pattern).
+  - The token is in memory only, never stored, and lasts about 1 h. Google needs a tap for a new one, so the next upload's tap signs in again (login hint, no account picker).
+  - Refused Drive permission, a closed or blocked Google window, an expired or revoked token and a full Drive each give a plain message.
+- **Files** go to `SEN Ballistics/` with Backups · Profiles · Dope cards · Shot strings · Wind.
+  - Folder ids are remembered. If lost they are found again; if moved to the bin they are created again, never duplicated.
+  - The folder can be moved anywhere in Drive.
+- **Queue first:** every upload is queued on the phone (IndexedDB key `driveq` in Main's store; Lab contract unchanged; cap 30 files / 8 MB). It is sent oldest first when online and connected.
+  - Offline → kept across restarts, sent when back online or on "Send now".
+  - A failure keeps that file and the rest.
+- **Settings → Google Drive:** Connect · Back up now · Restore from Drive · Send now (n) · Disconnect. Disconnect revokes at Google and drops the queue. Status shows the account, last backup and files waiting.
+- **Back up now** sends the Export JSON format ("SEN backup YYYY-MM-DD HH-MM.json").
+- **Save to Drive:**
+  - profile ⋯ menu: the share bundle, a rifle with its scope;
+  - dope card: JSON, plus a printable HTML copy of the card;
+  - Sensors → Chronograph: shot string as CSV (shot, m/s, fps, kept + n / mean / ES / SD of kept shots) and JSON;
+  - Sensors → Calypso: wind snapshot as CSV and JSON (per unit: window, readings, vector average, mean, lull / gust, steadiness, longest gap; plus the session wind).
+- **Restore from Drive** lists the JSON files in Backups, Profiles and Dope cards, newest first. A chosen file goes through the normal import (sanitise → review clashes → merge). Drive state in a file is ignored.
+- **Drive state never travels.** Export JSON and Drive backups leave out `APP.drive` (`appForExport`), and imports ignore it. Factory reset also clears the upload queue.
+- `printDope` now builds its page with `dopePrintHTML(c)` (same output), shared with the Drive copy.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.13.0.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.13.0`), this log.
+- `tests/drivetest.js` (new, 36): simulated Google sign-in and Drive v3, including 401 / 403 quota / 404 / network failure.
+- `tests/polishtest.js`: the profile ⋯ sheet gains "Save to Drive" (intended UI change).
+- `tests/README.md`.
+
+**Verify.**
+- `drivetest.js` 36/36. Covers:
+  - connect (built-in client ID, the three permissions, account shown);
+  - folders once each;
+  - backup = export format without Drive state;
+  - profile / dope (JSON + HTML) / shot string CSV values / wind CSV equal to `windAvg`;
+  - offline queue kept across a restart, then sent;
+  - expired token, Drive full, permission not ticked, Google window closed;
+  - folder ids lost → found again; folders in the bin → re-created;
+  - restore → normal import;
+  - client ID override validated;
+  - disconnect revokes;
+  - no `innerHTML` and no token in storage in the Drive code.
+- Full regression green (42 runs incl. `typetest` tap sizes); `runtests.js` 149/149. Lab `maindatatest.js` 13/13.
+- Chromium at 412 and 780 px: Settings with the panel connected and with a queue, no sideways scroll, no errors.
+- **Owner checks (real Google, on the Honor):** Connect in the installed app (Google's window opens and returns), Back up now, a file from each Save-to-Drive button, Restore one backup, Send now after an hour.
+
+---
+
 ## V2.12.0 — minor — Dope card filled from the rangefinder (CALC-22); spin drift measured from the zero
 
 **Problem (owner idea, 2026-11-05).** Building a dope card for a course meant typing every distance and angle. The rangefinder (CALC-09) could only fill the session, one shot at a time. Owner ruling on windage: the card uses no wind at all, so it shows only the minimal windage from spin drift; wind is solved live at the match.

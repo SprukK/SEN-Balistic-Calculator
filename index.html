@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.12.0</title>
+<title>SEN Ballistics V2.13.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -1035,6 +1035,7 @@ html.help-all .help-btn{display:none}
       <button class="btn primary" onclick="calcDope()">Compute all stages</button>
       <button class="btn" onclick="printDope()">Print / PDF</button>
       <button class="btn" onclick="exportDope()">Export card</button>
+      <button class="btn" onclick="driveSaveDope()">Save to Drive</button>
       <button class="btn danger" onclick="deleteDope()">Delete card</button>
     </div>
     <div class="note" id="dc-note"></div>
@@ -1095,7 +1096,7 @@ html.help-all .help-btn{display:none}
         <div class="fld"><button class="btn-xs" onclick="wavgReset()">Reset average</button></div>
       </div>
       <div class="note" id="ble-avg-stats"></div>
-      <div class="btnrow"><button class="btn" onclick="useBLEWind()">Use wind → session</button></div>
+      <div class="btnrow"><button class="btn" onclick="useBLEWind()">Use wind → session</button><button class="btn" onclick="driveSaveWind()">Save wind snapshot to Drive</button></div>
       <div class="note" id="ble-service-list"></div><div class="note" id="ble-poll-ctr"></div>
     </div>
     <div class="fld" style="margin-top:10px"><label>Calypso points at</label>
@@ -1154,7 +1155,7 @@ html.help-all .help-btn{display:none}
   <div class="panel">
     <h2>Chronograph · shot string + MV (Garmin Xero C1 Pro)</h2>
     <div class="fld"><label>Shot string</label><textarea id="ch-str" rows="3" style="width:100%;font-family:var(--mono);font-size:12px" placeholder="282.3 283.0 281.5 …"></textarea><div class="note" id="ch-hint">Velocities in <span data-ul="vel">m/s</span>, separated by spaces, commas or new lines — or paste a Garmin Xero CSV.</div></div>
-    <div class="btnrow"><button class="btn" onclick="chReadString()">Read shots</button><button class="btn" onclick="document.getElementById('ch-file').click()">Import Xero CSV</button><button class="btn-xs" onclick="chClear()">Clear</button><input type="file" id="ch-file" accept=".csv,text/csv,text/plain" style="display:none" onchange="chImportFile(this)"></div>
+    <div class="btnrow"><button class="btn" onclick="chReadString()">Read shots</button><button class="btn" onclick="document.getElementById('ch-file').click()">Import Xero CSV</button><button class="btn" onclick="driveSaveShots()">Save to Drive</button><button class="btn-xs" onclick="chClear()">Clear</button><input type="file" id="ch-file" accept=".csv,text/csv,text/plain" style="display:none" onchange="chImportFile(this)"></div>
     <div id="ch-msg"></div>
     <div id="ch-res"></div>
     <div class="fgrid3"><div class="fld"><label>MV m/s</label><input type="number" id="ch-mv" step="0.1"></div><div class="fld"><label>ES m/s</label><input type="number" id="ch-es" step="0.1"></div><div class="fld"><label>SD m/s</label><input type="number" id="ch-sd" step="0.1"></div></div>
@@ -1189,7 +1190,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.12.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.13.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1990,6 +1991,7 @@ function renderSettings(){
     <button class="btn" onclick="downloadScopePrompt()">Scope research prompt</button>
     <button class="btn danger" onclick="factoryReset()">Factory reset</button></div>
     <div class="note hlp">The scope research prompt is a file you hand to another chat with a scope SKU; it returns a SEN scope file you import under Profiles → Scopes → Import.</div></div>`;
+  html+=`<div class="panel" id="drive-panel"></div>`;   // V2.13.0 CORE-26, filled by driveRender
   html+=`<div class="panel"><h2>Data storage</h2>
     <div class="note" id="store-info">Engine: ${_idb?'IndexedDB':'localStorage (fallback — about 5 MB, shared with the Lab app)'} · app data ${(storeBytes/1024).toFixed(0)} KB<br>
     Protection: ${storePersisted===true?'persistent — the browser will not clear it to free space':storePersisted===false?'not granted — the browser may clear it if the device runs low on space; installing the app usually grants it':'unknown'}<br>
@@ -1997,6 +1999,7 @@ function renderSettings(){
   box.innerHTML=html;
   helpSync();   // V2.11.0 r5
   themeEditorInit();   // V2.11.0 r11
+  if(typeof driveRender==='function')driveRender();   // V2.13.0
   renderStoreQuota();
 }
 async function renderStoreQuota(){
@@ -2139,7 +2142,7 @@ function renderStoreWarn(){
 }
 async function requestPersist(){try{if(navigator.storage&&navigator.storage.persist)storePersisted=await navigator.storage.persist();}catch(e){}}
 async function clearAllData(){
-  if(_idb)await idbRun('readwrite',st=>st.delete(IDB_KEY));
+  if(_idb){await idbRun('readwrite',st=>st.delete(IDB_KEY));await idbRun('readwrite',st=>st.delete('driveq'));}   // V2.13.0: + Drive upload queue
   try{localStorage.removeItem(SK);}catch(e){}
 }
 async function factoryReset(){if(!confirm('Reset ALL data to defaults? Profiles will be lost.'))return;await clearAllData();location.reload();}
@@ -3793,6 +3796,12 @@ function printDope(){
   const c=getCard();if(!c){alert('Select a card.');return;}
   const tr=computeCardTraj(c);if(!tr){alert('Card needs rifle, projectile, and current weather.');return;}
   if(tr.bcPending){alert(tr.projName+' has no BC yet — enter one in its profile or measure it in the Truing tab before printing dope.');return;}
+  document.getElementById('print-content').innerHTML=dopePrintHTML(c,tr);
+  window.print();
+}
+// V2.13.0: the printed card as HTML (print and Drive); null when the card can't be computed
+function dopePrintHTML(c,tr=computeCardTraj(c)){
+  if(!tr||tr.bcPending)return null;
   const z=tr.z;
   let h=`<div class="pd"><h1>DOPE — ${esc(c.name||'Unnamed')}</h1><div class="pdm">Rifle: ${tr.r?esc(tr.r.name):'—'} · ${tr.sc?esc(tr.sc.name):""} · Proj: ${esc(tr.p.name)}<br>MV ${ut('vel',c.mv)} · Zero ${ut('zrange',z.range)}${z.wSpd>0?' · zeroed in '+ut('wind',z.wSpd)+' @ '+z.wDir+'°':''} · ${tr.click} mrad/click<br>Zero atmos: ${ut('temp',z.temp)} ${ut('pres',z.pres)} ${z.rh}% · Current: ${esc(tr.cw.name)}${c.notes?'<br>'+esc(c.notes):''}</div>`;
   c.stages.forEach((s,si)=>{
@@ -3806,8 +3815,7 @@ function printDope(){
     h+='</tbody></table>';
   });
   h+='</div>';
-  document.getElementById('print-content').innerHTML=h;
-  window.print();
+  return h;
 }
 /* ═════ V2.12.0 CALC-22 — fill a dope card from the rangefinder ═════
    On: a new stage "Ranged · <time>" (rf: no wind inputs; windage = spin drift only) in the open card, or in a new
@@ -3853,7 +3861,7 @@ function dopeRfRender(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.12.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.13.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4429,7 +4437,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.12.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.13.0'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4508,7 +4516,7 @@ function planImport(d){
     const kind=!mine?'new':sameRecord(mine,r.rec)?'same':'clash';
     plan.items.push({type,rec:r.rec,mine,kind,choice:kind==='clash'?'copy':null,diff:kind==='clash'?recordDiff(mine,r.rec):''});
   }));
-  const incoming={units:d.units,sunits:d.sunits,app2:d.app2};
+  const incoming={units:d.units,sunits:d.sunits,app2:d.app2&&typeof d.app2==='object'?(({drive,...a})=>a)(d.app2):d.app2};   // V2.13.0: Drive state is per phone
   const differs=[['units',UNITS],['sunits',SUNITS],['app2',APP]].some(([k,cur])=>incoming[k]&&typeof incoming[k]==='object'&&Object.keys(incoming[k]).some(x=>JSON.stringify(incoming[k][x])!==JSON.stringify(cur[x])));
   if(differs)plan.prefs={incoming,choice:'keep'};
   const rifleItems=plan.items.filter(it=>it.type==='rifles');
@@ -5710,6 +5718,8 @@ function profMenus(){
       const h=document.createElement('h3');h.textContent=nm;const list=document.createElement('div');list.className='flist';
       acts.forEach(([label,sel])=>{const b=document.createElement('button');b.type='button';b.textContent=label;if(label==='Delete')b.className='danger-row';
         b.onclick=()=>{closeSheet();pick(sel).click();};list.appendChild(b);});
+      const sh=pick('[data-sh]');   // V2.13.0 CORE-26: anything shareable can also go to Drive
+      if(sh){const b=document.createElement('button');b.type='button';b.textContent='Save to Drive';b.onclick=()=>{closeSheet();const[t,id]=sh.dataset.sh.split(':');driveSaveProfile(t,id);};list.insertBefore(b,list.lastChild);}
       box.append(h,list);
     };
     a.appendChild(m);
@@ -6829,6 +6839,236 @@ Bus.on(()=>{renderActBar();syncTrajInputs();refreshSelects();if(homeVisible())re
 Bus.on(()=>rfSrcRender());
 document.addEventListener('input',e=>{if(e.target&&['home-angle','sv-angle','home-dist','sv-tdist'].includes(e.target.id))rfSrcRender();});
 rfRender();
+/* ═════════ V2.13.0 CORE-26 — Google Drive connector ═════════
+   Client-side Google sign-in (Google Identity Services, token model) with the narrow drive.file permission:
+   the app sees only the files it creates. No server, no secret: the client ID is public by design. The access
+   token lives in memory only (≈ 1 h) and is never stored; Google needs a tap to get a new one.
+   Files go to "SEN Ballistics/{Backups, Profiles, Dope cards, Shot strings, Wind}" in the connected Drive. Every
+   upload is queued on the phone first (IndexedDB key 'driveq', Main's store) and sent when online and connected,
+   so nothing depends on Drive. Restore downloads a JSON file and runs the normal import (sanitise → review → merge).
+   Owner rulings 2026-11-05: Drive is the backup of record; no backup reminder; account spruk.k@gmail.com. */
+const DRIVE_CLIENT_ID='635178064179-33q8eiq1eboviigkdmg5r7ikgvb5mq6m.apps.googleusercontent.com';
+const DRIVE_SCOPE_FILE='https://www.googleapis.com/auth/drive.file';
+const DRIVE_SCOPES=DRIVE_SCOPE_FILE+' openid email';
+const DRIVE_GIS='https://accounts.google.com/gsi/client';
+const DRIVE_API='https://www.googleapis.com/drive/v3',DRIVE_UP='https://www.googleapis.com/upload/drive/v3';
+const DRIVE_ROOT='SEN Ballistics',DRIVE_FOLDER='application/vnd.google-apps.folder';
+const DRIVE_DIRS={backups:'Backups',profiles:'Profiles',dope:'Dope cards',shots:'Shot strings',wind:'Wind'};
+const DRIVE_Q_KEY='driveq',DRIVE_Q_MAX=30,DRIVE_Q_BYTES=8e6;
+let drv={token:null,exp:0,client:null,gis:null,sending:false,msg:'',err:false,queue:[]};
+const driveCfg=()=>{if(!APP.drive||typeof APP.drive!=='object')APP.drive={};return APP.drive;};
+const driveClientId=()=>{const c=driveCfg().clientId;return typeof c==='string'&&/^[\w-]+\.apps\.googleusercontent\.com$/.test(c)?c:DRIVE_CLIENT_ID;};
+const driveLive=()=>!!drv.token&&Date.now()<drv.exp-60000;
+const driveStamp=(t=Date.now())=>{const d=new Date(t),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+'-'+p(d.getMinutes());};
+const driveName=s=>String(s||'untitled').replace(/[\\/:*?"<>|\u0000-\u001f]/g,' ').replace(/\s+/g,' ').trim().slice(0,80)||'untitled';
+// the export payload without the Drive state (folder ids and the queue are per-phone, never travel in a backup)
+function appForExport(){const a={...APP};delete a.drive;return a;}
+function driveSay(msg,err){drv.msg=msg;drv.err=!!err;driveRender();}
+
+// ── queue (IndexedDB when available, else memory) ──
+async function driveQLoad(){try{if(_idb){const raw=await idbRun('readonly',st=>st.get(DRIVE_Q_KEY));const q=raw?JSON.parse(raw):[];drv.queue=Array.isArray(q)?q.filter(i=>i&&isStr(i.id)&&DRIVE_DIRS[i.dir]&&isStr(i.name)&&typeof i.body==='string'):[];}}catch(e){drv.queue=[];}}
+function driveQSave(){if(!_idb)return;idbRun('readwrite',st=>st.put(JSON.stringify(drv.queue),DRIVE_Q_KEY)).catch(e=>storeFail('Drive queue: '+e.message));}
+function driveEnqueue(dir,name,mime,body,kind){
+  const bytes=drv.queue.reduce((a,i)=>a+i.body.length,0)+body.length;
+  if(drv.queue.length>=DRIVE_Q_MAX||bytes>DRIVE_Q_BYTES){driveSay('Upload queue full ('+drv.queue.length+' files) — connect to send them first.',true);return false;}
+  drv.queue.push({id:uid(),dir,name:driveName(name),mime,body,kind:kind||'',t:Date.now()});driveQSave();return true;
+}
+
+// ── Google sign-in (loaded only when needed) ──
+function driveLoadGis(){
+  if(window.google&&google.accounts&&google.accounts.oauth2)return Promise.resolve();
+  if(drv.gis)return drv.gis;
+  drv.gis=new Promise((res,rej)=>{const s=document.createElement('script');s.src=DRIVE_GIS;s.async=true;
+    const to=setTimeout(()=>{drv.gis=null;rej(new Error('Google sign-in did not load (offline?)'));},15000);
+    s.onload=()=>{clearTimeout(to);res();};s.onerror=()=>{clearTimeout(to);drv.gis=null;rej(new Error('Google sign-in could not be loaded (offline?)'));};
+    document.head.appendChild(s);});
+  return drv.gis;
+}
+function driveTokenClient(){
+  if(drv.client&&drv.client._id===driveClientId())return drv.client;
+  drv.client=google.accounts.oauth2.initTokenClient({client_id:driveClientId(),scope:DRIVE_SCOPES,callback:()=>{},error_callback:()=>{}});
+  drv.client._id=driveClientId();return drv.client;
+}
+// Must be called from a tap (Google opens its window only for a user gesture). Resolves when a token is in.
+function driveSignIn(){
+  return new Promise((res,rej)=>{
+    if(!(window.google&&google.accounts&&google.accounts.oauth2)){rej(new Error('Google sign-in not loaded yet — tap again in a moment'));driveLoadGis().catch(()=>{});return;}
+    const c=driveTokenClient(),cfg=driveCfg();
+    c.callback=r=>{
+      if(!r||r.error||!r.access_token){rej(new Error(r&&r.error?'Google said: '+r.error:'no access from Google'));return;}
+      if(!google.accounts.oauth2.hasGrantedAllScopes(r,DRIVE_SCOPE_FILE)){rej(new Error('Drive access was not ticked — connect again and allow Google Drive'));return;}
+      drv.token=r.access_token;drv.exp=Date.now()+(+r.expires_in||3600)*1000;res();};
+    c.error_callback=e=>rej(new Error(e&&e.type==='popup_closed'?'Google window closed':e&&e.type==='popup_failed_to_open'?'Google window was blocked — allow pop-ups for this app':'Google sign-in failed'));
+    c.requestAccessToken(cfg.email?{prompt:'',login_hint:cfg.email}:{prompt:'select_account consent'});
+  });
+}
+
+// ── Drive REST ──
+class DriveErr extends Error{constructor(status,msg){super(msg);this.status=status;}}
+async function driveFetch(url,opt={}){
+  if(!driveLive())throw new DriveErr(401,'not connected');
+  let r;try{r=await fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+drv.token}});}
+  catch(e){throw new DriveErr(0,'no connection to Google');}
+  if(r.status===401){drv.token=null;throw new DriveErr(401,'Google session expired');}
+  if(!r.ok){let reason='';try{const j=await r.json();reason=(j.error&&(j.error.errors&&j.error.errors[0]&&j.error.errors[0].reason||j.error.message))||'';}catch(e){}
+    throw new DriveErr(r.status,reason==='storageQuotaExceeded'?'Google Drive is full':r.status===403?'Drive refused ('+(reason||'403')+')':r.status===404?'not found':'Drive error '+r.status+(reason?' ('+reason+')':''));}
+  return r;
+}
+const driveQ=s=>"'"+String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";
+async function driveFindFolder(name,parent){
+  const q='name='+driveQ(name)+" and mimeType='"+DRIVE_FOLDER+"' and trashed=false"+(parent?' and '+driveQ(parent)+' in parents':'');
+  const j=await(await driveFetch(DRIVE_API+'/files?fields=files(id,name)&pageSize=10&q='+encodeURIComponent(q))).json();
+  return j.files&&j.files[0]?j.files[0].id:null;
+}
+async function driveMkdir(name,parent){
+  const r=await driveFetch(DRIVE_API+'/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,mimeType:DRIVE_FOLDER,...(parent?{parents:[parent]}:{})})});
+  return(await r.json()).id;
+}
+async function driveFolderOk(id){if(!id)return false;try{const j=await(await driveFetch(DRIVE_API+'/files/'+encodeURIComponent(id)+'?fields=id,trashed')).json();return !j.trashed;}catch(e){if(e.status===404)return false;throw e;}}
+// The app's folder and the one sub-folder needed; ids remembered, re-found or re-created when gone.
+async function driveDir(key){
+  const cfg=driveCfg();cfg.dirs=cfg.dirs&&typeof cfg.dirs==='object'?cfg.dirs:{};
+  if(!(await driveFolderOk(cfg.rootId))){cfg.rootId=await driveFindFolder(DRIVE_ROOT,null)||await driveMkdir(DRIVE_ROOT,null);cfg.dirs={};saveDB();}
+  const id=cfg.dirs[key];
+  if(id&&await driveFolderOk(id))return id;
+  cfg.dirs[key]=await driveFindFolder(DRIVE_DIRS[key],cfg.rootId)||await driveMkdir(DRIVE_DIRS[key],cfg.rootId);saveDB();
+  return cfg.dirs[key];
+}
+async function driveUpload(it){
+  const dir=await driveDir(it.dir),b='sen'+uid().replace(/[^\w]/g,'');
+  const body='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify({name:it.name,parents:[dir],mimeType:it.mime})+
+    '\r\n--'+b+'\r\nContent-Type: '+it.mime+'; charset=UTF-8\r\n\r\n'+it.body+'\r\n--'+b+'--';
+  return(await driveFetch(DRIVE_UP+'/files?uploadType=multipart&fields=id,name',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body})).json();
+}
+// Send what's queued, oldest first. Stops at the first failure and keeps the rest (and that one).
+async function driveFlush(){
+  if(drv.sending||!drv.queue.length)return;
+  if(!navigator.onLine){driveSay(drv.queue.length+' waiting — sent when you are back online.');return;}
+  if(!driveLive()){driveSay(drv.queue.length+' waiting — tap "Send now" to reconnect to Google.');return;}
+  drv.sending=true;driveRender();let sent=0;
+  try{
+    while(drv.queue.length){const it=drv.queue[0];await driveUpload(it);drv.queue.shift();driveQSave();sent++;
+      if(it.kind==='backup'){driveCfg().lastBackup=Date.now();saveDB();}}
+    driveSay(sent?'Sent '+sent+' file'+(sent>1?'s':'')+' to Google Drive.':'');
+  }catch(e){driveSay((sent?'Sent '+sent+'; ':'')+e.message+(e.status===401?' — tap "Send now" to reconnect.':'')+' '+drv.queue.length+' waiting.',true);}
+  finally{drv.sending=false;driveRender();}
+}
+// A tap: make sure a token is in (sign in inside the gesture), then send.
+async function driveTapSend(){
+  try{if(!driveLive()){await driveSignIn();await driveWho();}await driveFlush();}
+  catch(e){driveSay(e.message+(drv.queue.length?' · '+drv.queue.length+' waiting':''),true);}
+}
+async function driveWho(){try{const j=await(await driveFetch('https://www.googleapis.com/oauth2/v3/userinfo')).json();if(j&&isStr(j.email)){driveCfg().email=j.email.slice(0,120);saveDB();}}catch(e){}}
+
+// ── user actions ──
+async function driveConnect(){
+  try{await driveLoadGis();}catch(e){driveSay(e.message,true);return;}
+  try{await driveSignIn();await driveWho();driveCfg().connected=true;saveDB();
+    await driveDir('backups');driveSay('Connected'+(driveCfg().email?' as '+driveCfg().email:'')+'. Files go to "'+DRIVE_ROOT+'" in your Drive.');await driveFlush();}
+  catch(e){driveSay(e.message,true);}
+}
+function driveDisconnect(){
+  const n=drv.queue.length;
+  if(!confirm('Disconnect Google Drive?'+(n?' '+n+' file'+(n>1?'s':'')+' not sent yet will be dropped.':'')+' Files already in Drive stay there.'))return;
+  if(drv.token&&window.google&&google.accounts&&google.accounts.oauth2)try{google.accounts.oauth2.revoke(drv.token,()=>{});}catch(e){}
+  drv.token=null;drv.exp=0;drv.queue=[];driveQSave();
+  const keep=driveCfg().clientId;APP.drive=keep?{clientId:keep}:{};saveDB();driveSay('Disconnected.');
+}
+// files: [[dir, name, mime, body, kind?], …] — queued together, then one send (one sign-in at most)
+function driveSave(files){
+  if(!driveCfg().connected){alert('Connect Google Drive first: Settings → Google Drive.');return;}
+  if(files.every(f=>driveEnqueue(...f)))driveTapSend();else driveRender();
+}
+function driveBackupNow(){
+  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.13.0'};
+  driveSave([['backups','SEN backup '+driveStamp()+'.json','application/json',JSON.stringify(d,null,1),'backup']]);
+}
+function driveSaveProfile(t,id){
+  const b=shareBundle(t,id),type=SHARE_TYPES[t],rec=b&&DB[type].find(x=>x.id===id);if(!b)return;
+  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.13.0'},null,1)]]);
+}
+function driveSaveDope(){
+  const c=getCard();if(!c)return;
+  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.13.0'},null,1)]];
+  const h=dopePrintHTML(c);   // null when the card can't be computed — the JSON still goes
+  if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print).html','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title><style>body{font-family:sans-serif;margin:16px}table{border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #999;padding:3px 6px;font-size:13px;text-align:center}.sh{font-weight:700;margin:10px 0 4px}.pdm{color:#444;font-size:12px;margin-bottom:8px}</style>'+h]);
+  driveSave(f);
+}
+function driveSaveShots(){
+  const c=chClean(APP.chronoStr);if(!c){alert('No shot string to save.');return;}
+  const kept=c.shots.filter((v,i)=>!c.off.includes(i)),st=chStats(kept),nm=c.name||('Shots '+driveStamp());
+  const csv='shot,velocity_ms,velocity_fps,kept\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes'].join(',')).join('\n')+
+    '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n';
+  driveSave([['shots',nm+'.csv','text/csv',csv],
+    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,source:c.src,app:'SEN Ballistics V2.13.0',saved:new Date().toISOString()},null,1)]]);
+}
+function driveWindRows(){
+  const now=Date.now(),win=wavgWin();
+  return CALS.map(d=>{const a=windAvg(win,now,d.buf||[]);return{unit:d.link.name||'Calypso',session:d===calPrimary(),window_s:win,readings:a?a.n:0,
+    avg_ms:a?+a.spd.toFixed(2):null,avg_dir_deg:a?a.dir:null,mean_ms:a?+a.mean.toFixed(2):null,lull_ms:a?+a.min.toFixed(2):null,gust_ms:a?+a.max.toFixed(2):null,
+    steadiness:a&&a.steady!=null?+a.steady.toFixed(3):null,max_gap_s:a?+a.gap.toFixed(1):null};});
+}
+function driveSaveWind(){
+  const rows=driveWindRows();if(!rows.length||rows.every(r=>!r.readings)){alert('No wind readings to save — connect a Calypso first.');return;}
+  const t=new Date().toISOString(),keys=Object.keys(rows[0]);
+  driveSave([['wind','Wind '+driveStamp()+'.csv','text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n'],
+    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.13.0'},null,1)]]);
+}
+// Restore: JSON files in Backups, Profiles and Dope cards, newest first → the normal import.
+async function driveRestoreList(){
+  try{if(!driveLive()){await driveSignIn();}}catch(e){driveSay(e.message,true);return;}
+  openSheet('');const box=document.getElementById('sbox'),h=document.createElement('h3');h.textContent='Restore from Google Drive';
+  const note=document.createElement('div');note.className='note';note.textContent='Loading…';const list=document.createElement('div');list.className='flist';box.append(h,note,list);
+  try{
+    const files=[];
+    for(const k of ['backups','profiles','dope']){const dir=await driveDir(k);
+      const j=await(await driveFetch(DRIVE_API+'/files?orderBy=createdTime%20desc&pageSize=50&fields=files(id,name,createdTime)&q='+encodeURIComponent(driveQ(dir)+" in parents and trashed=false and mimeType='application/json'"))).json();
+      (j.files||[]).forEach(f=>files.push({...f,dir:DRIVE_DIRS[k]}));}
+    files.sort((a,b)=>String(b.createdTime).localeCompare(String(a.createdTime)));
+    note.textContent=files.length?'Pick a file — it goes through the normal import (you review anything that clashes).':'No SEN files in Drive yet.';
+    files.forEach(f=>{const b=document.createElement('button');b.type='button';b.textContent=f.dir+' · '+f.name;b.onclick=()=>driveRestore(f.id);list.appendChild(b);});
+  }catch(e){note.textContent=e.message;}
+}
+async function driveRestore(id){
+  closeSheet();
+  try{const r=await driveFetch(DRIVE_API+'/files/'+encodeURIComponent(id)+'?alt=media');const d=JSON.parse(await r.text());
+    if(!d||typeof d!=='object'||Array.isArray(d))throw new Error('not a SEN file');
+    if(d.app2&&typeof d.app2==='object')delete d.app2.drive;importData(d);}
+  catch(e){driveSay('Restore failed: '+e.message,true);}
+}
+
+// ── Settings panel ──
+function driveRender(){
+  const box=document.getElementById('drive-panel');if(!box)return;
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const btn=(t,fn,cls)=>{const b=el('button',cls||'btn',t);b.type='button';b.onclick=fn;return b;};
+  const cfg=driveCfg(),n=drv.queue.length,parts=[];
+  const h=el('h2',null,'Google Drive');
+  if(!cfg.connected){
+    const row=el('div','btnrow');row.append(btn('Connect Google Drive',driveConnect,'btn primary'));
+    parts.push(el('div','note','Back up and save profiles, dope cards, shot strings and wind snapshots to your Google Drive. The app only sees the files it creates there.'),row);
+  }else{
+    const st=el('div','note');st.id='drive-status';
+    st.textContent=(cfg.email?'Connected as '+cfg.email:'Connected')+(driveLive()?'':' · Google asks again on the next upload')+' · last backup '+(cfg.lastBackup?driveStamp(cfg.lastBackup).replace(/ (\d\d)-/,' $1:'):'never')+(n?' · '+n+' waiting':'');
+    const row=el('div','btnrow');
+    row.append(btn(drv.sending?'Sending…':'Back up now',driveBackupNow,'btn primary'),btn('Restore from Drive',driveRestoreList));
+    if(n)row.append(btn('Send now ('+n+')',driveTapSend));
+    row.append(btn('Disconnect',driveDisconnect,'btn danger'));
+    parts.push(st,row);
+  }
+  if(drv.msg){const m=el('div','flag '+(drv.err?'warn':'info'),drv.msg);m.id='drive-msg';parts.push(m);}
+  const adv=el('details','disc');adv.append(el('summary',null,'Google client ID'));
+  const ci=el('input');ci.type='text';ci.id='drive-client';ci.value=driveClientId();ci.setAttribute('aria-label','Google OAuth client ID');
+  ci.onchange=()=>{const v=ci.value.trim();if(v&&!/^[\w-]+\.apps\.googleusercontent\.com$/.test(v)){alert('That is not a Google client ID (…apps.googleusercontent.com).');ci.value=driveClientId();return;}
+    if(v&&v!==DRIVE_CLIENT_ID)driveCfg().clientId=v;else delete driveCfg().clientId;drv.client=null;saveDB();};
+  adv.append(ci);parts.push(adv);
+  box.replaceChildren(h,...parts);
+}
+async function driveInit(){
+  await driveQLoad();driveRender();
+  window.addEventListener('online',()=>{if(drv.queue.length&&driveLive())driveFlush();});
+  if(driveCfg().connected&&navigator.onLine)driveLoadGis().catch(()=>{});   // ready for the next tap (Google needs the gesture)
+}
 async function boot(){
 await loadDB();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();migrateMillerC();migratePressureType();
 DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (V1.13.2): legacy free-text cleanup
@@ -6857,6 +7097,7 @@ S.tgtBrg=APP.hmTgtBrg??null;syncBearingFields();renderCalMount();
 refreshUnits();startUnitObserver();
 initLayouts();applyHomeLayout();
 fieldInit();  // V2.11.0 r1
+driveInit();  // V2.13.0 CORE-26
 applyLayout();window.addEventListener('resize',()=>dbnc('layout',applyLayout,120));
 renderStoreWarn();renderIosHint();requestPersist();fxCheck();
 importFromLink();

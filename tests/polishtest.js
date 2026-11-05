@@ -70,7 +70,7 @@ w.eval(`gotoPage('profiles')`);await wait(30);w.eval('profMenus()');
 const row=w.document.querySelector('#pl-rifles .pitem'),vis=[...row.querySelectorAll('.pacts button')].filter(b=>!b.classList.contains('dup-hide')).map(b=>b.textContent);
 chk('profile row: ☆ and ⋯ visible, Edit / Clone / Share / ✕ moved behind ⋯',vis.join()==='☆,⋯'&&['[data-e]','[data-c]','[data-sh]','[data-d]'].every(s=>row.querySelector(s).classList.contains('dup-hide')),vis.join());
 row.querySelector('.pmenu').click();await wait(20);
-chk('⋯ → sheet titled with the profile: Edit, Clone, Share, Delete',/RTI Mora \.25/.test(w.document.querySelector('#sbox h3').textContent)&&[...w.document.querySelectorAll('#sbox .flist button')].map(b=>b.textContent).join()==='Edit,Clone,Share,Delete');
+chk('⋯ → sheet titled with the profile: Edit, Clone, Share, Save to Drive (V2.13.0), Delete',/RTI Mora \.25/.test(w.document.querySelector('#sbox h3').textContent)&&[...w.document.querySelectorAll('#sbox .flist button')].map(b=>b.textContent).join()==='Edit,Clone,Share,Save to Drive,Delete');
 const n0=w.eval('DB.rifles.length');[...w.document.querySelectorAll('#sbox .flist button')].find(b=>b.textContent==='Clone').click();await wait(30);
 chk('…Clone runs the original action (one more rifle) and closes the sheet',w.eval('DB.rifles.length')===n0+1&&!$('sheet').classList.contains('open'));
 w.eval('profMenus()');
