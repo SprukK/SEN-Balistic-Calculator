@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.10.0</title>
+<title>SEN Ballistics V2.11.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -25,15 +25,17 @@
 /* FIX-14b — high-contrast mode: brighter secondary text, stronger borders (bright-sun field use).
    V1.24.1: also lifts main text to full white — replaces the removed brightness slider, whose
    body filter made every position:fixed element (bottom nav, rail, sheets) scroll with the page. */
-html.hc{--text:#ffffff;--text2:#e9e6dc;--text3:#bcb9af;--border:rgba(210,192,152,.26);--border2:rgba(210,192,152,.42);--src-auto:rgba(114,180,194,.28);--src-man:rgba(202,168,105,.32);--tick:rgba(202,168,105,.8)}
+html.hc{--text:#ffffff;--text2:#e9e6dc;--text3:#bcb9af;--border:rgba(210,192,152,.26);--border2:rgba(210,192,152,.42);--src-auto:color-mix(in srgb,var(--accent) 28%,transparent);--src-man:color-mix(in srgb,var(--gold) 32%,transparent);--tick:color-mix(in srgb,var(--gold) 80%,transparent)}
 /* FIX-14c — font-size option (zoom scales the whole px-sized layout uniformly; Chrome/Android primary) */
 html.fs-l body{zoom:1.15}
 html.fs-xl body{zoom:1.3}
 .subnav{display:flex;gap:4px;overflow-x:auto;margin-bottom:12px;-webkit-overflow-scrolling:touch}
 .subnav button{flex:0 0 auto;padding:8px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s}
-.subnav button.on{background:var(--accent);border-color:var(--accent);color:#0a0b0e}
+.subnav button.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#0a0b0e)}
+.advtabs{position:sticky;top:0;z-index:20;background:var(--bg);margin:0 -2px 12px;padding:8px 2px;display:grid;grid-template-columns:1fr 1fr;gap:6px}  /* V2.11.0 r6 */
+.advtabs button{width:100%}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-text-size-adjust:100%;background-image:radial-gradient(ellipse 900px 500px at 50% -10%,rgba(114,180,194,.05),transparent 60%)}
+html{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-text-size-adjust:100%;background-image:radial-gradient(ellipse 900px 500px at 50% -10%,color-mix(in srgb,var(--accent) 5%,transparent),transparent 60%)}
 body{max-width:1100px;margin:0 auto;padding:0 14px calc(88px + env(safe-area-inset-bottom))}
 button{font-family:inherit;cursor:pointer}
 input,select{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:8px 9px;width:100%;min-height:38px;transition:border-color .15s,box-shadow .15s}
@@ -46,6 +48,10 @@ input.man{border-color:var(--gold);border-style:dashed;background:var(--src-man)
 .apphdr .brand{font-family:var(--disp);font-weight:800;font-size:21px;letter-spacing:.01em}
 .apphdr .brand span{color:var(--accent)}
 .apphdr .ver{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:right;line-height:1.6}
+/* V2.11.0 r1 — slim header: brand + page name; version lives in Settings */
+.apphdr{padding:8px 0 7px}
+.apphdr .brand{font-size:18px}
+.apphdr .hpage{font-family:var(--disp);font-weight:600;font-size:15px;color:var(--text2)}
 
 /* ── active selections bar (face of Session State) ── */
 .actbar{display:flex;gap:6px;overflow-x:auto;padding:10px 0;border-bottom:1px solid var(--border);scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -59,7 +65,7 @@ input.man{border-color:var(--gold);border-style:dashed;background:var(--src-man)
 .nav{display:flex;gap:5px;overflow-x:auto;padding:10px 0;scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
 .nav button{flex-shrink:0;font-family:var(--mono);font-size:11px;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);min-height:38px;transition:border-color .15s,background .15s,color .15s}
-.nav button.on{background:var(--accent);color:#0a0b0e;border-color:var(--accent);font-weight:600}
+.nav button.on{background:var(--accent);color:var(--on-accent,#0a0b0e);border-color:var(--accent);font-weight:600}
 
 .page{display:none;padding-top:14px}
 .page.active{display:block}
@@ -97,13 +103,13 @@ input.man{border-color:var(--gold);border-style:dashed;background:var(--src-man)
 @media(max-width:480px){.fgrid3{grid-template-columns:1fr 1fr}}
 .fld{display:flex;flex-direction:column;gap:4px}
 .fld label{font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;min-height:14px}
-.srcbtn{font-family:var(--mono);font-size:9px;padding:2px 6px;background:var(--src-auto);border:1px solid rgba(114,180,194,.32);border-radius:4px;color:var(--accent);text-transform:none}
-.srcbtn.man{background:var(--src-man);border-color:rgba(202,168,105,.42);color:var(--gold)}
+.srcbtn{font-family:var(--mono);font-size:9px;padding:2px 6px;background:var(--src-auto);border:1px solid color-mix(in srgb,var(--accent) 32%,transparent);border-radius:4px;color:var(--accent);text-transform:none}
+.srcbtn.man{background:var(--src-man);border-color:color-mix(in srgb,var(--gold) 42%,transparent);color:var(--gold)}
 .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .btn{font-family:var(--mono);font-size:11px;padding:10px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);min-height:42px;transition:border-color .15s,box-shadow .15s}
 .btn:active{box-shadow:0 0 0 3px var(--glow)}
-.btn.primary{background:var(--accent);color:#0a0b0e;border-color:var(--accent);font-weight:600;flex:1}
-.btn.danger{color:var(--warn);border-color:rgba(224,122,95,.35)}
+.btn.primary{background:var(--accent);color:var(--on-accent,#0a0b0e);border-color:var(--accent);font-weight:600;flex:1}
+.btn.danger{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 35%,transparent)}
 .btn-xs{font-family:var(--mono);font-size:10px;padding:5px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text2)}
 .cal-unit{display:grid;grid-template-columns:14px 1fr auto;grid-template-areas:"dot pick batt" ". info x";align-items:center;gap:4px 8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
 .cal-unit .ble-dot{grid-area:dot}.cal-unit .cal-pick{grid-area:pick;display:flex;align-items:center;gap:6px;min-width:0}
@@ -114,8 +120,8 @@ input.man{border-color:var(--gold);border-style:dashed;background:var(--src-man)
 .projdia svg{width:100%;max-width:440px;height:auto;display:block;margin:2px auto 10px}
 .stn .stn-live{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:6px}
 .flag{font-family:var(--mono);font-size:10px;padding:9px 12px;border-radius:6px;margin-top:8px;line-height:1.6}
-.flag.warn{background:rgba(224,122,95,.08);border:1px solid rgba(224,122,95,.28);color:var(--warn)}
-.flag.ok{background:rgba(122,184,122,.06);border:1px solid rgba(122,184,122,.22);color:var(--green)}
+.flag.warn{background:color-mix(in srgb,var(--warn) 8%,transparent);border:1px solid color-mix(in srgb,var(--warn) 28%,transparent);color:var(--warn)}
+.flag.ok{background:color-mix(in srgb,var(--green) 6%,transparent);border:1px solid color-mix(in srgb,var(--green) 22%,transparent);color:var(--green)}
 .chshots{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .chshot{font-family:var(--mono);font-size:10px;padding:4px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-variant-numeric:tabular-nums}
 .chshot.off{text-decoration:line-through;opacity:.45}
@@ -131,7 +137,7 @@ th{color:var(--text3);text-align:right;padding:5px 7px;border-bottom:1px solid v
 th:first-child{text-align:left}
 td{color:var(--text2);text-align:right;padding:5px 7px;border-bottom:1px solid rgba(210,192,152,.04);white-space:nowrap}
 td:first-child{color:var(--text);text-align:left;font-weight:500}
-tr.hl td{background:rgba(114,180,194,.09);color:var(--accent)}
+tr.hl td{background:color-mix(in srgb,var(--accent) 9%,transparent);color:var(--accent)}
 tr.zr td{color:var(--gold)}
 .chartbox{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:12px}
 .chartbox canvas{width:100%;height:240px;display:block}
@@ -149,14 +155,14 @@ tr.zr td{color:var(--gold)}
 .mbox h3{font-family:var(--disp);font-weight:700;font-size:16px;margin-bottom:14px}
 .seg{display:flex;gap:4px;flex-wrap:wrap}
 .seg button{flex:1;font-family:var(--mono);font-size:11px;padding:8px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text2);min-height:36px;white-space:nowrap;transition:border-color .15s,background .15s}
-.seg button.on{background:var(--accent);color:#0a0b0e;border-color:var(--accent);font-weight:600}
+.seg button.on{background:var(--accent);color:var(--on-accent,#0a0b0e);border-color:var(--accent);font-weight:600}
 .note{font-size:10px;color:var(--text3);font-family:var(--mono);line-height:1.7;margin-top:8px}
 .ble-dot{width:9px;height:9px;border-radius:50%;background:var(--text3);display:inline-block;margin-right:6px}
 .ble-dot.connected{background:var(--green)}.ble-dot.scanning{background:var(--gold);animation:pulse 1s infinite}
 /* ── home dashboard ── */
 .dash{display:flex;gap:12px;background:linear-gradient(160deg,var(--bg2),var(--bg3));border:1px solid var(--border2);border-radius:12px;padding:16px;margin-bottom:10px}
 @media(max-width:520px){.dash{flex-direction:column;align-items:stretch}.dash-reticle{align-self:center}}
-.dash-reticle{flex-shrink:0;text-align:center;position:relative;border-radius:50%;background:radial-gradient(circle at 50% 45%,rgba(114,180,194,.10),transparent 68%)}
+.dash-reticle{flex-shrink:0;text-align:center;position:relative;border-radius:50%;background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--accent) 10%,transparent),transparent 68%)}
 .dash-reticle svg{width:var(--ret-px,420px);height:var(--ret-px,420px);display:block;max-width:100%}
 .ret-size{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px}
 .ret-size span{font-family:var(--mono);font-size:11px;color:var(--accent);min-width:40px;font-weight:500}
@@ -168,13 +174,126 @@ tr.zr td{color:var(--gold)}
 .dsol-v{font-family:var(--disp);font-size:35px;font-weight:800;line-height:1.05;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .dsol-cell.accent .dsol-v{color:var(--accent)}.dsol-cell.gold .dsol-v{color:var(--gold)}
 .dsol-u{font-family:var(--mono);font-size:10px;color:var(--text2)}
+/* V2.11.0 r1 — Field modules */
+.dash.ans-on .dash-sol{display:none}
+#actbar{display:none}   /* V2.11.0 r7: the session bar below replaces the chips everywhere */
+body:has(#page-home.active):has(#home-summary:not(.mod-off)) #sesbar{display:none}
+.sesbar{padding:8px 0 4px}
+.ses-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.ses-txt span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ses-txt .ses-2{font-size:13px;color:var(--text3)}
+.dup-hide{display:none!important}
+/* V2.11.0 r11 — colour editor */
+.threws{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.thrw{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:2px 8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg3)}
+.thrw .thn{font-size:13px;color:var(--text2)}
+.thrw input[type=color]{grid-row:1/3;grid-column:2;width:48px;height:48px;min-height:48px;padding:0;border:1px solid var(--border2);border-radius:10px;background:none}
+.thrw .thx{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.thrw.th-bad{border-color:var(--warn)}
+#th-checks{margin-top:8px}
+.th-reset{color:#f5f3ee!important;background:#20252f!important;border:1px solid #caa869!important}   /* always readable, whatever colours were picked */
+/* V2.11.0 r10 — one surface level: panels are sections (a rule above, no box); results, Field cards, tables and callouts stay cards */
+.panel{background:transparent;border:none;border-top:1px solid var(--border2);border-radius:0;padding:16px 2px 12px;margin-bottom:0}
+.panel h2{background-image:none;padding-bottom:0}
+.panel .ph{margin-bottom:10px}
+.page>.outcard+.panel,.page>.sstrip+.panel,.page>.advtabs+.panel{border-top:none}
+.sbox .panel,#lay-edit.panel{border-top:none}
+/* truing tools */
+.trtabs{grid-template-columns:repeat(4,1fr)}
+.trtabs button{white-space:nowrap;padding:8px 4px}
+html[data-tt="vel"] [data-tt]:not([data-tt="vel"]),html[data-tt="imp"] [data-tt]:not([data-tt="imp"]),
+html[data-tt="bc"] [data-tt]:not([data-tt="bc"]),html[data-tt="mvt"] [data-tt]:not([data-tt="mvt"]){display:none!important}
+.pane-empty{margin:24px 8px;padding:18px;border:1px dashed var(--border2);border-radius:12px;color:var(--text3);font-size:14px;line-height:1.5;text-align:center}
+/* wide tables */
+.tablebox.xs:not(.xs-end),.xs-box.xs:not(.xs-end){-webkit-mask-image:linear-gradient(to right,#000 82%,transparent);mask-image:linear-gradient(to right,#000 82%,transparent)}
+.xs-hint{position:sticky;left:0;width:max-content;font-size:12px;color:var(--accent);margin:0 0 6px}
+/* profile rows */
+.pitem-open{cursor:pointer;flex:1 1 140px;min-width:0}
+.pmenu{font-size:20px;line-height:1}
+.flist .danger-row{color:var(--red)}
+/* V2.11.0 r8 — layout editor grip, screen switch; bottom-bar picker */
+.lay-mod{display:flex;align-items:center;gap:6px}
+.lay-mod .lay-modname{flex:1;min-width:0;font-family:var(--sans);font-size:14px;line-height:1.3}
+.lay-grip{min-width:44px;min-height:48px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text3);font-size:20px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.lay-mods{position:relative}
+.lay-mod{will-change:transform}
+.lay-mod.lay-drag{position:relative;z-index:5;background:var(--bg4);border-radius:8px;border-color:var(--accent);box-shadow:0 10px 28px rgba(0,0,0,.55),0 0 0 1px var(--accent)}   /* r9: lifted while dragged */
+.lay-mod.lay-settle{box-shadow:0 0 0 1px var(--accent)}
+.lay-mod.lay-drag .lay-grip{color:var(--accent);border-color:var(--accent);cursor:grabbing}
+.lay-ro .lay-mod{opacity:.55}
+.lay-scrnote{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 10px}.lay-scrnote .note{margin:0}
+#lay-screen{margin-top:12px}
+.navpick{display:grid;grid-template-columns:auto 1fr 1fr 1fr auto;gap:6px;align-items:center}
+.navpick select{padding:8px 4px;font-family:var(--sans)!important}
+.navfix{font-size:13px;color:var(--text3);padding:0 4px}
+@media(max-width:480px){.navpick{grid-template-columns:1fr 1fr 1fr}.navfix{display:none}}
+.sstrip{display:grid;gap:8px;margin-bottom:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:10px}
+.sstrip .fdist-v{min-height:64px;margin:0;position:relative}
+.sstrip .sd-val{font-family:var(--disp);font-size:36px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.sstrip-l{position:absolute;left:12px;top:8px;font-family:var(--sans);font-size:12px;color:var(--text3)}
+.sstrip.grab .fdist-v{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.sstrip-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px}
+.sstrip-row:has(.sd-cant){grid-template-columns:1fr 1.6fr 1fr}
+.fdist-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fsum{margin:10px 0}
+.fsum-btn{width:100%;display:flex;align-items:center;gap:8px;min-height:48px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text2);font-family:var(--sans);font-size:14px;text-align:left}
+.fsum-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fsum-chev{color:var(--text3)}
+.fans{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:linear-gradient(160deg,var(--bg2),var(--bg3));border:1px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:10px}
+.fans-cell{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px 14px}
+.fans-l{font-family:var(--sans);font-size:13px;color:var(--text3)}
+.fans-v{font-family:var(--disp);font-size:46px;font-weight:800;line-height:1.05;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.fans-cell.accent .fans-v{color:var(--accent)}.fans-cell.gold .fans-v{color:var(--gold)}
+.fans-u{font-family:var(--mono);font-size:13px;color:var(--text2)}
+.fans-status{grid-column:1/-1;font-size:12px;color:var(--text3);line-height:1.5}
+.fans-status:empty{display:none}
+.fdist{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.fdist-l{font-family:var(--sans);font-size:13px;color:var(--text3);display:flex;justify-content:space-between}
+.fdist-src{font-size:12px;color:var(--accent)}.fdist-src.man{color:var(--gold)}
+.fdist-v{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;min-height:72px;padding:0;margin:4px 0;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;transition:border-color .12s,background .12s}
+.fdist-v #fd-val{font-family:var(--disp);font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.fdist-num{display:inline-flex;align-items:baseline;gap:6px}  /* r2: number + unit on one baseline, centred as a block */
+.fdist-u{font-family:var(--sans);font-size:18px;color:var(--text2)}
+.fdist-hint{font-size:16px;color:var(--text3);margin-left:6px}
+.fdist.grab .fdist-v{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.fdist-tip{font-size:12px;color:var(--text3);text-align:center;margin-bottom:6px}
+.fdist-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fdist-sub{min-height:48px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:14px}
+.fdev{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.fpill{position:relative;overflow:hidden;min-height:56px;padding:8px 6px;border-radius:12px;background:transparent;border:1.5px solid var(--border2);color:var(--text3);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.fpill-n{font-family:var(--sans);font-size:14px;font-weight:600}
+.fpill-v{font-family:var(--mono);font-size:12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fpill.live{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:var(--accent);color:var(--text)}
+.fpill.live .fpill-n::before{content:'● ';color:var(--green)}
+.fpill.live .fpill-v{color:var(--accent)}
+.fpill.man{border-style:dashed;border-color:var(--gold);color:var(--text2)}
+.fpill.man .fpill-v{color:var(--gold);font-weight:600}
+.fpill::after{content:'';position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent)}
+.fpill.pressing::after{width:100%;transition:width .35s linear}
+.devlist{margin-bottom:8px}
+.devrow{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px}
+.devrow-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.devrow-i{font-size:12px;color:var(--text2)}
+.devrow-tag{font-size:11px;color:var(--accent)}
+.devrow .btn{min-height:48px;min-width:96px}
+.devstr{font-size:13px;color:var(--text2);margin:6px 0 10px}
+.sen-toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:80;background:var(--bg4);color:var(--text);border:1px solid var(--border2);border-radius:20px;padding:10px 18px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
+.sen-toast.on{opacity:1}
+.fseg{display:flex;gap:6px;margin:12px 0}
+.fseg button{flex:1;min-height:48px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:14px}
+.fseg button.on{border-color:var(--accent);color:var(--accent)}
+.flist{display:flex;flex-direction:column;gap:6px}
+.flist button{display:flex;justify-content:space-between;gap:10px;min-height:52px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;text-align:left}
+.flist .fk{color:var(--text3);flex-shrink:0}.flist .fv{color:var(--accent);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cond{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
 @media(max-width:520px){.cond{grid-template-columns:repeat(2,1fr)}}
 .cond-cell{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 10px}
 .cond-cell .cl{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
 .cond-cell .cv{font-family:var(--mono);font-size:14px;color:var(--accent);font-weight:500;margin-top:2px;font-variant-numeric:tabular-nums}
 .livebar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-family:var(--mono);font-size:11px;color:var(--text2)}
-.livebar.on{border-color:rgba(122,184,122,.5);background:rgba(122,184,122,.08)}
+.livebar.on{border-color:color-mix(in srgb,var(--green) 50%,transparent);background:color-mix(in srgb,var(--green) 8%,transparent)}
 .livebar.on #home-live-state{color:var(--green)}
 #home-manwind.lock{opacity:.55}
 #home-manwind.lock input{pointer-events:none}
@@ -200,7 +319,7 @@ tr.zr td{color:var(--gold)}
    Both containers keep class="nav" so every existing gotoPage/active-state hook is untouched. */
 .navbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;gap:4px;overflow:visible;
   padding:6px 8px calc(6px + env(safe-area-inset-bottom));margin:0;
-  background:rgba(10,11,14,.97);backdrop-filter:blur(14px);border-top:1px solid var(--border2)}
+  background:color-mix(in srgb,var(--bg) 97%,transparent);backdrop-filter:blur(14px);border-top:1px solid var(--border2)}
 .navbar button{flex:1 1 0;min-width:0;padding:9px 2px;border-radius:8px;min-height:50px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   font-size:10px;letter-spacing:.02em;background:transparent;border:1px solid transparent;color:var(--text3)}
@@ -210,7 +329,7 @@ tr.zr td{color:var(--gold)}
 .navsheet{display:grid;grid-template-columns:1fr 1fr;gap:7px;overflow:visible;padding:0}
 .navsheet button{min-height:52px;border-radius:8px;font-size:12px;background:var(--bg3);
   border:1px solid var(--border);color:var(--text);text-align:left;padding:10px 12px}
-.navsheet button.on{border-color:var(--accent);color:var(--accent)}
+.navsheet button.on{border-color:var(--accent);color:var(--accent);background:var(--bg3)}  /* V2.11.0 r1: .nav button.on painted the background accent too — text was invisible */
 .navsheet button .nsub{display:block;font-size:9px;color:var(--text3);margin-top:2px}
 @media(min-width:760px){
   body{padding-bottom:calc(28px + env(safe-area-inset-bottom))}
@@ -229,7 +348,7 @@ html.fold #sol-rail .dash-sol{flex-direction:row;width:100%}
 html.fold #sol-rail .dash-sol .dsol-cell{flex:1}
 html.fold #sol-rail .cond{grid-template-columns:repeat(2,1fr)}
 html.fold body{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
-html.fold .navbar{position:fixed;left:0;right:0;bottom:0;background:rgba(10,11,14,.97);backdrop-filter:blur(14px);
+html.fold .navbar{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--bg) 97%,transparent);backdrop-filter:blur(14px);
   border-top:1px solid var(--border2);padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:4px}
 html.fold .navbar button{flex:1 1 0;flex-direction:column;min-height:50px;padding:9px 2px;font-size:10px;background:transparent;border-color:transparent}
 html.fold .navbar button.on{background:var(--bg3);border-color:var(--accent)}
@@ -242,6 +361,15 @@ html.fold.pane-none #sol-rail{display:none}
 /* results beside inputs get half the screen (the rail keeps its narrower width) */
 html.fold.pane-page body{padding-right:calc(min(50vw,600px) + 18px)}
 html.fold.pane-page #sol-rail{width:min(50vw,600px)}
+/* V2.11.0 r3 — draggable divider between the panes; --rail-w (a share of the screen) once the user moved it */
+html.fold.split body{padding-right:calc(var(--rail-w) + 18px)}
+html.fold.split #sol-rail{width:var(--rail-w)}
+#pane-div{display:none}
+html.fold:not(.pane-none) #pane-div{display:flex;position:fixed;top:0;bottom:calc(64px + env(safe-area-inset-bottom));width:24px;margin-left:-12px;z-index:32;
+  align-items:center;justify-content:center;cursor:col-resize;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#pane-div span{width:6px;height:56px;border-radius:3px;background:var(--border2);transition:background .12s,height .12s}
+#pane-div.drag span,#pane-div:hover span{background:var(--accent);height:84px}
+html.no-ptr,html.no-ptr body{overscroll-behavior-y:contain}   /* V2.11.0 r3: no pull-to-refresh while a device is connected */
 /* CORE-16 layouts */
 .mod-off{display:none!important}
 #wt-body th{text-transform:none}
@@ -253,7 +381,7 @@ html.fold.pane-page #sol-rail{width:min(50vw,600px)}
 .lay-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
 .lay-row.lay-on{border-color:var(--accent)}
 .lay-name{font-family:var(--mono);font-size:13px;color:var(--text)}
-.lay-tag{font-size:9px;color:#0a0b0e;background:var(--accent);border-radius:4px;padding:1px 6px;margin-left:8px}
+.lay-tag{font-size:9px;color:var(--on-accent,#0a0b0e);background:var(--accent);border-radius:4px;padding:1px 6px;margin-left:8px}
 .lay-acts{display:flex;gap:6px;flex-wrap:wrap}.lay-del{color:var(--warn)}
 .lay-mod{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;margin-bottom:5px}
 .lay-modoff .lay-modname{color:var(--text3)}.lay-modname{flex:1;font-family:var(--mono);font-size:12px}
@@ -264,7 +392,7 @@ html.fold.pane-page #sol-rail{width:min(50vw,600px)}
 .fx-name{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:600}
 .fx-st{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:5px;white-space:nowrap}
 .fx-ok{color:var(--green)}.fx-no{color:var(--red);font-weight:700}
-.fx-st.fx-ok{background:rgba(122,184,122,.1)}.fx-st.fx-est{color:var(--gold);background:rgba(202,168,105,.12)}.fx-st.fx-none{color:var(--text3)}
+.fx-st.fx-ok{background:color-mix(in srgb,var(--green) 10%,transparent)}.fx-st.fx-est{color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,transparent)}.fx-st.fx-none{color:var(--text3)}
 .fx-eq{font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:6px;overflow-wrap:anywhere}
 .fx-tab{margin-top:6px}.fx-tab td{white-space:normal}.fx-tab td:first-child{font-weight:400;color:var(--text2)}
 .fx-nm{margin:6px 0 0 18px;font-size:11px;color:var(--text2)}
@@ -283,6 +411,10 @@ html.fold.pane-page #sol-rail{width:min(50vw,600px)}
 .sitem.on{border-color:var(--accent);color:var(--accent)}
 .sitem .sm{font-size:9.5px;color:var(--text3);text-align:right;flex-shrink:0}
 @media(min-width:760px){.sbox{position:relative;margin:7vh auto;max-width:560px;border-radius:12px;border:1px solid var(--border2)}}
+/* V2.11.0 r2: --kb = height of the on-screen keyboard (visualViewport); sheets sit above it */
+.sbox{bottom:var(--kb,0px);max-height:calc(84vh - var(--kb,0px))}
+.sheet{overflow-y:auto;padding-bottom:var(--kb,0px)}
+@media(min-width:760px){.sbox{bottom:auto;max-height:none}}
 /* progressive disclosure — secondary Home panels collapse, summary keeps the live value visible */
 details.disc{background:var(--bg2);border:1px solid var(--border);border-radius:9px;margin-bottom:12px}
 details.disc>summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;align-items:center;
@@ -308,27 +440,89 @@ details.disc .dbody{padding:0 14px 14px}
   .pd td{border:.5pt solid #000;padding:1.5mm;text-align:center}
   .pd .sh{font-weight:bold;background:#eee;padding:1mm 1.5mm;margin-top:2mm;font-size:7.5pt}
 }
+
+/* ═════════ V2.11.0 r4 — type scale + tap targets (UI review 2026-11-03, items 4 and 5) ═════════
+   One layer at the end of the stylesheet: it overrides sizes only, never layout logic.
+   Type: labels ≥ 12 px in sentence case (sans), body notes 13 px, inputs 16 px (also stops a
+   phone zooming into a field), tables 12 px; monospace stays for numbers, inputs and tables.
+   Taps: buttons, inputs, selects and disclosure rows ≥ 48 px (Material 48 dp); the small "from
+   profile" source chips keep their look and get a larger invisible hit area. The Large / XL
+   text setting still scales all of it. --text3 lifted to ≥ 4.5 : 1 on the panel background. */
+:root{--text3:#948f84}
+html.hc{--text3:#c4c0b6}
+/* labels and small titles: sans, sentence case, ≥ 12 px */
+.fld label,.panel h2,.dsol-l,.actchip .k,.qsol .qt,.qcell .ql,.sc .sl,.outcard .ot,.tablebox .ct,.cond-cell .cl,.modgrp,
+html.fold .rail-head,.stage-num{font-family:var(--sans);font-size:12.5px;text-transform:none;letter-spacing:.01em}
+.panel h2{font-size:14px;font-weight:600;color:var(--text2)}
+.fld label{font-size:13px;color:var(--text2);min-height:18px}
+.dsol-l,.cond-cell .cl,.sc .sl{font-size:13px}
+th{font-family:var(--sans);font-size:12px;text-transform:none}
+/* body text and notes */
+.note,.flag,.subnote,.modcard .md,.livebar,.reticle-cap,.devrow-tag,.sitem .sm,.navsheet button .nsub,.pitem .pm,.fx-st,.lay-tag,
+details.disc>summary .dsum{font-size:13px;line-height:1.5}
+.note,.flag,.modcard .md,.reticle-cap,.navsheet button .nsub{font-family:var(--sans)}
+.reticle-cap{max-width:none}
+.subnote{min-height:16px}
+/* values: mono, readable */
+.dsol-u,.qcell .qu,.sc .su,.chshot,.chstats,.chstats b,.cal-unit,.stn .stn-live,.actchip .v,.pitem .pn,.fx-name,.fx-eq{font-size:13px}
+.ret-size span{font-size:14px}
+table{font-size:12px}
+td{padding:7px 7px}
+/* inputs */
+input,select,textarea,.di{font-size:16px!important;min-height:48px}
+textarea{min-height:96px}
+/* buttons and taps */
+.btn,.seg button,.subnav button,.nav button,details.disc>summary,.sitem{min-height:48px}
+.btn,.seg button,.subnav button{font-family:var(--sans);font-size:14px}
+.btn-xs{min-height:48px;min-width:48px;padding:8px 14px;font-family:var(--sans);font-size:14px;display:inline-flex;align-items:center;justify-content:center}
+.navbar button,html.fold .navbar button{font-size:12px}
+.navbar button .ni{font-size:18px}
+.navsheet button{font-family:var(--sans);font-size:14px;min-height:56px}
+details.disc>summary{font-size:13px;font-family:var(--sans);text-transform:none;letter-spacing:.01em}   /* r5: sentence case like the other labels */
+.srcbtn{position:relative;font-family:var(--sans);font-size:12px;padding:3px 8px}
+.srcbtn::after{content:'';position:absolute;inset:-14px -8px}   /* invisible 44 px hit area, same look */
+.pacts,.lay-row>div:last-child{flex-wrap:wrap}
+.pacts{gap:6px;flex-shrink:1;justify-content:flex-end}
+html.fold #sol-rail,html.fold:not(.pane-none) #pane-div{bottom:calc(68px + env(safe-area-inset-bottom))}   /* the bottom nav grew with its 12 px labels: the rail ends above it */
+.pitem{flex-wrap:wrap}.pitem>:first-child{flex:1 1 140px;min-width:0}   /* row actions drop under the name when the row is narrow */
+.fx-nm,.fx-nm li{font-size:13px;line-height:1.5}
+.panel h2:has(> .btn-xs),.panel h2:has(> .help-btn){display:flex;justify-content:space-between;align-items:center;gap:8px}
+/* V2.11.0 r5 — help text behind ⓘ: static explanations (.hlp) hidden until the panel's ⓘ is tapped */
+html:not(.help-all) .panel:not(.help-open) .hlp,html:not(.help-all) .hlp.solo:not(.help-open){display:none}
+.help-btn{flex-shrink:0;margin-left:auto;min-width:48px;min-height:48px;border-radius:24px;background:transparent;border:1px solid var(--border);color:var(--text3);font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;font-size:19px;line-height:1;text-transform:none;letter-spacing:0}
+.help-btn.solo{display:flex;align-items:center;gap:8px;margin:8px 0 0;padding:0 14px;font-size:15px}
+.help-open>h2>.help-btn,.help-btn.on{color:var(--accent);border-color:var(--accent)}
+html.help-all .help-btn{display:none}
+.utbl{width:100%;border-collapse:collapse;font-family:var(--sans)}
+.utbl th{text-align:left;font-size:13px;color:var(--text2);padding:6px 8px 6px 0;font-weight:500;white-space:normal}
+.utbl thead th{font-size:12px;color:var(--text3)}
+.utbl td{padding:4px 0 4px 6px;width:34%}
+.utbl select{width:100%;padding:8px 6px}
+.ulock{font-size:13px;color:var(--text3)}
+#u-preset{margin-bottom:6px}
+.panel h2 > .btn-xs{float:none!important}   /* the taller + Add no longer floats into the list below it */
 </style>
 </head>
 <body>
 
 <div class="apphdr">
   <div class="brand">SEN<span>·</span>Ballistics</div>
-  <div class="ver">V2.10.0 · minor<br>RTI Mora Sniper · RK4 G7/G1</div>
+  <div class="hpage" id="hdr-page">Home</div>
 </div>
 
-<aside id="sol-rail" aria-label="Second pane"><div class="pane-sw" id="pane-sw"></div><div class="rail-head" id="rail-head">—</div></aside><button class="btn-xs" id="pane-show" style="display:none" onclick="setPaneMode(curPage(),'rail')">◧ Solution</button>
+<div id="pane-div" role="separator" aria-orientation="vertical" aria-label="Drag to resize the panes, double-tap to reset"><span></span></div><aside id="sol-rail" aria-label="Second pane"><div class="pane-sw" id="pane-sw"></div><div class="rail-head" id="rail-head">—</div><div class="pane-empty" hidden></div></aside><button class="btn-xs" id="pane-show" style="display:none" onclick="setPaneMode(curPage(),'rail')">◧ Solution</button>
 <div class="flag warn" id="store-warn" role="alert" style="display:none;margin:8px 12px 0"></div>
 <div class="flag warn" id="fx-alarm" role="alert" style="display:none;margin:8px 12px 0;color:var(--red);border-color:var(--red)"></div>
 <div class="flag warn" id="ios-hint" style="display:none;margin:8px 12px 0">On iPhone, add SEN to your Home Screen (Share → Add to Home Screen). Safari deletes the data of websites that aren't installed after 7 days without use. <button class="btn-xs" onclick="dismissIosHint()">Got it</button></div>
 
 <!-- Active selections bar — the visible face of Session State -->
 <div class="actbar" id="actbar"></div>
+<!-- V2.11.0 r7: one two-line session bar instead of the overflowing chips; tap = the same pickers -->
+<div class="sesbar" id="sesbar"><button type="button" class="fsum-btn" onclick="openSummarySheet()"><span class="ses-txt" id="ses-txt">—</span><span class="fsum-chev">▾</span></button></div>
 
 <div class="nav navbar" id="nav">
   <button data-page="home" class="on"><span class="ni">◉</span>Home</button>
-  <button data-page="traj"><span class="ni">↗</span>Traj</button>
-  <button data-page="solver"><span class="ni">⌖</span>Solver</button>
+  <button id="nav-adv" onclick="goAdv()"><span class="ni">↗</span>Advanced</button>  <!-- V2.11.0 r6: Trajectory + Shot solver as sub-tabs -->
   <button data-page="wind"><span class="ni">≋</span>Wind</button>
   <button data-page="dope"><span class="ni">⌸</span>Dope</button>
   <button id="nav-more" onclick="openMore()"><span class="ni">⋯</span>More</button>
@@ -345,6 +539,25 @@ details.disc .dbody{padding:0 14px 14px}
       <button class="btn" id="su-proj" onclick="pickSheet('proj')">2 · Projectile</button>
       <button class="btn" id="su-wx" onclick="pickSheet('wx')">3 · Weather</button>
     </div>
+  </div>
+  <!-- V2.11.0 r1 — Field modules: session summary, answer, distance (UI only; values come from renderQuick) -->
+  <div class="fsum mod-off" id="home-summary"><button type="button" class="fsum-btn" id="fsum-btn" onclick="openSummarySheet()"><span class="fsum-txt" id="fsum-txt">—</span><span class="fsum-chev">▾</span></button></div>
+  <div class="fans mod-off" id="home-answer">
+    <div class="fans-cell accent"><div class="fans-l">Elevation</div><div class="fans-v" id="fa-elev">—</div><div class="fans-u" id="fa-elev-u">clicks</div></div>
+    <div class="fans-cell gold"><div class="fans-l">Windage</div><div class="fans-v" id="fa-wind">—</div><div class="fans-u" id="fa-wind-u">clicks</div></div>
+    <div class="fans-status" id="fa-status"></div>
+  </div>
+  <div class="fdist mod-off" id="home-distance">
+    <div class="fdist-l">Distance <span class="fdist-src" id="fd-src"></span></div>
+    <button type="button" class="fdist-v" id="fd-btn" aria-label="Distance — tap to type, hold and drag to adjust"><span class="fdist-num"><span id="fd-val">—</span><span class="fdist-u" id="fd-unit"></span></span><span class="fdist-hint" aria-hidden="true">⇕</span></button>
+    <div class="fdist-tip" id="fd-tip">Hold and drag: ← → ±1 · ↑ ↓ ±10</div>
+    <div class="fdist-row"><button type="button" class="fdist-sub" id="fd-angle" onclick="openAngleSheet()">Angle 0°</button><button type="button" class="fdist-sub" id="fd-wind" onclick="openWindSheet()">Wind —</button></div>
+  </div>
+  <!-- V2.11.0 r2 — device row: tap pauses that kind of sensor, hold opens its devices -->
+  <div class="fdev mod-off" id="home-devices">
+    <button type="button" class="fpill" id="dev-wx" data-dev="wx"><span class="fpill-n">Weather</span><span class="fpill-v" id="dev-wx-v">—</span></button>
+    <button type="button" class="fpill" id="dev-rf" data-dev="rf"><span class="fpill-n">Range</span><span class="fpill-v" id="dev-rf-v">—</span></button>
+    <button type="button" class="fpill" id="dev-ch" data-dev="ch"><span class="fpill-n">Chrono</span><span class="fpill-v" id="dev-ch-v">—</span></button>
   </div>
   <div class="dash" id="home-dash">
     <div class="dash-reticle">
@@ -486,6 +699,7 @@ details.disc .dbody{padding:0 14px 14px}
 
 <!-- ═══════════ TRAJECTORY (A3) ═══════════ -->
 <div class="page" id="page-traj">
+  <div class="subnav advtabs" role="tablist" aria-label="Advanced ballistics"><button type="button" role="tab" data-adv="traj" onclick="gotoPage('traj')">Trajectory</button><button type="button" role="tab" data-adv="solver" onclick="gotoPage('solver')">Shot solver</button></div>
   <div class="outcard">
     <div class="ot"><span>Trajectory · solution at <span id="tr-out-dist">—</span></span><span id="tr-drag-lbl"></span></div>
     <div class="scs" id="tr-outs"><div class="sc"><div class="sv" style="font-size:14px;color:var(--text3)">Run to compute</div></div></div>
@@ -510,7 +724,7 @@ details.disc .dbody{padding:0 14px 14px}
     <h2>Ranges</h2>
     <div class="fgrid3">
       <div class="fld"><label>Zero range m</label><input type="number" id="tr-zero" value="50" step="5" oninput="Bus.set('zero_m',+this.value)"></div>
-      <div class="fld"><label>Target dist m</label><input type="number" id="tr-dist" value="100" step="5" oninput="Bus.set('dist_m',+this.value)"></div>
+      <div class="fld dup-hide"><label>Target dist m</label><input type="number" id="tr-dist" value="100" step="5" oninput="Bus.set('dist_m',+this.value)"></div>
       <div class="fld"><label>Max range m</label><input type="number" id="tr-max" value="200" step="25" oninput="autoTraj()"></div>
       <div class="fld"><label>Table step m</label><input type="number" id="tr-step" value="25" step="5" oninput="autoTraj()"></div>
     </div>
@@ -530,8 +744,8 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="note" id="tr-atmo-note"></div>
   </div>
 
-  <div class="btnrow"><button class="btn primary" onclick="runTraj(false)">Recompute</button></div>
-  <div class="note">The solution updates automatically whenever the session changes — Recompute is a manual refresh, never a prerequisite. Max range extends itself to cover the target and zero.</div>
+  <div class="btnrow dup-hide"><button class="btn primary" onclick="runTraj(false)">Recompute</button></div>
+  <div class="note hlp dup-hide">The solution updates automatically whenever the session changes — Recompute is a manual refresh, never a prerequisite. Max range extends itself to cover the target and zero.</div>
 
   <div class="chartbox" style="margin-top:12px"><canvas id="tr-chart"></canvas></div>
   <div class="tablebox"><div class="ct">Drop table · clicks relative to zero range</div><table><thead><tr><th>Range</th><th>Drop <span data-ul="drop">mm</span></th><th>mrad</th><th>MOA</th><th>Clicks</th><th>V <span data-ul="vel">m/s</span></th><th>Mach</th><th>E <span data-ul="energy">J</span></th><th>TOF s</th></tr></thead><tbody id="tr-tbody"></tbody></table><div class="note" id="tr-tnote"></div></div>
@@ -539,7 +753,8 @@ details.disc .dbody{padding:0 14px 14px}
 
 <!-- ═══════════ BC TRUING (A6) ═══════════ -->
 <div class="page" id="page-truing">
-  <div class="panel">
+  <div class="subnav advtabs trtabs" role="tablist" aria-label="BC and truing tools"><button type="button" role="tab" data-trt="vel" onclick="setTruTab('vel')">Velocity</button><button type="button" role="tab" data-trt="imp" onclick="setTruTab('imp')">Impacts</button><button type="button" role="tab" data-trt="bc" onclick="setTruTab('bc')">BC / SD</button><button type="button" role="tab" data-trt="mvt" onclick="setTruTab('mvt')">MV–temp</button></div>
+  <div class="panel" data-tt="vel">
     <div class="ph"><h2>BC Truing</h2><span class="psub">solve real BC from measured downrange velocity</span></div>
     <div class="fgrid">
       <div class="fld"><label>Projectile</label><select id="tu-proj" onchange="tuLoadProj()"></select></div>
@@ -551,31 +766,31 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Pressure hPa</label><input type="number" id="tu-pres" step="1" value="1010"></div>
       <div class="fld"><label>RH %</label><input type="number" id="tu-rh" step="1" value="65"></div>
     </div>
-    <div class="note" style="margin-top:6px">Enter measured velocity at one or more downrange distances. <b>2 points</b> (V₀ + one) → single trued BC. <b>3+ points</b> → velocity-banded BC. Use averaged shot-string values, not single shots. Set the LabRadar to its real-measurement limit (~<span data-uv="range|23">23 m</span>), never the interpolated zone.</div>
+    <div class="note hlp" style="margin-top:6px">Enter measured velocity at one or more downrange distances. <b>2 points</b> (V₀ + one) → single trued BC. <b>3+ points</b> → velocity-banded BC. Use averaged shot-string values, not single shots. Set the LabRadar to its real-measurement limit (~<span data-uv="range|23">23 m</span>), never the interpolated zone.</div>
     <div id="tu-points" style="margin-top:10px"></div>
     <div class="btnrow"><button class="btn" onclick="tuAddPoint()">+ Add measured point</button><button class="btn primary" onclick="tuSolve()">True BC</button></div>
   </div>
-  <div class="panel" id="tu-result" style="display:none">
+  <div class="panel" id="tu-result" data-tt="vel" style="display:none">
     <div class="ph"><h2>Result</h2><span class="psub" id="tu-result-sub"></span></div>
     <div id="tu-result-body"></div>
     <div class="btnrow"><button class="btn primary" onclick="tuApply()">Apply to projectile profile</button></div>
     <div class="note" id="tu-apply-note"></div>
   </div>
-  <div class="panel" id="td-panel">
+  <div class="panel" id="td-panel" data-tt="imp">
     <div class="ph"><h2>True BC from impacts</h2><span class="psub">CALC-04 · the dials that actually hit, one or more distances</span></div>
     <div class="note" id="td-ctx" style="margin-top:0"></div>
     <div class="fld" style="max-width:220px"><label>Dial unit</label><select id="td-unit"><option value="click">clicks</option><option value="mrad">mrad</option><option value="moa">MOA</option></select></div>
     <div id="td-rows" style="margin-top:8px"></div>
-    <div class="note">Per distance: the dial (up from the turret zero, as the turret reads) that centred a 5-shot group, and where that group's centre landed (+ above the aim, − below). Use distances well beyond the zero — the zero distance itself says nothing about BC. More distances → one best-fit BC with a tighter range. MV (from the chrono), zero and air come from the current session and must be right.</div>
+    <div class="note hlp">Per distance: the dial (up from the turret zero, as the turret reads) that centred a 5-shot group, and where that group's centre landed (+ above the aim, − below). Use distances well beyond the zero — the zero distance itself says nothing about BC. More distances → one best-fit BC with a tighter range. MV (from the chrono), zero and air come from the current session and must be right.</div>
     <div class="btnrow"><button class="btn" onclick="tdAddRow()">+ Add distance</button><button class="btn primary" onclick="tdSolve()">True BC from impacts</button></div>
-    <div id="td-result"></div>
+    <div id="td-result" data-tt="imp"></div>
   </div>
-  <div class="outcard" id="bc-out">
+  <div class="outcard" id="bc-out" data-tt="bc">
     <div class="ot"><span>BC / SD · <span id="bc-name">—</span></span><span id="bc-type-lbl"></span></div>
     <div class="scs" id="bc-outs"><div class="sc"><div class="sv" style="font-size:14px;color:var(--text3)">Select a projectile or enter geometry</div></div></div>
     <div id="bc-flags"></div>
   </div>
-  <div class="panel">
+  <div class="panel" data-tt="bc">
     <h2>Geometry <button class="srcbtn" id="src-bcproj" onclick="bcFromProj()" style="float:right">Get from active projectile</button></h2>
     <div class="projdia" data-dia="diam,oal"></div>
     <div class="fgrid3">
@@ -586,10 +801,10 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>BC G1 override</label><input type="number" id="bc-g1" step="0.001" placeholder="auto" oninput="calcBC()"></div>
       <div class="fld"><label>Type</label><select id="bc-type" onchange="calcBC()"><option value="slug">slug</option><option value="pellet">pellet</option></select></div>
     </div>
-    <div class="note">§9H: SD = mass_gr / (7000 · d_in²), no π/4 · BC G7 [kg/m²] = lb/in² × 703.07 · BC G1 ≈ BC G7 / 0.509 (Litz estimate)</div>
+    <div class="note hlp">§9H: SD = mass_gr / (7000 · d_in²), no π/4 · BC G7 [kg/m²] = lb/in² × 703.07 · BC G1 ≈ BC G7 / 0.509 (Litz estimate)</div>
   </div>
-  <div class="tablebox" id="bc-benchbox"><div class="ct">vs Altaros Queen .25 benchmark (BC G7 0.128 lb/in² · 90.0 kg/m² · SD 0.137)</div><table><thead><tr><th>Metric</th><th>This</th><th>Queen</th><th>Δ %</th></tr></thead><tbody id="bc-bench"></tbody></table></div>
-  <div class="panel" id="mvt-panel">
+  <div class="tablebox" id="bc-benchbox" data-tt="bc"><div class="ct">vs Altaros Queen .25 benchmark (BC G7 0.128 lb/in² · 90.0 kg/m² · SD 0.137)</div><table><thead><tr><th>Metric</th><th>This</th><th>Queen</th><th>Δ %</th></tr></thead><tbody id="bc-bench"></tbody></table></div>
+  <div class="panel" id="mvt-panel" data-tt="mvt">
     <div class="ph"><h2>MV vs temperature · E2</h2><span class="psub">per-rifle regulator temperature model</span></div>
     <div class="note" id="mvt-rifle-note"></div>
     <div class="fgrid3">
@@ -597,8 +812,8 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Measured MV m/s</label><input type="number" id="mvt-v" step="0.1"></div>
       <div class="fld"><label>&nbsp;</label><div class="seg"><button onclick="mvtAdd()">Add observation</button></div></div>
     </div>
-    <div class="tablebox" style="margin-top:10px"><table><thead><tr><th>Temp <span data-ul="temp">°C</span></th><th>MV <span data-ul="vel">m/s</span></th><th></th></tr></thead><tbody id="mvt-tbody"></tbody></table></div>
-    <div class="note" id="mvt-fit"></div>
+    <div class="tablebox" id="mvt-tblbox" data-tt="mvt" style="margin-top:10px"><table><thead><tr><th>Temp <span data-ul="temp">°C</span></th><th>MV <span data-ul="vel">m/s</span></th><th></th></tr></thead><tbody id="mvt-tbody"></tbody></table></div>
+    <div class="note" id="mvt-fit" data-tt="mvt"></div>
     <div class="btnrow"><button class="btn primary" id="mvt-apply" onclick="mvtApply()">Set session MV from model</button></div>
   </div>
 </div>
@@ -613,8 +828,8 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Step m</label><input type="number" id="hd-step" step="1" value="5" oninput="renderHolds()"></div>
       <div class="fld"><label>Ref crosswind m/s</label><input type="number" id="hd-wind" step="0.5" value="2.5" oninput="renderHolds()"></div>
     </div>
-    <div class="note">Assumes the turret is AT ZERO (no dialing) and full-value crosswind for the wind column. Uses the active session (rifle · projectile · current weather) at <span data-uv="range|1">1 m</span> resolution. Reticle marks are measured DOWN from center on the active scope's reticle.</div>
-    <div class="btnrow"><button class="btn primary" onclick="renderHolds()">Compute</button><button class="btn" onclick="printHolds()">Print</button></div>
+    <div class="note hlp">Assumes the turret is AT ZERO (no dialing) and full-value crosswind for the wind column. Uses the active session (rifle · projectile · current weather) at <span data-uv="range|1">1 m</span> resolution. Reticle marks are measured DOWN from center on the active scope's reticle.</div>
+    <div class="btnrow"><button class="btn primary dup-hide" onclick="renderHolds()">Compute</button><button class="btn" onclick="printHolds()">Print</button></div>
   </div>
   <div id="hd-flags"></div>
   <div class="tablebox"><div class="ct" id="hd-title">Holdover</div><table><thead><tr><th>Range</th><th>Hold</th><th>clk equiv</th><th>Reticle mark</th><th>Wind hold</th></tr></thead><tbody id="hd-tbody"></tbody></table></div>
@@ -643,7 +858,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Temp °C</label><input type="number" id="st-temp" step="0.5" value="-5" oninput="calcStab()"></div>
       <div class="fld"><label>Pressure hPa</label><input type="number" id="st-pres" step="1" value="1013" oninput="calcStab()"></div>
     </div>
-    <div class="note">Miller twist rule — the formula behind Berger's twist-rate calculator (matches it: Queen 1.18, King 1.07/1.48/1.67). Fitted on rifle bullets; not validated for airgun hollow points or below L/D 2.0. Pellets are drag-stabilised (no Sg). Worst-case column uses <span data-uv="temp|-5">−5°C</span> · <span data-uv="pres|1013">1013 hPa</span> · <span data-uv="vel|229">229 m/s</span> (global barrel spec).</div>
+    <div class="note hlp">Miller twist rule — the formula behind Berger's twist-rate calculator (matches it: Queen 1.18, King 1.07/1.48/1.67). Fitted on rifle bullets; not validated for airgun hollow points or below L/D 2.0. Pellets are drag-stabilised (no Sg). Worst-case column uses <span data-uv="temp|-5">−5°C</span> · <span data-uv="pres|1013">1013 hPa</span> · <span data-uv="vel|229">229 m/s</span> (global barrel spec).</div>
   </div>
   <div class="tablebox" id="st-twbox"><div class="ct">Twist recommender · min twist for Sg target at global worst-case</div><table><thead><tr><th>Sg target</th><th>Min twist (in)</th><th>= mm</th><th>This barrel</th></tr></thead><tbody id="st-twist-tbl"></tbody></table></div>
   <div class="panel" id="st-mcg">
@@ -658,7 +873,7 @@ details.disc .dbody{padding:0 14px 14px}
     </div>
     <div class="scs" id="st-mcg-outs"></div>
     <div id="st-mcg-flags"></div>
-    <div class="note">McCoy's empirical estimate from the shape (nose length, ogive Rt/R: 1 = round nose or tangent ogive, 0 = cone; meplat and base diameter). Uniform density assumed. McCoy gives ±5 % (1 SD) below Mach 0.95. McGyro's own output is for standard sea-level air; "your air" scales it by air density (dry, like Miller's correction). Home and the BC penalty keep using Miller until range tests decide.</div>
+    <div class="note hlp">McCoy's empirical estimate from the shape (nose length, ogive Rt/R: 1 = round nose or tangent ogive, 0 = cone; meplat and base diameter). Uniform density assumed. McCoy gives ±5 % (1 SD) below Mach 0.95. McGyro's own output is for standard sea-level air; "your air" scales it by air density (dry, like Miller's correction). Home and the BC penalty keep using Miller until range tests decide.</div>
   </div>
 </div>
 
@@ -727,7 +942,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Direction °</label><input type="number" id="wd-dir" step="5" value="90" oninput="syncClock();onWindInput()"></div>
       <div class="fld"><label>Crosswind factor</label><input type="number" id="wd-xf" step="0.01" value="1.00" readonly></div>
     </div>
-    <div style="margin-top:10px"><label style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase">Clock angle</label>
+    <div style="margin-top:10px"><label style="font-size:13px;color:var(--text2)">Clock angle</label>
       <div class="seg" id="wd-clock" style="margin-top:6px">
         <button data-deg="90" class="on">3/9 full</button><button data-deg="60">2/10 ¾</button><button data-deg="30">1/11 ½</button><button data-deg="0">12/6 head/tail</button>
       </div>
@@ -739,10 +954,11 @@ details.disc .dbody{padding:0 14px 14px}
 
 <!-- ═══════════ BALLISTIC SOLVER (A5) ═══════════ -->
 <div class="page" id="page-solver">
+  <div class="subnav advtabs" role="tablist" aria-label="Advanced ballistics"><button type="button" role="tab" data-adv="traj" onclick="gotoPage('traj')">Trajectory</button><button type="button" role="tab" data-adv="solver" onclick="gotoPage('solver')">Shot solver</button></div>
   <div class="outcard">
     <div class="ot"><span>Firing solution · <span id="sv-dist">—</span></span><span id="sv-zero-lbl"></span></div>
     <div class="scs" id="sv-outs"><div class="sc"><div class="sv" style="font-size:14px;color:var(--text3)">Run trajectory, then solve</div></div></div>
-    <div style="margin-top:10px"><label style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase">Elevation travel used</label>
+    <div style="margin-top:10px"><label style="font-size:13px;color:var(--text2)">Elevation travel used</label>
       <div style="margin-top:6px;height:10px;background:var(--bg4);border-radius:5px;overflow:hidden"><div id="sv-travelbar" style="height:100%;width:0;transition:width .3s"></div></div>
       <div class="note" id="sv-travel-note"></div>
     </div>
@@ -750,18 +966,18 @@ details.disc .dbody{padding:0 14px 14px}
   </div>
   <div class="panel">
     <h2>Shot</h2>
-    <div class="fgrid3">
+    <div class="fgrid3 dup-hide">   <!-- V2.11.0 r7: replaced by the shot strip; kept hidden, mirrored from the session -->
       <div class="fld"><label>Target dist m</label><input type="number" id="sv-tdist" step="5" value="100" oninput="Bus.set('dist_m',+this.value);solve()"></div>
       <div class="fld"><label>Shot angle °</label><input type="number" id="sv-angle" step="1" value="0" oninput="solve()"></div>
       <div class="fld"><label>Wind m/s</label><input type="number" id="sv-wind" step="0.1" value="0" oninput="solve()"></div>
       <div class="fld"><label>Wind dir °</label><input type="number" id="sv-wdir" step="5" value="90" oninput="solve()"></div>
       <div class="fld"><label>Cant ° (+ right)</label><input type="number" id="sv-cant" step="0.5" value="0" oninput="solve()"></div>
     </div>
-    <div class="fld" style="margin-top:8px"><label>Wind from</label><div class="seg"><button id="sv-ws-in" class="on" onclick="svSetStations(false)">The inputs above</button><button id="sv-ws-st" onclick="svSetStations(true)">Live wind stations</button></div></div>
+    <div class="fld" style="margin-top:8px"><label>Wind from</label><div class="seg"><button id="sv-ws-in" class="on" onclick="svSetStations(false)">Session wind</button><button id="sv-ws-st" onclick="svSetStations(true)">Live wind stations</button></div></div>
     <div class="note" id="sv-ws-note"></div>
     <div class="note" id="rf-src-sv"></div>
-    <div class="note">Clicks relative to zero range (zero = 0 by construction). Angle: the trajectory is re-solved along the slope (slant range); a head/tailwind component is integrated too. Wind clicks are the delta vs the wind already held at zero range.</div>
-    <div class="btnrow"><button class="btn primary" onclick="solve()">Solve</button></div>
+    <div class="note hlp">Clicks relative to zero range (zero = 0 by construction). Angle: the trajectory is re-solved along the slope (slant range); a head/tailwind component is integrated too. Wind clicks are the delta vs the wind already held at zero range.</div>
+    <div class="btnrow dup-hide"><button class="btn primary" onclick="solve()">Solve</button></div>
   </div>
   <div class="panel">
     <h2>Advanced corrections · V1.14.0</h2>
@@ -772,7 +988,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><label>Spin drift (Litz EST ⚠)</label><div class="seg"><button id="sv-sd-off" onclick="svSetSpin(false)">Off</button><button id="sv-sd-on" onclick="svSetSpin(true)">On</button></div></div>
       <div class="fld"><label>Aerodynamic jump (Litz EST ⚠)</label><div class="seg"><button id="sv-aj-off" onclick="svSetAJ(false)">Off</button><button id="sv-aj-on" onclick="svSetAJ(true)">On</button></div></div>
     </div>
-    <div class="note">Coriolis is exact physics (integrated over the actual RK4 trajectory) — negligible below ~<span data-uv="range|300">300 m</span>, grows with TOF. Spin drift uses the Litz empirical fit (1.25·(Sg+1.2)·TOF^1.83) derived from SUPERSONIC rifle bullets — <b>unvalidated for subsonic slugs</b>; treat as an estimate until field-verified. When ON, corrections are included in the dial above and itemised in the flags. n/a for pellets and smooth bores.</div>
+    <div class="note hlp">Coriolis is exact physics (integrated over the actual RK4 trajectory) — negligible below ~<span data-uv="range|300">300 m</span>, grows with TOF. Spin drift uses the Litz empirical fit (1.25·(Sg+1.2)·TOF^1.83) derived from SUPERSONIC rifle bullets — <b>unvalidated for subsonic slugs</b>; treat as an estimate until field-verified. When ON, corrections are included in the dial above and itemised in the flags. n/a for pellets and smooth bores.</div>
   </div>
 </div>
 
@@ -851,12 +1067,12 @@ details.disc .dbody{padding:0 14px 14px}
   <div class="panel">
     <h2>Calypso Mini AB · wind</h2>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <span><span class="ble-dot" id="ble-dot"></span><span style="font-family:var(--mono);font-size:11px" id="ble-status-text">Disconnected</span></span>
+      <span><span class="ble-dot" id="ble-dot"></span><span style="font-size:13px" id="ble-status-text">Disconnected</span></span>
       <button class="btn-xs" id="ble-btn" onclick="toggleBLE()" style="margin-left:auto">Connect</button>
     </div>
     <div id="cal-units"></div>
     <div class="btnrow" id="cal-add" style="display:none;margin-top:4px"><button class="btn-xs" onclick="calAdd()">+ Connect another Calypso</button></div>
-    <div class="note" style="margin-top:2px">The unit marked “feeds session” supplies the session wind (Home, Wind, Solver). Any others stream alongside — place them as wind stations in the panel below. Values below are the session unit's.</div>
+    <div class="note hlp" style="margin-top:2px">The unit marked “feeds session” supplies the session wind (Home, Wind, Solver). Any others stream alongside — place them as wind stations in the panel below. Values below are the session unit's.</div>
     <div id="ble-live-wrap" style="display:none">
       <div class="scs">
         <div class="sc accent"><div class="sl">Speed (instant)</div><div class="sv" id="ble-speed">—</div><div class="su" data-ul="wind">m/s</div></div>
@@ -879,7 +1095,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="fld"><button class="btn-xs" onclick="captureCalMount()">📍 Phone compass</button></div>
     </div>
     <div class="note" id="cal-mount-note"></div>
-    <div class="flag info" style="margin-top:10px">Live wind via the proven activation handshake (Handoff V3). Session uses the app's own <b>average</b> of the instant readings over the window you choose (the Calypso's built-in average is not used — its window is unknown). Keep the Calypso in the same orientation for the whole window; after moving it, tap Reset average. This device measures wind only — temperature/humidity come from manual entry or an online source, not the Calypso.</div>
+    <div class="flag hlp info" style="margin-top:10px">Live wind via the proven activation handshake (Handoff V3). Session uses the app's own <b>average</b> of the instant readings over the window you choose (the Calypso's built-in average is not used — its window is unknown). Keep the Calypso in the same orientation for the whole window; after moving it, tap Reset average. This device measures wind only — temperature/humidity come from manual entry or an online source, not the Calypso.</div>
   </div>
   <div class="panel" id="stn-panel">
     <h2>Wind stations</h2>
@@ -892,19 +1108,19 @@ details.disc .dbody{padding:0 14px 14px}
     <div id="stn-list"></div>
     <div class="btnrow"><button class="btn-xs" onclick="stnAdd()">+ Add station</button></div>
     <div class="note" id="stn-summary"></div>
-    <div class="note">Each station: a name, which Calypso, its distance from you and its angle off the line of fire (0 = on the line, + right, − left), and where its mark points — at the target, or at north (the same magnetic compass as the target bearing on Home; needs that bearing). With two or more live stations and live wind on, Home's dial and windage use all of them along the flight (crosswind and head/tailwind). Otherwise Home uses the session unit, exactly as before. A station with no reading for 3 s drops out.</div>
+    <div class="note hlp">Each station: a name, which Calypso, its distance from you and its angle off the line of fire (0 = on the line, + right, − left), and where its mark points — at the target, or at north (the same magnetic compass as the target bearing on Home; needs that bearing). With two or more live stations and live wind on, Home's dial and windage use all of them along the flight (crosswind and head/tailwind). Otherwise Home uses the session unit, exactly as before. A station with no reading for 3 s drops out.</div>
   </div>
   <div class="panel" id="rf-panel">
     <h2>Rangefinder · Element Titan / Helix</h2>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <span><span class="ble-dot" id="rf-dot"></span><span style="font-family:var(--mono);font-size:11px" id="rf-status">Not connected</span></span>
+      <span><span class="ble-dot" id="rf-dot"></span><span style="font-size:13px" id="rf-status">Not connected</span></span>
       <button class="btn-xs" id="rf-btn" onclick="rfAdd()" style="margin-left:auto">Connect</button>
     </div>
     <div id="rf-units"></div>
     <div class="fld" style="margin-top:8px"><label>Each ranging fills target distance + shot angle</label>
       <div class="seg"><button id="rf-fill-on" onclick="rfSetFill(true)">On</button><button id="rf-fill-off" onclick="rfSetFill(false)">Off</button></div></div>
     <div class="note" id="rf-last"></div>
-    <div class="flag info" style="margin-top:10px">Keep the rangefinder in <b>LOS</b> mode: it sends the distance of the mode on its display and the frame doesn't say which (owner tests 2026-10-30). The solver works in slant range, which is LOS. The rangefinder always sends a metric distance with one decimal, whatever its own display unit, and the app shows it in yours; the angle comes in whole degrees. Nothing is written to the rangefinder. Typing a distance or angle overrides the ranging until the next one.</div>
+    <div class="flag hlp info" style="margin-top:10px">Keep the rangefinder in <b>LOS</b> mode: it sends the distance of the mode on its display and the frame doesn't say which (owner tests 2026-10-30). The solver works in slant range, which is LOS. The rangefinder always sends a metric distance with one decimal, whatever its own display unit, and the app shows it in yours; the angle comes in whole degrees. Nothing is written to the rangefinder. Typing a distance or angle overrides the ranging until the next one.</div>
   </div>
   <div class="panel">
     <h2>Manual wind entry</h2>
@@ -914,7 +1130,7 @@ details.disc .dbody{padding:0 14px 14px}
   <div class="panel" id="lr-panel">
     <h2>Chronograph · LabRadar LX (live)</h2>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <span><span class="ble-dot" id="lr-dot"></span><span style="font-family:var(--mono);font-size:11px" id="lr-status">Not connected</span></span>
+      <span><span class="ble-dot" id="lr-dot"></span><span style="font-size:13px" id="lr-status">Not connected</span></span>
       <button class="btn-xs" id="lr-btn" onclick="lrToggle()" style="margin-left:auto">Connect</button>
     </div>
     <div class="scs">
@@ -923,7 +1139,7 @@ details.disc .dbody{padding:0 14px 14px}
       <div class="sc"><div class="sl">Battery</div><div class="sv" id="lr-batt" style="font-size:16px">—</div><div class="su">%</div></div>
     </div>
     <div class="note" id="lr-note"></div>
-    <div class="flag info" style="margin-top:10px">Each shot's <b>V₀</b> is added live to the shot string below. Arm and stop on the LabRadar as usual. Only V₀ is taken: the projectile mass, power factor and BC typed into the LabRadar are ignored (your projectile profile is used), and its velocity at the distance point is not used because the LabRadar extrapolates it when its track ends short (owner ruling 2026-10-31). The app sends the LabRadar app's own start sequence and a status check every 10 s.</div>
+    <div class="flag hlp info" style="margin-top:10px">Each shot's <b>V₀</b> is added live to the shot string below. Arm and stop on the LabRadar as usual. Only V₀ is taken: the projectile mass, power factor and BC typed into the LabRadar are ignored (your projectile profile is used), and its velocity at the distance point is not used because the LabRadar extrapolates it when its track ends short (owner ruling 2026-10-31). The app sends the LabRadar app's own start sequence and a status check every 10 s.</div>
   </div>
   <div class="panel">
     <h2>Chronograph · shot string + MV (Garmin Xero C1 Pro)</h2>
@@ -934,7 +1150,7 @@ details.disc .dbody{padding:0 14px 14px}
     <div class="fgrid3"><div class="fld"><label>MV m/s</label><input type="number" id="ch-mv" step="0.1"></div><div class="fld"><label>ES m/s</label><input type="number" id="ch-es" step="0.1"></div><div class="fld"><label>SD m/s</label><input type="number" id="ch-sd" step="0.1"></div></div>
     <div class="btnrow"><button class="btn" onclick="useChronoMV()">Use MV → session</button></div>
     <div id="ch-flags"></div>
-    <div class="note">Production target: ES ≤ <span data-uv="vel|5">5 m/s</span> · SD ≤ <span data-uv="vel|1.5">1.5 m/s</span> over 10 shots. LabRadar V₀+V_D BC back-calc lives in the BC / Truing tab.</div>
+    <div class="note hlp">Production target: ES ≤ <span data-uv="vel|5">5 m/s</span> · SD ≤ <span data-uv="vel|1.5">1.5 m/s</span> over 10 shots. LabRadar V₀+V_D BC back-calc lives in the BC / Truing tab.</div>
   </div>
 </div>
 
@@ -954,7 +1170,7 @@ details.disc .dbody{padding:0 14px 14px}
   <div class="panel">
     <div class="ph"><h2>Formula verification · §20A</h2><span class="psub">every formula, its source and its anchors — recomputed live</span></div>
     <div class="note" id="fx-sum" style="margin-top:0"></div>
-    <div class="note">Anchors are real projectiles and published references only. Values stay in each formula's own units — they are reference constants, not field output. The same check runs at every start; a failure shows a warning on every screen.</div>
+    <div class="note hlp">Anchors are real projectiles and published references only. Values stay in each formula's own units — they are reference constants, not field output. The same check runs at every start; a failure shows a warning on every screen.</div>
   </div>
   <div id="fx-list"></div>
 </div>
@@ -962,7 +1178,8 @@ details.disc .dbody{padding:0 14px 14px}
 <!-- ═══════════ SETTINGS (D3) ═══════════ -->
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
-  <div class="note">SEN Ballistics Platform V2.10.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
+  <div class="note">SEN Ballistics Platform V2.11.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1707,22 +1924,40 @@ function renderSettings(){
       <div class="seg"><button class="${APP.contrast!=='high'?'on':''}" onclick="setApp('contrast','normal')">Normal</button><button class="${APP.contrast==='high'?'on':''}" onclick="setApp('contrast','high')">High</button></div></div>
     <div class="fld" style="margin-top:10px"><label>Text size</label>
       <div class="seg"><button class="${APP.fontScale==='m'?'on':''}" onclick="setApp('fontScale','m')">Normal</button><button class="${APP.fontScale==='l'?'on':''}" onclick="setApp('fontScale','l')">Large</button><button class="${APP.fontScale==='xl'?'on':''}" onclick="setApp('fontScale','xl')">XL</button></div></div>
+    <div class="fld" style="margin-top:10px"><label>Help text</label>
+      <div class="seg" id="help-mode"><button class="${APP.helpAll!==true?'on':''}" onclick="setApp('helpAll',false)">Behind <i>i</i></button><button class="${APP.helpAll===true?'on':''}" onclick="setApp('helpAll',true)">Always show</button></div></div>
     <div class="note" id="screen-info">${screenInfo()}</div>
-    <div class="note">Dual-unit shows a muted secondary value after the primary in big output cards and the home widget. Tables stay single-unit for legibility.</div></div>`;
+    <div class="note hlp">Dual-unit shows a muted secondary value after the primary in big output cards and the home widget. Tables stay single-unit for legibility.</div></div>`;
+  // V2.11.0 r11: colours
+  {const v=themeVals();
+   html+=`<div class="panel" id="theme-panel"><h2>Colours</h2>
+    <div class="threws">${THEME_KEYS.map(([k,n])=>`<label class="thrw" id="th-row-${k}"><span class="thn">${n}</span><input type="color" id="th-${k}" value="${v[k]}" aria-label="${n} colour"><span class="thx" id="th-hex-${k}">${v[k]}</span></label>`).join('')}</div>
+    <div id="th-checks"></div>
+    <div class="btnrow"><button class="btn th-reset" onclick="themeReset()">Reset to default colours</button></div>
+    <div class="note hlp">Eight colours are yours; borders, quiet text and tints follow them. Quiet text is kept readable automatically, and the text on accent buttons switches between black and white. The reticle and the trajectory chart follow the colours too. High contrast (above) still applies on top.</div></div>`;}
+  // V2.11.0 r8: bottom bar
+  {const t=navTabs(),opts=v=>'<option value="">—</option>'+Object.entries(NAV_ALL).map(([k,[n]])=>`<option value="${k}"${k===v?' selected':''}>${n}</option>`).join('');
+   html+=`<div class="panel" id="nav-panel"><h2>Bottom bar</h2>
+    <div class="navpick"><span class="navfix">Home</span>${[0,1,2].map(i=>`<select aria-label="Bottom bar slot ${i+2}" onchange="setNavTab(${i},this.value)">${opts(t[i])}</select>`).join('')}<span class="navfix">More</span></div>
+    <div class="note hlp">Home is always first and More last. Pages left off the bar are in the More sheet. Advanced holds Trajectory and the Shot solver.</div>
+    <div class="btnrow"><button class="btn" onclick="APP.navTabs=null;saveDB();renderNav();renderSettings()">Default bar</button></div></div>`;}
   // field block (FIX-14a)
   html+=`<div class="panel"><h2>Field</h2>
     <div class="fld"><label>Keep screen awake (live wind / dope use)</label>
       <div class="seg"><button class="${APP.wakeLock?'on':''}" onclick="setWakeLock(true)">On</button><button class="${!APP.wakeLock?'on':''}" onclick="setWakeLock(false)">Off</button></div></div>
     <div class="note" id="wl-status">Wake lock: ${APP.wakeLock?(_wl?'active — screen stays on':'enabled — acquiring…'):'off'}</div></div>`;
-  // units block
-  html+=`<div class="panel"><h2>Units · primary / secondary</h2><div class="note" style="margin-bottom:12px">Canonical storage is always metric. Primary sets the working unit; secondary (optional) shows alongside in cards when dual-display is on.</div>`;
-  html+=Object.entries(QDEF).map(([k,d])=>{
-    const prim=Object.entries(d.opts).map(([ok,ol])=>`<button class="${UNITS[k]===ok?'on':''}" ${d.locked?'disabled':''} onclick="setUnit('${k}','${ok}')">${ol}</button>`).join('');
-    const secBtns=`<button class="${SUNITS[k]==='off'?'on':''}" onclick="setSec('${k}','off')">Off</button>`+Object.entries(d.opts).filter(([ok])=>ok!==UNITS[k]).map(([ok,ol])=>`<button class="${SUNITS[k]===ok?'on':''}" onclick="setSec('${k}','${ok}')">${ol}</button>`).join('');
-    return`<div style="margin-bottom:16px"><label style="font-family:var(--mono);font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em">${d.name}${d.locked?' · locked':''}</label>
-      <div class="seg" style="margin-top:6px">${prim}</div>
-      ${d.locked?'':`<label style="font-family:var(--mono);font-size:8px;color:var(--text3);text-transform:uppercase;margin-top:6px;display:block">secondary</label><div class="seg" style="margin-top:4px">${secBtns}</div>`}</div>`;
-  }).join('')+`</div>`;
+  // units block — V2.11.0 r5: Metric / Imperial presets + a compact per-unit table (folded unless custom)
+  {const pre=unitPreset(),opt=(o,v,l)=>`<option value="${o}"${o===v?' selected':''}>${l}</option>`;
+   const rows=Object.entries(QDEF).map(([k,d])=>{
+     const prim=d.locked?`<span class="ulock">${d.opts[UNITS[k]]} · locked</span>`:`<select aria-label="${d.name} — primary" onchange="setUnit('${k}',this.value)">${Object.entries(d.opts).map(([o,l])=>opt(o,UNITS[k],l)).join('')}</select>`;
+     const sec=d.locked?'':`<select aria-label="${d.name} — secondary" onchange="setSec('${k}',this.value)">${opt('off',SUNITS[k],'—')}${Object.entries(d.opts).filter(([o])=>o!==UNITS[k]).map(([o,l])=>opt(o,SUNITS[k],l)).join('')}</select>`;
+     return`<tr><th scope="row">${d.name}</th><td>${prim}</td><td>${sec}</td></tr>`;}).join('');
+   html+=`<div class="panel" id="units-panel"><h2>Units</h2>
+    <div class="seg" id="u-preset"><button class="${pre==='metric'?'on':''}" onclick="setUnitPreset('metric')">Metric</button><button class="${pre==='imperial'?'on':''}" onclick="setUnitPreset('imperial')">Imperial</button><button class="${pre?'':'on'}" onclick="document.getElementById('u-custom').open=true">Custom</button></div>
+    <div class="note" id="u-sum">${unitSummary(pre)}</div>
+    <details class="disc" id="u-custom"${pre?'':' open'}><summary>Each unit · primary / secondary</summary><div class="dbody">
+      <table class="utbl"><thead><tr><th></th><th>Primary</th><th>Secondary</th></tr></thead><tbody>${rows}</tbody></table></div></details>
+    <div class="note hlp">Storage is always metric; units only change what is shown and typed. Secondary (optional) appears after the primary in big output cards when dual display is on. Presets leave the angular unit (MRAD / MOA) as it is — it follows your scope.</div></div>`;}
   // calc block
   html+=`<div class="panel"><h2>Calculation</h2>
     <div class="fld"><label>Transonic warnings</label><div class="seg"><button class="${APP.transonicWarn?'on':''}" onclick="setApp('transonicWarn',true)">On</button><button class="${!APP.transonicWarn?'on':''}" onclick="setApp('transonicWarn',false)">Off</button></div></div>
@@ -1731,12 +1966,14 @@ function renderSettings(){
   html+=`<div class="panel"><h2>Scopes &amp; data</h2><div class="btnrow">
     <button class="btn" onclick="downloadScopePrompt()">Scope research prompt</button>
     <button class="btn danger" onclick="factoryReset()">Factory reset</button></div>
-    <div class="note">The scope research prompt is a file you hand to another chat with a scope SKU; it returns a SEN scope file you import under Profiles → Scopes → Import.</div></div>`;
+    <div class="note hlp">The scope research prompt is a file you hand to another chat with a scope SKU; it returns a SEN scope file you import under Profiles → Scopes → Import.</div></div>`;
   html+=`<div class="panel"><h2>Data storage</h2>
     <div class="note" id="store-info">Engine: ${_idb?'IndexedDB':'localStorage (fallback — about 5 MB, shared with the Lab app)'} · app data ${(storeBytes/1024).toFixed(0)} KB<br>
     Protection: ${storePersisted===true?'persistent — the browser will not clear it to free space':storePersisted===false?'not granted — the browser may clear it if the device runs low on space; installing the app usually grants it':'unknown'}<br>
     <span id="store-quota"></span></div></div>`;
   box.innerHTML=html;
+  helpSync();   // V2.11.0 r5
+  themeEditorInit();   // V2.11.0 r11
   renderStoreQuota();
 }
 async function renderStoreQuota(){
@@ -1748,7 +1985,52 @@ async function renderStoreQuota(){
 }
 function setUnit(k,v){if(QDEF[k].locked)return;UNITS[k]=v;if(SUNITS[k]===v)SUNITS[k]='off';saveDB();renderSettings();rerenderAll();}
 function setSec(k,v){SUNITS[k]=v;saveDB();renderSettings();rerenderAll();}
-function setApp(k,v){APP[k]=v;saveDB();if(k==='contrast'||k==='fontScale')applyDisplayPrefs();renderSettings();rerenderAll();}
+/* V2.11.0 r5 — unit presets. Same per-quantity rule as setUnit (a secondary equal to the new primary
+   turns off), applied to the whole set, then one re-render. Angular (scope) and locked quantities untouched. */
+const UNIT_PRESETS={
+  metric:{range:'m',zrange:'m',drop:'mm',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',bullet:'mm',tsize:'mm',alt:'m',regp:'bar'},
+  imperial:{range:'yd',zrange:'yd',drop:'in',sight:'in',vel:'fps',wind:'mph',temp:'f',pres:'inhg',energy:'ftlb',bullet:'in',tsize:'in',alt:'ft',regp:'psi'}};
+const unitPreset=()=>Object.keys(UNIT_PRESETS).find(n=>Object.entries(UNIT_PRESETS[n]).every(([k,v])=>QDEF[k].locked||UNITS[k]===v))||null;
+function unitSummary(pre){
+  if(pre)return(pre==='metric'?'Metric':'Imperial')+' · angular '+QDEF.ang.opts[UNITS.ang];
+  const diffs=n=>Object.keys(UNIT_PRESETS[n]).filter(k=>!QDEF[k].locked&&UNITS[k]!==UNIT_PRESETS[n][k]);
+  const near=diffs('metric').length<=diffs('imperial').length?'metric':'imperial',diff=diffs(near);   // describe against the closer preset
+  return'Custom · '+near+' except '+diff.map(k=>QDEF[k].name.toLowerCase()+' '+QDEF[k].opts[UNITS[k]]).join(', ')+' · angular '+QDEF.ang.opts[UNITS.ang];
+}
+/* V2.11.0 r5 — help behind ⓘ. Every .hlp note gets a ⓘ in its panel's title (or a "How this works"
+   button just above it when it sits outside a panel). Closed by default; each panel remembers its own
+   state; Settings → Help text "Always show" opens them all. Idempotent: safe after any re-render. */
+function helpKey(box){
+  if(box.id)return box.id;
+  const h=box.querySelector&&box.querySelector('h2'),t=h?[...h.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim():'';
+  const pg=(box.closest('.page')||{id:''}).id;
+  return pg+':'+(t||[...document.querySelectorAll('.hlp')].indexOf(box));
+}
+function helpSync(){
+  if(typeof document==='undefined')return;
+  document.documentElement.classList.toggle('help-all',APP.helpAll===true);
+  const st=APP.help&&typeof APP.help==='object'?APP.help:{};
+  document.querySelectorAll('.hlp').forEach(n=>{
+    const panel=n.closest('.panel');let box=panel,btn;
+    if(!panel){n.classList.add('solo');box=n;}
+    if(!box._hb){
+      btn=document.createElement('button');btn.type='button';btn.className='help-btn'+(panel?'':' solo');
+      if(panel){btn.textContent='i';const h=panel.querySelector('h2');if(h)h.appendChild(btn);else panel.prepend(btn);}
+      else{btn.textContent='i  How this works';n.before(btn);}
+      btn.onclick=e=>{e.stopPropagation();const k=helpKey(box),o=APP.help&&typeof APP.help==='object'?APP.help:{};o[k]=!o[k];APP.help=o;saveDBSoon();helpSync();};
+      box._hb=btn;
+    }
+    const open=!!st[helpKey(box)];
+    box.classList.toggle('help-open',open);box._hb.classList.toggle('on',open);
+    box._hb.setAttribute('aria-expanded',String(open));box._hb.setAttribute('aria-label',open?'Hide help':'Show help');
+  });
+}
+function setUnitPreset(n){
+  const P=UNIT_PRESETS[n];if(!P)return;
+  Object.entries(P).forEach(([k,v])=>{if(QDEF[k].locked||!QDEF[k].opts[v])return;UNITS[k]=v;if(SUNITS[k]===v)SUNITS[k]='off';});
+  saveDB();renderSettings();rerenderAll();
+}
+function setApp(k,v){APP[k]=v;saveDB();if(k==='contrast'||k==='fontScale')applyDisplayPrefs();if(k==='contrast'&&typeof themeApply==='function')themeApply(false);renderSettings();rerenderAll();}
 function rerenderAll(){refreshUnits();if(lastTraj){renderTraj();renderQuick();}renderActBar();syncTrajInputs();}
 function downloadScopePrompt(){
   const schema=JSON.stringify({senScopeImport:1,scope:{name:"",sku:"",adjUnit:"mil",click:0.1,cpr:100,elev:0,wind:0,source:"",notes:""},reticle:{id:"",name:"",fp:"FFP",dotMrad:0,hashes:[],windHashes:[],verified:false,notes:""}},null,2);
@@ -2331,18 +2613,21 @@ function markSrc(f){
 }
 
 /* ═════════ shell render ═════════ */
-function renderActBar(){
+// V2.11.0 r1: the chip values as data, shared by the chip bar and the Field summary sheet (raw text, never HTML)
+function actItems(){
   const r=getRifle(),p=getProj(),cw=getWx(S.curWxId);
+  return[['Rifle',r?r.name:'— select —','rifle'],['Projectile',p?p.name:'— select —','proj'],
+    ['MV',S.mv?ut('vel',S.mv)+(S.src.mv==='manual'?' ✎':S.src.mv==='chrono'?' ⊙':S.src.mv==='mvtemp'?' ƒT':''):'—','mv'],
+    ['Weather',cw?cw.name.replace('Ljubljana ','LJ '):'— select —','wx'],
+    ['Wind',ut('wind',S.wind.speed)+' @ '+Math.round(S.wind.dir)+'°'+(S.wind.source==='calypso'?' ⊙':''),'wind'],
+    ['Distance',ut('range',S.dist_m),'dist']];
+}
+function renderActBar(){
+  if(typeof sesSync==='function')sesSync();   // V2.11.0 r7
   // V1.17.0: a chip now opens its own picker sheet instead of navigating to the Trajectory tab.
   // Changing the session no longer costs you the tab you were working on.
-  const chip=(k,v,kind)=>`<button class="actchip" onclick="pickSheet('${kind}')"><span class="k">${k}</span><span class="v">${v}</span></button>`;
-  document.getElementById('actbar').innerHTML=
-    chip('Rifle',r?esc(r.name):'— select —','rifle')+
-    chip('Projectile',p?esc(p.name):'— select —','proj')+
-    chip('MV',S.mv?ut('vel',S.mv)+(S.src.mv==='manual'?' ✎':S.src.mv==='chrono'?' ⊙':S.src.mv==='mvtemp'?' ƒT':''):'—','mv')+
-    chip('Weather',cw?esc(cw.name.replace('Ljubljana ','LJ ')):'— select —','wx')+
-    chip('Wind',ut('wind',S.wind.speed)+' @ '+Math.round(S.wind.dir)+'°'+(S.wind.source==='calypso'?' ⊙':''),'wind')+
-    chip('Distance',ut('range',S.dist_m),'dist');
+  const chip=(k,v,kind)=>`<button class="actchip" onclick="pickSheet('${kind}')"><span class="k">${k}</span><span class="v">${esc(v)}</span></button>`;
+  document.getElementById('actbar').innerHTML=actItems().map(([k,v,kind])=>chip(k,v,kind)).join('');
 }
 /* ═════ V1.17.0 — bottom sheets: More menu + inline session pickers ═════
    Every picker writes through the SAME Bus calls the Trajectory selects use, so there is exactly
@@ -2350,12 +2635,40 @@ function renderActBar(){
 const MORE_PAGES=[['stab','Stability','Berger Sg · twist'],['bench','Design Bench','geometry · mass · SD'],['truing','BC / Truing','BC, SD, MV–temp'],
   ['holds','Holds','reticle holdover'],['profiles','Profiles','rifles, scopes, ammo'],
   ['sensors','Sensors','Calypso · chrono'],['layouts','Layouts','Home per match type'],['formulas','Formulas','§20A self-check'],['settings','Settings','units, display, field']];
-function openSheet(html){document.getElementById('sbox').innerHTML='<div class="sgrab"></div>'+html;document.getElementById('sheet').classList.add('open');}
-function closeSheet(){document.getElementById('sheet').classList.remove('open');document.getElementById('sbox').innerHTML='';}
+/* V2.11.0 r8 — choosable bottom bar. Home is first and More is last; the three slots between take any
+   other page (Advanced = Trajectory + Shot solver). Pages not on the bar are in the More sheet. */
+const NAV_ALL={adv:['Advanced','trajectory · shot solver','↗'],wind:['Wind','drift · source','≋'],dope:['Dope','dope cards','⌸'],
+  stab:['Stability','Berger Sg · twist','◎'],bench:['Bench','geometry · mass · SD','⬡'],truing:['Truing','BC, SD, MV–temp','✓'],holds:['Holds','reticle holdover','⊕'],
+  profiles:['Profiles','rifles, scopes, ammo','☰'],sensors:['Sensors','Calypso · chrono','⌁'],layouts:['Layouts','Home per match type','▦'],formulas:['Formulas','§20A self-check','ƒ'],settings:['Settings','units, display, field','⚙']};
+const NAV_DEFAULT=['adv','wind','dope'];
+const navTabs=()=>{const t=Array.isArray(APP.navTabs)?APP.navTabs.filter((k,i,a)=>NAV_ALL[k]&&a.indexOf(k)===i).slice(0,3):NAV_DEFAULT;return t;};
+const navKey=p=>p==='traj'||p==='solver'?'adv':p;
+function morePages(){
+  const bar=navTabs();
+  return Object.entries(NAV_ALL).filter(([k])=>!bar.includes(k)).map(([k,[n,sub]])=>{const m=MORE_PAGES.find(x=>x[0]===k);return[k,m?m[1]:n,sub];});
+}
+function renderNav(){
+  const nav=document.getElementById('nav');if(!nav)return;
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const mk=(k,label,icon)=>{const b=el('button');b.type='button';b.append(el('span','ni',icon),document.createTextNode(label));
+    if(k==='adv'){b.id='nav-adv';b.onclick=goAdv;}else{b.dataset.page=k;b.onclick=()=>gotoPage(k);}return b;};
+  const more=el('button');more.type='button';more.id='nav-more';more.onclick=openMore;more.append(el('span','ni','⋯'),document.createTextNode('More'));
+  nav.replaceChildren(mk('home','Home','◉'),...navTabs().map(k=>mk(k,NAV_ALL[k][0],NAV_ALL[k][2])),more);
+  const p=curPage();nav.querySelectorAll('button[data-page]').forEach(b=>b.classList.toggle('on',b.dataset.page===p));
+  more.classList.toggle('on',p!=='home'&&!navTabs().includes(navKey(p)));
+  advSync(p);
+}
+function setNavTab(i,k){
+  const t=[...navTabs()];while(t.length<3)t.push(null);
+  const j=t.indexOf(k);if(j>=0&&j!==i)t[j]=t[i];   // choosing a page already on the bar swaps the two
+  t[i]=NAV_ALL[k]?k:null;APP.navTabs=t.filter(Boolean);saveDB();renderNav();renderSettings();
+}
+function openSheet(html){const sb=document.getElementById('sbox');delete sb.dataset.dev;sb.innerHTML='<div class="sgrab"></div>'+html;document.getElementById('sheet').classList.add('open');backArm();}
+function closeSheet(){document.getElementById('sheet').classList.remove('open');const b=document.getElementById('sbox');b.innerHTML='';delete b.dataset.dev;}
 function openMore(){
   const cur=document.querySelector('.page.active')?.id.replace('page-','')||'';
-  openSheet('<h3>More</h3><div class="nav navsheet">'+MORE_PAGES.map(([id,name,sub])=>
-    `<button data-page="${id}" class="${id===cur?'on':''}" onclick="closeSheet();gotoPage('${id}')">${name}<span class="nsub">${sub}</span></button>`).join('')+'</div>');
+  openSheet('<h3>More</h3><div class="nav navsheet">'+morePages().map(([id,name,sub])=>
+    `<button data-page="${id}" class="${id===cur?'on':''}" onclick="closeSheet();${id==='adv'?'goAdv()':`gotoPage('${id}')`}">${name}<span class="nsub">${sub}</span></button>`).join('')+'</div>');
 }
 function sItem(kind,id,name,meta,on){
   return `<button class="sitem ${on?'on':''}" onclick="sheetPick('${kind}','${id}')"><span>${name}</span><span class="sm">${meta||''}</span></button>`;
@@ -2403,6 +2716,7 @@ function pickSheet(kind){
   }else if(kind==='dist'){
     openSheet('<h3>Target distance</h3><div class="fld"><label>Distance</label><input type="number" id="sh-num" data-q="range" step="5" value="'+S.dist_m+'"></div>'+
       '<div class="btnrow"><button class="btn primary" onclick="sheetSetNum(\'dist\')">Set</button><button class="btn" onclick="closeSheet()">Cancel</button></div>');
+    distSheetExtras();   // V2.11.0 r1
   }else if(kind==='mv'){
     openSheet('<h3>Muzzle velocity</h3><div class="fld"><label>m/s · overrides the rifle profile</label><input type="number" id="sh-num" data-q="vel" step="0.1" value="'+(S.mv??'')+'"></div>'+
       '<div class="btnrow"><button class="btn primary" onclick="sheetSetNum(\'mv\')">Set</button><button class="btn" onclick="Bus.repull(\'mv\');closeSheet()">Back to profile</button></div>');
@@ -2567,6 +2881,7 @@ function renderQuick(){
     }
   }
   document.getElementById('home-status').textContent=statusMsg;
+  fieldSync(statusMsg);  // V2.11.0 r1
   renderHomeMods(tr);
   homeShellSync();
   document.getElementById('home-reticle').innerHTML=drawReticle(reticle,elev,wind,scope);
@@ -2587,8 +2902,8 @@ function drawVCT34(ret,elev,wind,scope){
   const span=spanForMag(mag,lo,hi,reticleExtent(ret));
   const sc=(cx-14)/span;
   const X=m=>cx+m*sc,Y=m=>cy+m*sc,vis=m=>Math.abs(m)<=span*1.01;
-  const C='rgba(230,228,222,.92)',CD='rgba(149,146,137,.75)';
-  let s=`<svg viewBox="0 0 ${S2} ${S2}" xmlns="http://www.w3.org/2000/svg"><rect width="${S2}" height="${S2}" rx="14" fill="#0a0c0f"/><circle cx="${cx}" cy="${cy}" r="${cx-4}" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="1.5"/>`;
+  const C=tc('retLine'),CD=tc('retDim');
+  let s=`<svg viewBox="0 0 ${S2} ${S2}" xmlns="http://www.w3.org/2000/svg"><rect width="${S2}" height="${S2}" rx="14" fill="${tc('retBg')}"/><circle cx="${cx}" cy="${cy}" r="${cx-4}" fill="none" stroke="${tc('retRing')}" stroke-width="1.5"/>`;
   const post8=X(8),postN8=X(-8);
   if(vis(8)){s+=`<rect x="${post8}" y="${cy-2.5}" width="${Math.max(0,S2-12-post8)}" height="5" fill="${C}"/><rect x="12" y="${cy-2.5}" width="${Math.max(0,postN8-12)}" height="5" fill="${C}"/>`;}
   for(let m=0.2;m<=8.001;m+=0.2){const mm=+m.toFixed(1);if(!vis(mm))continue;const whole=Math.abs(mm-Math.round(mm))<0.001;const len=whole?(Math.round(mm)%5===0?11:8):4;
@@ -2602,11 +2917,11 @@ function drawVCT34(ret,elev,wind,scope){
     s+=`<text x="${X(-halfW)-5}" y="${yy+3}" fill="${CD}" font-size="8" font-family="monospace" text-anchor="end">${row}</text><text x="${X(halfW)+5}" y="${yy+3}" fill="${CD}" font-size="8" font-family="monospace">${row}</text>`;
     for(let w=-halfW;w<=halfW+0.001;w+=0.5){const ww=+w.toFixed(1);if(Math.abs(ww)<0.001)continue;if(!vis(ww))continue;s+=`<circle cx="${X(ww)}" cy="${yy}" r="1.3" fill="${C}"/>`;}
     s+=`<line x1="${cx-6}" y1="${yy}" x2="${cx+6}" y2="${yy}" stroke="${C}" stroke-width="1.2"/>`;});
-  s+=`<circle cx="${cx}" cy="${cy}" r="${Math.max(1.6,0.12*sc)}" fill="rgba(126,184,196,.95)"/>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${Math.max(1.6,0.12*sc)}" fill="${tc('retDot')}"/>`;
   if(elev&&wind){const holdE=(elev.rem!=null?elev.rem:elev.mr),holdW=(wind.rem!=null?wind.rem:wind.mr);const off=Math.abs(holdW)>span||Math.abs(holdE)>span;const px=Math.max(10,Math.min(S2-10,X(holdW))),py=Math.max(10,Math.min(S2-10,Y(holdE)));
-    s+=`<circle cx="${px}" cy="${py}" r="7" fill="${off?'rgba(224,122,95,.92)':'rgba(122,184,122,.95)'}" stroke="#0a0c0f" stroke-width="2"/>`;
-    if(off)s+=`<text x="${px}" y="${py-11}" fill="#e07a5f" font-size="10" font-family="monospace" text-anchor="middle">off-glass · lower ×</text>`;}
-  s+=`<text x="${S2-10}" y="${S2-10}" fill="rgba(149,146,137,.6)" font-size="10" font-family="monospace" text-anchor="end">${mag}× · VCT-34FFP</text>`;
+    s+=`<circle cx="${px}" cy="${py}" r="7" fill="${off?tc('retOff'):tc('retHold')}" stroke="${tc('retBg')}" stroke-width="2"/>`;
+    if(off)s+=`<text x="${px}" y="${py-11}" fill="${tc('retOffTxt')}" font-size="10" font-family="monospace" text-anchor="middle">off-glass · lower ×</text>`;}
+  s+=`<text x="${S2-10}" y="${S2-10}" fill="${tc('retCap')}" font-size="10" font-family="monospace" text-anchor="end">${mag}× · VCT-34FFP</text>`;
   return s+`</svg>`;
 }
 function drawGenericReticle(ret,elev,wind,scope){
@@ -2616,13 +2931,13 @@ function drawGenericReticle(ret,elev,wind,scope){
   const maxH=Math.max(ret.hashes[ret.hashes.length-1]||5,ret.windHashes[ret.windHashes.length-1]||5);
   const span=spanForMag(mag,lo,hi,maxH);
   const sc=(cx-16)/span;const X=m=>cx+m*sc,Y=m=>cy+m*sc,vis=m=>Math.abs(m)<=span*1.02;
-  let s=`<svg viewBox="0 0 ${S2} ${S2}" xmlns="http://www.w3.org/2000/svg"><rect width="${S2}" height="${S2}" rx="14" fill="#0a0c0f"/><circle cx="${cx}" cy="${cy}" r="${cx-5}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1.5"/>`;
-  s+=`<line x1="12" y1="${cy}" x2="${S2-12}" y2="${cy}" stroke="rgba(126,184,196,.35)" stroke-width="1.4"/><line x1="${cx}" y1="12" x2="${cx}" y2="${S2-12}" stroke="rgba(126,184,196,.35)" stroke-width="1.4"/>`;
-  ret.hashes.forEach(h=>{if(!vis(h))return;const len=(Math.round(h*2)%2===0)?12:7;s+=`<line x1="${cx-len}" y1="${Y(h)}" x2="${cx+len}" y2="${Y(h)}" stroke="rgba(189,186,177,.55)" stroke-width="1.4"/>`;if(Math.round(h*2)%2===0)s+=`<text x="${cx+len+3}" y="${Y(h)+3}" fill="rgba(149,146,137,.7)" font-size="9" font-family="monospace">${h}</text>`;});
-  ret.windHashes.forEach(h=>{if(!vis(h))return;const len=(Math.round(h*2)%2===0)?12:7;s+=`<line x1="${X(h)}" y1="${cy-len}" x2="${X(h)}" y2="${cy+len}" stroke="rgba(189,186,177,.45)" stroke-width="1.4"/><line x1="${X(-h)}" y1="${cy-len}" x2="${X(-h)}" y2="${cy+len}" stroke="rgba(189,186,177,.45)" stroke-width="1.4"/>`;});
-  s+=`<circle cx="${cx}" cy="${cy}" r="${Math.max(2,(ret.dotMrad||0.05)*sc)}" fill="rgba(126,184,196,.65)"/>`;
-  if(elev&&wind){const holdE=(elev.rem!=null?elev.rem:elev.mr),holdW=(wind.rem!=null?wind.rem:wind.mr);const off=Math.abs(holdW)>span||Math.abs(holdE)>span;const px=Math.max(12,Math.min(S2-12,X(holdW))),py=Math.max(12,Math.min(S2-12,Y(holdE)));s+=`<circle cx="${px}" cy="${py}" r="8" fill="${off?'rgba(224,122,95,.92)':'rgba(122,184,122,.95)'}" stroke="#0a0c0f" stroke-width="2"/>`;if(off)s+=`<text x="${px}" y="${py-13}" fill="#e07a5f" font-size="11" font-family="monospace" text-anchor="middle">off-glass · lower ×</text>`;}
-  s+=`<text x="${S2-10}" y="${S2-10}" fill="rgba(149,146,137,.6)" font-size="10" font-family="monospace" text-anchor="end">${mag}× · ±${span.toFixed(1)} mil</text>`;
+  let s=`<svg viewBox="0 0 ${S2} ${S2}" xmlns="http://www.w3.org/2000/svg"><rect width="${S2}" height="${S2}" rx="14" fill="${tc('retBg')}"/><circle cx="${cx}" cy="${cy}" r="${cx-5}" fill="none" stroke="${tc('retRing')}" stroke-width="1.5"/>`;
+  s+=`<line x1="12" y1="${cy}" x2="${S2-12}" y2="${cy}" stroke="${tc('retCross')}" stroke-width="1.4"/><line x1="${cx}" y1="12" x2="${cx}" y2="${S2-12}" stroke="${tc('retCross')}" stroke-width="1.4"/>`;
+  ret.hashes.forEach(h=>{if(!vis(h))return;const len=(Math.round(h*2)%2===0)?12:7;s+=`<line x1="${cx-len}" y1="${Y(h)}" x2="${cx+len}" y2="${Y(h)}" stroke="${tc('retHash')}" stroke-width="1.4"/>`;if(Math.round(h*2)%2===0)s+=`<text x="${cx+len+3}" y="${Y(h)+3}" fill="${tc('retDim2')}" font-size="9" font-family="monospace">${h}</text>`;});
+  ret.windHashes.forEach(h=>{if(!vis(h))return;const len=(Math.round(h*2)%2===0)?12:7;s+=`<line x1="${X(h)}" y1="${cy-len}" x2="${X(h)}" y2="${cy+len}" stroke="${tc('retHash2')}" stroke-width="1.4"/><line x1="${X(-h)}" y1="${cy-len}" x2="${X(-h)}" y2="${cy+len}" stroke="${tc('retHash2')}" stroke-width="1.4"/>`;});
+  s+=`<circle cx="${cx}" cy="${cy}" r="${Math.max(2,(ret.dotMrad||0.05)*sc)}" fill="${tc('retDot2')}"/>`;
+  if(elev&&wind){const holdE=(elev.rem!=null?elev.rem:elev.mr),holdW=(wind.rem!=null?wind.rem:wind.mr);const off=Math.abs(holdW)>span||Math.abs(holdE)>span;const px=Math.max(12,Math.min(S2-12,X(holdW))),py=Math.max(12,Math.min(S2-12,Y(holdE)));s+=`<circle cx="${px}" cy="${py}" r="8" fill="${off?tc('retOff'):tc('retHold')}" stroke="${tc('retBg')}" stroke-width="2"/>`;if(off)s+=`<text x="${px}" y="${py-13}" fill="${tc('retOffTxt')}" font-size="11" font-family="monospace" text-anchor="middle">off-glass · lower ×</text>`;}
+  s+=`<text x="${S2-10}" y="${S2-10}" fill="${tc('retCap')}" font-size="10" font-family="monospace" text-anchor="end">${mag}× · ±${span.toFixed(1)} mil</text>`;
   return s+`</svg>`;
 }
 /* V1.17.0: collapsed Home panels must still report their state, and the first-run card must
@@ -2801,7 +3116,7 @@ function nearestPt(pts,d){
 function syncTrajInputs(){
   const setv=(id,v)=>{const e=document.getElementById(id);if(e&&document.activeElement!==e)e.value=v==null?'':v;};
   setv('tr-mv',S.mv);setv('tr-bc',S.bc);setv('tr-sight',S.sight_mm);
-  setv('tr-ct',S.ct);setv('tr-cp',S.cp);setv('tr-crh',S.crh);
+  setv('tr-ct',S.ct);setv('tr-cp',S.cp==null?null:+(+S.cp).toFixed(1));setv('tr-crh',S.crh);   // V2.11.0 r7: shown to 0.1 hPa, S.cp stays exact
   setv('tr-zero',S.zero_m);setv('tr-dist',S.dist_m);
   ['mv','bc','sight','ct','cp','crh'].forEach(markSrc);
   const z=zeroConds();
@@ -2830,11 +3145,15 @@ function refreshSelects(){
 function gotoPage(p){
   const pg=document.getElementById('page-'+p);
   if(!pg)return;  // V1.17.1: unknown/undefined target is a no-op, never a thrown TypeError
+  const prevPg=(document.querySelector('.page.active')||{id:'page-home'}).id.slice(5);  // V2.11.0 r2: back button
   document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
   document.querySelectorAll('.nav button').forEach(e=>e.classList.toggle('on',e.dataset.page===p));
   // V1.17.0: pages that live behind More keep the More tab lit, so the bar never looks unselected
   const more=document.getElementById('nav-more');
-  if(more)more.classList.toggle('on',MORE_PAGES.some(m=>m[0]===p));
+  if(more)more.classList.toggle('on',p!=='home'&&!navTabs().includes(navKey(p)));   // V2.11.0 r8: any page not on the bar
+  advSync(p);  // V2.11.0 r6
+  hdrPage(p);  // V2.11.0 r1
+  navTrack(prevPg,p);  // V2.11.0 r2
   window.scrollTo(0,0);
   pg.classList.add('active');
   if(twoPane)applyPane(p);   // V2.7.0 CORE-18
@@ -2845,9 +3164,9 @@ function gotoPage(p){
   if(p==='home')renderQuick();
   if(p==='stab'&&getRifle()&&getProj())stabFromActive();
   if(p==='wind'){document.getElementById('wd-spd').value=S.wind.speed;document.getElementById('wd-dir').value=S.wind.dir;setWindMode(S.wind.source==='calypso'?'live':'manual');}
-  if(p==='solver'){document.getElementById('sv-tdist').value=S.dist_m;document.getElementById('sv-wind').value=S.wind.speed;document.getElementById('sv-wdir').value=S.wind.dir;solve();}
+  if(p==='solver'){stripMirror();solve();}   // V2.11.0 r7: distance, angle, cant and wind all from the session
   if(p==='dope'){refreshDopeSel();loadDope();}
-  if(p==='truing'){tuInit();if(getProj())bcFromProj();else calcBC();mvtRender();}
+  if(p==='truing'){setTruTab(APP.truTab,true);tuInit();if(getProj())bcFromProj();else calcBC();mvtRender();}
   if(p==='holds')renderHolds();
   if(p==='formulas')renderFormulas();
   if(p==='layouts')renderLayouts();
@@ -2856,6 +3175,7 @@ function gotoPage(p){
 // its own inline openMore() handler — the old unconditional wiring overwrote it with
 // gotoPage(undefined), which then threw on getElementById('page-undefined').
 document.querySelectorAll('.nav button[data-page]').forEach(b=>b.onclick=()=>gotoPage(b.dataset.page));
+// V2.11.0 r8: the bar itself is rebuilt from Settings at boot (renderNav, in fieldInit)
 function setDrag(d){
   S.drag=d;Bus.pullFromProfiles(['bc']);syncDragUI();Bus.notify();
 }
@@ -2998,16 +3318,16 @@ function drawChart(){
   const pts=lastTraj.pts,pad={l:46,r:10,t:12,b:26},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
   const ds=pts.map(q=>q.drop),mn=Math.min(...ds,0),mx=Math.max(...ds,0),rng=(mx-mn)||1;
   const px=r=>pad.l+r/lastTraj.max_m*cw, py=d=>pad.t+ch-(d-mn)/rng*ch;
-  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=.5;
+  ctx.strokeStyle=tc('chGrid');ctx.lineWidth=.5;
   const gs=lastTraj.max_m<=150?25:50;
   for(let r=0;r<=lastTraj.max_m;r+=gs){ctx.beginPath();ctx.moveTo(px(r),pad.t);ctx.lineTo(px(r),pad.t+ch);ctx.stroke();}
   for(let i=0;i<=4;i++){ctx.beginPath();ctx.moveTo(pad.l,pad.t+ch*i/4);ctx.lineTo(pad.l+cw,pad.t+ch*i/4);ctx.stroke();}
-  ctx.strokeStyle='rgba(111,168,200,.35)';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(pad.l,py(0));ctx.lineTo(pad.l+cw,py(0));ctx.stroke();ctx.setLineDash([]);
-  ctx.fillStyle='rgba(200,169,110,.5)';ctx.fillRect(px(S.zero_m)-1,pad.t,2,ch);
-  ctx.fillStyle='rgba(126,184,196,.3)';ctx.fillRect(px(S.dist_m)-1,pad.t,2,ch);
-  ctx.strokeStyle='#7eb8c4';ctx.lineWidth=2;ctx.beginPath();
+  ctx.strokeStyle=tc('chZero');ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(pad.l,py(0));ctx.lineTo(pad.l+cw,py(0));ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=tc('chZeroM');ctx.fillRect(px(S.zero_m)-1,pad.t,2,ch);
+  ctx.fillStyle=tc('chTgt');ctx.fillRect(px(S.dist_m)-1,pad.t,2,ch);
+  ctx.strokeStyle=tc('chLine');ctx.lineWidth=2;ctx.beginPath();
   pts.forEach((q,i)=>{i===0?ctx.moveTo(px(q.range),py(q.drop)):ctx.lineTo(px(q.range),py(q.drop));});ctx.stroke();
-  ctx.fillStyle='rgba(86,84,79,.9)';ctx.font='9px IBM Plex Mono';ctx.textAlign='center';
+  ctx.fillStyle=tc('chLbl');ctx.font='9px IBM Plex Mono';ctx.textAlign='center';
   for(let r=0;r<=lastTraj.max_m;r+=gs)ctx.fillText(fmtv('range',r,UNITS.range)+lab('range',UNITS.range),px(r),pad.t+ch+15);
   ctx.textAlign='right';for(let i=0;i<=4;i++)ctx.fillText((mx-(mx-mn)*i/4).toFixed(0),pad.l-5,pad.t+ch*i/4+3);
 }
@@ -3453,7 +3773,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.10.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.11.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4029,7 +4349,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.10.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.11.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4318,7 +4638,7 @@ function rfFrame(d,b){
   if(!RFS.includes(d))return; // a listener left from an earlier connection of the same unit
   const r=rfParse(b);if(!r)return; // not a ranging frame — ignored
   d.last={m:r.m,deg:r.deg,t:Date.now()};d.n++;
-  if(APP.rfFill!==false)rfFill(d);
+  if(APP.rfFill!==false&&!d.paused)rfFill(d);   // V2.11.0 r2: a paused rangefinder still shows its ranging, fills nothing
   rfRender();
 }
 // Write a ranging into the session: S.dist_m (all pages) and both shot-angle inputs (Home, Solver).
@@ -4356,6 +4676,7 @@ function rfRender(){
   const lastD=RFS.filter(d=>d.last).sort((a,b)=>b.last.t-a.last.t)[0];
   document.getElementById('rf-last').textContent=lastD?'Last ranging: '+rfDist(lastD.last.m)+' at '+(lastD.last.deg>0?'+':'')+lastD.last.deg+'° from '+(lastD.link.name||'rangefinder')+' · '+rfTime(lastD.last.t)+(APP.rfFill===false?' (not filled: switch is off)':''):'';
   rfSrcRender();
+  devSync();   // V2.11.0 r2
 }
 // Source line under the distance/angle inputs on Home and the Solver: "from <unit>" while the session
 // still holds that ranging, "typed" once either value differs from it (§20E: source visible, override kept).
@@ -4442,6 +4763,7 @@ function lrRx(d,b){
 // (e.g. after a reconnect); a typed or imported string is replaced by a new LabRadar string (Clear starts over).
 function lrShot(d,v){
   d.last={v,t:Date.now()};
+  if(d.paused){lrRender();return;}   // V2.11.0 r2: paused → shown, not added to the shot string
   let c=chClean(APP.chronoStr);
   if(!c||c.src!=='labradar')c={shots:[],off:[],name:'LabRadar '+(d.link.name||'')+(d.series!=null?' · series '+d.series:''),date:new Date().toISOString().slice(0,10),src:'labradar',unit:'ms'};
   if(c.shots.length>=CH_MAX){chMsg('Shot string full ('+CH_MAX+' shots): clear it to keep recording.');return;}
@@ -4467,6 +4789,7 @@ function lrRender(){
     /^refused/.test(d.key)?'The LabRadar refused the app key: no shots will arrive. Save a Lab log and send it over.':
     silent?'No reply from the LabRadar for '+Math.round((Date.now()-d.lastRx)/1000)+' s: link silent.':
     d.last?'Last shot '+uq('vel',d.last.v)+' · '+new Date(d.last.t).toTimeString().slice(0,8):d.key==='accepted'?'Ready: arm the LabRadar and shoot.':'Starting…');
+  devSync();   // V2.11.0 r2
 }
 
 /* ═════ Calypso driver (V2.0.0: any number of units at once) ═════
@@ -4593,6 +4916,7 @@ function calRender(){
     row.append(dot,lab,info,bat,x);return row;}));
   const add=document.getElementById('cal-add');if(add)add.style.display=CALS.length?'':'none';
   calStatus();stnRender();stnLive();
+  devSync();   // V2.11.0 r2
 }
 const lab2=q=>lab(q,UNITS[q]);
 function updateBleDisplay(){
@@ -4604,7 +4928,7 @@ function updateBleDisplay(){
   if(ctr){const age=(Date.now()-bleLastWu)/1000;ctr.textContent=bleLastWu?(age<3?'live':'signal lost ('+age.toFixed(0)+'s)'):'awaiting wind…';}
   wavgRender();calRender();
   // Live mode → push avg wind into the session (avg is stable; instant shown above)
-  if(windMode==='live'||homeLive){
+  if((windMode==='live'||homeLive)&&!(calPrimary()&&calPrimary().paused)){   // V2.11.0 r2: a paused session unit holds its last wind
     // home-live uses the chosen source (avg/instant); wind-tab live uses avg
     calypsoLive(homeLive&&windMode!=='live'?homeWindSrc:'avg');
     if(windMode==='live'){const sp=document.getElementById('wd-spd'),di=document.getElementById('wd-dir');if(sp)sp.value=bleAvgNow().s.toFixed(1);if(di)di.value=S.wind.dir;}
@@ -4782,7 +5106,11 @@ Bus.on(()=>{if(document.getElementById('page-sensors')?.classList.contains('acti
    moves dash/turret/conditions into the rail; ordering then uses its placeholders. All layout UI
    is built with createElement/textContent — no HTML from user text. */
 const HOME_MODS={
-  solution:{el:'home-dash',name:'Reticle + elevation / windage'},
+  solution:{el:'home-dash',name:'Reticle (+ clicks when Answer is off)'},
+  summary:{el:'home-summary',name:'Session summary (one line)'},     // V2.11.0 r1
+  answer:{el:'home-answer',name:'Answer — elevation / windage clicks'}, // V2.11.0 r1
+  distance:{el:'home-distance',name:'Distance — tap to type, hold and drag'}, // V2.11.0 r1
+  devices:{el:'home-devices',name:'Devices — Weather · Range · Chrono'},     // V2.11.0 r2
   rail:{el:'home-rail-panel',name:'Adjustable rail budget'},
   turret:{el:'home-turret-panel',name:'Turret dialled'},
   live:{el:'home-livebar',name:'Calypso live wind'},
@@ -4798,41 +5126,63 @@ const HOME_MODS={
   course:{el:'home-course',name:'Course runner (stage · targets · calls)'}
 };
 const LAYOUT_TPL={
-  default:{name:'Default',on:['solution','rail','turret','live','bearing','manwind','cond','inputs'],set:{dist:null,timerMin:20,shots:25}},
+  default:{name:'Classic',on:['solution','rail','turret','live','bearing','manwind','cond','inputs'],set:{dist:null,timerMin:20,shots:25}},
   br50:{name:'Benchrest 50 m',on:['solution','windoff','windtable','chrono','timer','live','manwind','cond','inputs'],set:{dist:50,timerMin:20,shots:25}},
   br100:{name:'Benchrest 100 m',on:['solution','windoff','windtable','chrono','timer','live','manwind','cond','inputs'],set:{dist:100,timerMin:20,shots:25}},
   prs:{name:'PRS',on:['course','solution','turret','live','bearing','cond','inputs'],set:{dist:null,timerMin:20,shots:25}},
   bigbore:{name:'Big bore',on:['course','solution','turret','live','cond','inputs'],set:{dist:null,timerMin:20,shots:25}},
-  blank:{name:'New layout',on:['solution','inputs'],set:{dist:null,timerMin:20,shots:25}}
+  blank:{name:'New layout',on:['solution','inputs'],set:{dist:null,timerMin:20,shots:25}},
+  field:{name:'Default',on:['summary','answer','distance','devices','solution','turret'],set:{dist:null,timerMin:20,shots:25}}  // V2.11.0 r1
 };
 function layoutFromTpl(t,name){
   const T=LAYOUT_TPL[t]||LAYOUT_TPL.default;
   return{id:uid(),name:name||T.name,tpl:t,mods:[...T.on.map(id=>({id,on:true})),...Object.keys(HOME_MODS).filter(k=>!T.on.includes(k)).map(id=>({id,on:false}))],set:{...T.set}};
 }
 // Keep every stored layout valid: known modules only, each exactly once, new modules appended (off).
-function normLayout(L){
+function normMods(arr){
   const seen=new Set(),mods=[];
-  (Array.isArray(L.mods)?L.mods:[]).forEach(m=>{if(m&&HOME_MODS[m.id]&&!seen.has(m.id)){seen.add(m.id);mods.push({id:m.id,on:!!m.on});}});
+  (Array.isArray(arr)?arr:[]).forEach(m=>{if(m&&HOME_MODS[m.id]&&!seen.has(m.id)){seen.add(m.id);mods.push({id:m.id,on:!!m.on});}});
   Object.keys(HOME_MODS).forEach(id=>{if(!seen.has(id))mods.push({id,on:false});});
-  const s=L.set||{};
-  return{id:typeof L.id==='string'&&L.id?L.id:uid(),name:String(L.name||'Layout').slice(0,40),tpl:LAYOUT_TPL[L.tpl]?L.tpl:'blank',mods,
-    set:{dist:s.dist>0?+s.dist:null,timerMin:s.timerMin>0?Math.min(180,+s.timerMin):20,shots:s.shots>0?Math.min(999,Math.round(s.shots)):25}};
+  return mods;
 }
+function normLayout(L){
+  const mods=normMods(L.mods);
+  const s=L.set||{};
+  const out={id:typeof L.id==='string'&&L.id?L.id:uid(),name:String(L.name||'Layout').slice(0,40),tpl:LAYOUT_TPL[L.tpl]?L.tpl:'blank',mods,
+    set:{dist:s.dist>0?+s.dist:null,timerMin:s.timerMin>0?Math.min(180,+s.timerMin):20,shots:s.shots>0?Math.min(999,Math.round(s.shots)):25}};
+  if(Array.isArray(L.modsInner))out.modsInner=normMods(L.modsInner);   // V2.11.0 r8: the inner screen's own order (optional)
+  return out;
+}
+// V2.11.0 r8: the module list in effect — the inner screen's own one when it has one and the app is two-pane
+const activeMods=L=>L?(typeof twoPane!=='undefined'&&twoPane&&Array.isArray(L.modsInner)?L.modsInner:L.mods):[];
 function initLayouts(){
   if(!Array.isArray(APP.layouts)||!APP.layouts.length)APP.layouts=['default','br50','br100','prs','bigbore'].map(t=>layoutFromTpl(t));
   APP.layouts=APP.layouts.map(normLayout);
+  // V2.11.0: the Field template is the default layout, named "Default" — first in the list and in use; the
+  // pre-V2.11.0 Home is "Classic". Runs once per store (fresh installs and data from V2.10.0 or older, no flag).
+  if(!APP.fieldDefault){
+    let F=APP.layouts.find(l=>l.tpl==='field');
+    if(F)APP.layouts=APP.layouts.filter(l=>l!==F);else F=layoutFromTpl('field');
+    APP.layouts.unshift(F);
+    APP.layouts.forEach(l=>{if(l.tpl==='default'&&l.name==='Default')l.name='Classic';});
+    if(F.name==='Field')F.name='Default';   // a sandbox-era store
+    APP.layoutId=F.id;APP.fieldDefault=true;
+    // a Field layout from r1 gets the device row, right under Distance
+    if(F.tpl==='field'&&!F.mods.some(m=>m.id==='devices'&&m.on)){F.mods=F.mods.filter(m=>m.id!=='devices');const i=F.mods.findIndex(m=>m.id==='distance');F.mods.splice(i+1,0,{id:'devices',on:true});}
+  }
   if(!APP.layouts.some(l=>l.id===APP.layoutId))APP.layoutId=APP.layouts[0].id;
 }
 const activeLayout=()=>Array.isArray(APP.layouts)?(APP.layouts.find(l=>l.id===APP.layoutId)||APP.layouts[0]||null):null;
 function applyHomeLayout(){
   const L=activeLayout(),home=document.getElementById('page-home');if(!L||!home)return;
-  L.mods.forEach(m=>{
+  activeMods(L).forEach(m=>{
     const el=document.getElementById(HOME_MODS[m.id].el);if(!el)return;
     el.classList.toggle('mod-off',!m.on);
     const mark=document.querySelector('[data-rail-home="'+HOME_MODS[m.id].el+'"]');
     home.appendChild(mark||el);
   });
   const b=document.getElementById('home-layout-name');if(b)b.textContent=L.name+' ▾';
+  const dash=document.getElementById('home-dash');if(dash)dash.classList.toggle('ans-on',activeMods(L).some(m=>m.id==='answer'&&m.on));  // V2.11.0 r1
   renderQuick();
 }
 function useLayout(id){
@@ -4850,9 +5200,579 @@ function openLayoutSheet(){
   box.appendChild(list);
 }
 
+/* ═════════ V2.11.0 r1 — Field screen: summary · answer · distance ═════════
+   UI only. Every value shown here is copied from what renderQuick already computed, and every
+   change goes through the same paths as the rest of Home (homeInput, pickSheet, setUnit), so
+   the solver sees nothing new. Gestures use Pointer Events, so Android touch, mouse and the
+   tests all drive one code path. Built with createElement/textContent — no HTML sinks. */
+const HOLD_MS=350,TAP_SLOP=8;
+const buzz=ms=>{try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}};
+// tap / long press / drag after the press on one element
+function senGesture(el,{tap,hold,drag,end}){
+  let st=null;
+  el.addEventListener('contextmenu',e=>e.preventDefault());           // no Android long-press menu
+  el.addEventListener('pointerdown',e=>{
+    if(e.button>0)return;
+    st={id:e.pointerId,x:e.clientX,y:e.clientY,held:false,moved:false};el.classList.add('pressing');
+    try{el.setPointerCapture(e.pointerId);}catch(err){}
+    st.timer=setTimeout(()=>{if(!st||st.moved)return;st.held=true;buzz(15);if(hold)hold(st);},HOLD_MS);
+  });
+  el.addEventListener('pointermove',e=>{
+    if(!st||e.pointerId!==st.id)return;
+    if(!st.held){if(Math.hypot(e.clientX-st.x,e.clientY-st.y)>TAP_SLOP){st.moved=true;clearTimeout(st.timer);el.classList.remove('pressing');}return;}
+    e.preventDefault();if(drag)drag(e,st);
+  });
+  const finish=(e,cancel)=>{
+    if(!st||e.pointerId!==st.id)return;
+    clearTimeout(st.timer);const s0=st;st=null;el.classList.remove('pressing');
+    if(s0.held){
+      // the click Chrome sends after a long press would land on whatever end() opened (a sheet's
+      // backdrop) and close it again: swallow that one click
+      const eat=ev=>{ev.stopPropagation();ev.preventDefault();document.removeEventListener('click',eat,true);};
+      document.addEventListener('click',eat,true);setTimeout(()=>document.removeEventListener('click',eat,true),300);
+      if(end)end(s0,cancel);
+    }
+    el._tapArmed=!s0.held&&!s0.moved&&!cancel;
+  };
+  el.addEventListener('pointerup',e=>finish(e,false));
+  el.addEventListener('pointercancel',e=>finish(e,true));
+  // the tap acts on the click that follows pointerup: opening a sheet on pointerup would let that
+  // click land on the sheet's backdrop and close it again. Keyboard clicks (detail 0) act directly.
+  el.addEventListener('click',e=>{const ok=e.detail===0||el._tapArmed;el._tapArmed=false;if(ok&&tap)tap(e);});
+}
+
+// distance in the display unit (Settings → Range); storage stays metres (CORE-15)
+const FD_MAX_M=1500;
+const fdUnit=()=>UNITS.range;
+const fdToDisp=m=>QDEF.range.to[fdUnit()](m);
+const fdToM=d=>QDEF.range.from[fdUnit()](d);
+const fdShow=d=>{document.querySelectorAll('#fd-val,.sd-val').forEach(v=>{v.textContent=String(d);});};   // r7: Home's control and every shot strip
+let fdPending=null,fdTimer=0;
+function fdApply(){fdTimer=0;if(fdPending==null)return;const m=fdPending;fdPending=null;homeInput('dist',m);rfSrcRender();stripAfter();}
+function fdQueue(m){fdPending=m;if(!fdTimer)fdTimer=(typeof requestAnimationFrame==='function'?requestAnimationFrame:f=>setTimeout(f,16))(fdApply);}
+function fdHold(st){
+  st.val=Math.round(fdToDisp(S.dist_m));st.ax=0;st.ay=0;st.lx=st.x;st.ly=st.y;st.lt=performance.now();st.v=0;
+  st.box=st.box||document.getElementById('home-distance');st.box.classList.add('grab');
+}
+// left/right = ±1 per 12 px, up/down = ±10 per 16 px; the axis that moved most since the last
+// step wins (a slightly diagonal drag never jumps by 10); quick drags step ×2 / ×5.
+function fdDrag(e,st){
+  const now=performance.now(),dx=e.clientX-st.lx,dy=st.ly-e.clientY,dt=Math.max(1,now-st.lt);
+  st.lx=e.clientX;st.ly=e.clientY;st.lt=now;st.ax+=dx;st.ay+=dy;
+  st.v=0.7*st.v+0.3*Math.hypot(dx,dy)/dt;
+  const mul=st.v>2.5?5:st.v>1.2?2:1;   // a little acceleration: only quick drags step ×2 / ×5
+  let step=0;
+  if(Math.abs(st.ax)>=Math.abs(st.ay)){const n=Math.trunc(st.ax/12);if(n){step=n*mul;st.ax-=n*12;st.ay=0;}}
+  else{const n=Math.trunc(st.ay/16);if(n){step=n*10*mul;st.ay-=n*16;st.ax=0;}}
+  if(!step)return;
+  const max=Math.floor(fdToDisp(FD_MAX_M)),nv=Math.min(max,Math.max(1,st.val+step));
+  if(nv===st.val)return;
+  st.val=nv;buzz(5);fdShow(nv);fdQueue(fdToM(nv));
+}
+function fdEnd(st){
+  (st.box||document.getElementById('home-distance')).classList.remove('grab');
+  if(fdTimer&&typeof cancelAnimationFrame==='function')cancelAnimationFrame(fdTimer);
+  fdApply();
+  if(!APP.fdTipSeen){APP.fdTipSeen=true;saveDBSoon();fieldSync();}
+}
+// number sheet extras: the unit switch IS Settings → Range (never a second copy); Enter sets
+function distSheetExtras(){
+  const inp=document.getElementById('sh-num');if(!inp)return;
+  const seg=document.createElement('div');seg.className='fseg';seg.id='sh-dist-units';
+  Object.keys(QDEF.range.opts).forEach(u=>{
+    const b=document.createElement('button');b.type='button';b.textContent=QDEF.range.lab[u];
+    if(UNITS.range===u)b.className='on';
+    b.onclick=()=>{const keep=inp.value;setUnit('range',u);pickSheet('dist');const n=document.getElementById('sh-num');if(n&&keep!=='')n.value=keep;};
+    seg.appendChild(b);
+  });
+  inp.closest('.fld').after(seg);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')sheetSetNum('dist');});
+  setTimeout(()=>{try{inp.focus();inp.select();}catch(e){}},50);
+}
+// shot angle / cant: Home's own fields, which are the session's (r7: the solver mirrors them)
+function openAngleSheet(kind){
+  const cant=kind==='cant',cur=document.getElementById(cant?'home-cant':'home-angle');
+  openSheet('<h3>'+(cant?'Cant':'Shot angle')+'</h3>');
+  const box=document.getElementById('sbox'),f=document.createElement('div');f.className='fld';
+  const l=document.createElement('label');l.textContent=cant?'Cant ° (+ right, − left)':'Angle ° (+ uphill, − downhill)';
+  const i=document.createElement('input');i.type='number';i.id=cant?'sh-cant':'sh-angle';i.step=cant?'0.5':'1';i.value=cur?cur.value:'0';
+  const set=()=>{const v=parseFloat(i.value);if(cur&&!isNaN(v)){cur.value=String(v);homeInput('angle',v);rfSrcRender();stripAfter();}closeSheet();};
+  i.addEventListener('keydown',e=>{if(e.key==='Enter')set();});
+  f.append(l,i);
+  const row=document.createElement('div');row.className='btnrow';
+  const ok=document.createElement('button');ok.className='btn primary';ok.textContent='Set';ok.onclick=set;
+  const no=document.createElement('button');no.className='btn';no.textContent='Cancel';no.onclick=closeSheet;
+  row.append(ok,no);box.append(f,row);
+  setTimeout(()=>{try{i.focus();i.select();}catch(e){}},50);
+}
+// summary tap → the same pickers as the chip bar
+function openSummarySheet(){
+  openSheet('<h3>Session</h3>');
+  const list=document.createElement('div');list.className='flist';
+  actItems().forEach(([k,v,kind])=>{
+    const b=document.createElement('button');b.type='button';
+    const a=document.createElement('span');a.className='fk';a.textContent=k;
+    const c=document.createElement('span');c.className='fv';c.textContent=v;
+    b.append(a,c);b.onclick=()=>pickSheet(kind);list.appendChild(b);
+  });
+  document.getElementById('sbox').appendChild(list);
+}
+/* V2.11.0 r3 — Android back button. An installed PWA has no history of its own: Android's back key
+   walks the browser history, so the app keeps "guard" entries above its start entry and handles
+   each back press itself (close the sheet → previous page → Home → "press back again" toast, then
+   the next press leaves the app).
+   Chrome only honours history entries added during a user gesture: one added without it makes the
+   entry it was added from "skippable", and back then jumps straight out of the app (r2's bug — it
+   added its guard at boot and again inside the back handler). So guards are added only from a real
+   tap or key press (pointerup / keydown / click, which carry the gesture) and topped up to
+   BACK_DEPTH there; a back press never adds one. On the "press back again" toast the remaining
+   guards are dropped in one history.go(), so the very next press exits. */
+const BACK_DEPTH=3;
+let backDepth=0,backAct=false,backDrain=0,backFromPop=false,backLast='—';const pageStack=[];
+function backArm(){
+  if(!backAct||typeof history==='undefined'||!history.pushState)return;
+  try{while(backDepth<BACK_DEPTH){history.pushState({sen:'guard'},'');backDepth++;}}catch(e){}
+  backDiag();
+}
+function backGesture(){backAct=true;backArm();}
+function navTrack(from,to){if(backFromPop||from===to)return;pageStack.push(from);if(pageStack.length>30)pageStack.shift();}
+function senToast(msg){
+  let t=document.getElementById('sen-toast');
+  if(!t){t=document.createElement('div');t.id='sen-toast';t.className='sen-toast';t.setAttribute('role','status');document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2000);
+}
+function onBack(){
+  if(backDrain){backDrain=0;backLast='dropped the spare guards';backDiag();return;}   // our own history.go()
+  backDepth=Math.max(0,backDepth-1);backAct=false;   // a new guard needs a new tap
+  const go=p=>{backFromPop=true;gotoPage(p);backFromPop=false;};
+  if(document.getElementById('sheet').classList.contains('open')){closeSheet();backLast='closed a sheet';}
+  else{
+    let prev=pageStack.pop();while(prev&&prev===curPage())prev=pageStack.pop();
+    if(prev){go(prev);backLast='back to '+prev;}
+    else if(curPage()!=='home'){go('home');backLast='back to home';}
+    else{
+      senToast('Press back again to close');backLast='toast shown';
+      if(backDepth>0){backDrain=backDepth;backDepth=0;try{history.go(-backDrain);}catch(e){backDrain=0;}}
+    }
+  }
+  backDiag();
+}
+function backDiag(){
+  const e=document.getElementById('back-diag');if(!e)return;
+  const ua=typeof navigator!=='undefined'&&navigator.userActivation;
+  e.textContent='Back button: '+backDepth+' guard'+(backDepth===1?'':'s')+' · history '+(typeof history!=='undefined'?history.length:'—')+
+    ' · gesture '+(ua?(ua.isActive?'active':ua.hasBeenActive?'had one':'none'):'n/a')+' · last: '+backLast;
+}
+function backInit(){
+  if(typeof history==='undefined'||!history.replaceState)return;
+  try{history.replaceState({sen:'start'},'');}catch(e){}
+  window.addEventListener('popstate',onBack);
+  ['pointerup','keydown','click'].forEach(t=>document.addEventListener(t,backGesture,true));
+  backDiag();
+}
+/* V2.11.0 r3 — divider between the two panes (inner screen). Drag sets the right pane's share of the
+   screen (30–70 %), live; double-tap resets to the page's default width. One value for every page,
+   stored as a share so it survives rotation. Positioned from the rail's real left edge. */
+const DIV_MIN=0.3,DIV_MAX=0.7;
+function divApply(){
+  const r=document.documentElement,f=APP.railW;
+  if(f>=DIV_MIN&&f<=DIV_MAX){r.style.setProperty('--rail-w',(f*100).toFixed(2)+'vw');r.classList.add('split');}
+  else{r.style.removeProperty('--rail-w');r.classList.remove('split');}
+  divPos();
+}
+function divPos(){
+  const d=document.getElementById('pane-div'),rail=document.getElementById('sol-rail');if(!d||!rail)return;
+  const x=rail.getBoundingClientRect().left;d.style.left=x>0?x+'px':'';d.style.right='';
+}
+function divInit(){
+  const d=document.getElementById('pane-div');if(!d||d._g)return;d._g=true;
+  let id=null,lastUp=0;
+  d.addEventListener('contextmenu',e=>e.preventDefault());
+  d.addEventListener('pointerdown',e=>{if(e.button>0)return;id=e.pointerId;try{d.setPointerCapture(id);}catch(err){}d.classList.add('drag');e.preventDefault();});
+  d.addEventListener('pointermove',e=>{
+    if(e.pointerId!==id)return;e.preventDefault();
+    const W=window.innerWidth;APP.railW=Math.min(DIV_MAX,Math.max(DIV_MIN,(W-e.clientX)/W));divApply();d._moved=true;
+  });
+  const up=e=>{
+    if(e.pointerId!==id)return;id=null;d.classList.remove('drag');
+    const now=Date.now();
+    if(!d._moved&&now-lastUp<350){delete APP.railW;divApply();lastUp=0;}else lastUp=d._moved?0:now;
+    d._moved=false;saveDBSoon();renderQuick();
+  };
+  d.addEventListener('pointerup',up);d.addEventListener('pointercancel',up);
+  window.addEventListener('resize',()=>divPos());
+  divApply();
+}
+/* V2.11.0 r3 — pull-to-refresh reloads the page and drops every Bluetooth link: blocked while any
+   device is connected (overscroll-behavior), allowed again when none is. Settings has "Reload app". */
+const anyDevice=()=>calOn().length+rfOn().length+lrOn().length>0;
+function ptrSync(){document.documentElement.classList.toggle('no-ptr',anyDevice());}
+function reloadApp(){
+  if(anyDevice()&&!confirm('Reloading disconnects every connected device (Calypso, rangefinder, LabRadar). Reload anyway?'))return;
+  location.reload();
+}
+// V2.11.0 r2 — keep sheets above Android's on-screen keyboard: --kb = the part of the window it covers
+function kbInit(){
+  const vv=window.visualViewport;if(!vv)return;
+  const upd=()=>{const kb=Math.max(0,Math.round(window.innerHeight-vv.height-vv.offsetTop));document.documentElement.style.setProperty('--kb',kb+'px');};
+  vv.addEventListener('resize',upd);vv.addEventListener('scroll',upd);upd();
+}
+
+/* ═════════ V2.11.0 r2 — device row: Weather · Range · Chrono ═════════
+   Tap = pause / resume that kind of sensor (opens its popup when nothing is connected); hold =
+   popup listing its devices, each pausable on its own, with connect and setup links. Pause-all
+   reuses Main's switches (Home live wind, rangefinder fill); a paused unit only holds its readings
+   back (stations drop it like a stale unit, the rangefinder fills nothing, the LabRadar adds no
+   shot). Nothing new reaches the solver; session MV changes only with "Use MV → session". */
+const calOn=()=>CALS.filter(d=>d.link.connected());
+const rfOn=()=>RFS.filter(d=>!d.gone&&d.link.connected());
+const lrOn=()=>LR&&!LR.gone&&LR.link.connected()?[LR]:[];
+const wxFeeding=()=>homeLive&&S.wind.source==='calypso'&&!!calPrimary()&&!calPrimary().paused;
+function devState(k){
+  if(k==='wx'){const on=calOn();if(!on.length)return{st:'off'};const live=on.filter(d=>!d.paused).length;
+    return{st:wxFeeding()?'live':'man',val:wxFeeding()?ut('wind',S.wind.speed):'MAN',count:on.length>1?live+'/'+on.length:''};}
+  if(k==='rf'){const on=rfOn();if(!on.length)return{st:'off'};const feed=APP.rfFill!==false&&on.some(d=>!d.paused);
+    const L=on.filter(d=>d.last).sort((a,b)=>b.last.t-a.last.t)[0];
+    return{st:feed?'live':'man',val:feed?(L?rfDist(L.last.m):'ready'):'MAN',count:on.length>1?on.filter(d=>!d.paused).length+'/'+on.length:''};}
+  const on=lrOn();if(!on.length)return{st:'off'};const d=on[0];
+  return{st:d.paused?'man':'live',val:d.paused?'MAN':d.last?ut('vel',d.last.v):'ready',count:''};
+}
+function devSync(){
+  ptrSync();   // V2.11.0 r3
+  ['wx','rf','ch'].forEach(k=>{
+    const b=document.getElementById('dev-'+k);if(!b)return;const s0=devState(k);
+    b.classList.toggle('live',s0.st==='live');b.classList.toggle('man',s0.st==='man');
+    const v=document.getElementById('dev-'+k+'-v');if(v)v.textContent=s0.st==='off'?'connect':s0.val+(s0.count?' · '+s0.count:'');
+  });
+  // an open popup follows the readings, at most every 1.5 s and never right after a touch in it (a tap must not lose its button)
+  const sh=document.getElementById('sbox'),now=Date.now();
+  if(sh&&sh.dataset.dev&&document.getElementById('sheet').classList.contains('open')&&now-(sh._down||0)>800&&now-(devSheet._t||0)>1500)devSheet(sh.dataset.dev);
+}
+// pause / resume everything of one kind
+function devToggle(k){
+  const s0=devState(k);if(s0.st==='off'){devSheet(k);return;}
+  if(k==='wx'){
+    if(s0.st==='live'){if(homeLive)toggleHomeLive();Bus.setWind(S.wind.speed,S.wind.dir,'manual');}   // keep the last wind as manual
+    else{CALS.forEach(d=>{d.paused=false;});if(!homeLive)toggleHomeLive();else if(bleLastWu)calypsoLive(homeWindSrc);}
+  }else if(k==='rf'){
+    if(s0.st==='live')rfSetFill(false);else{RFS.forEach(d=>{d.paused=false;});rfSetFill(true);}
+  }else{LR.paused=s0.st==='live';lrRender();}
+  buzz(10);devSync();renderQuick();
+}
+// one device
+function devPause(k,d,pause){
+  d.paused=pause;
+  if(k==='wx'){
+    if(d===calPrimary()){if(pause)Bus.setWind(S.wind.speed,S.wind.dir,'manual');else if(homeLive&&d.lastWu)calypsoLive(homeWindSrc);}
+    stnLive();
+  }else if(k==='rf'&&!pause&&APP.rfFill===false)rfSetFill(true);
+  devSync();renderQuick();
+}
+function devGo(page,panelId){closeSheet();gotoPage(page);const e=document.getElementById(panelId);if(e)setTimeout(()=>e.scrollIntoView({block:'start'}),60);}
+function devSheet(k){
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const btn=(txt,fn,cls)=>{const b=el('button',cls||'btn',txt);b.type='button';b.onclick=fn;return b;};
+  const box=document.getElementById('sbox');
+  if(!document.getElementById('sheet').classList.contains('open')||box.dataset.dev!==k){openSheet('');}
+  box.dataset.dev=k;devSheet._t=Date.now();
+  const title={wx:'Weather sensors',rf:'Rangefinders',ch:'Chronographs'}[k];
+  const list=k==='wx'?calOn():k==='rf'?rfOn():lrOn();
+  const rows=el('div','flist devlist');
+  const row=(d,name,info,tag)=>{const r=el('div','devrow');const t=el('div','devrow-t');t.append(el('b',null,name),el('span','devrow-i',info));
+    if(tag)t.appendChild(el('span','devrow-tag',tag));
+    r.append(t,btn(d.paused?'Resume':'Pause',()=>devPause(k,d,!d.paused),'btn'+(d.paused?' primary':'')));return r;};
+  list.forEach(d=>{
+    if(k==='wx'){const w=calReading(d,homeWindSrc),nick=stnNick(d.link.name),nm=d.link.name||'Calypso';rows.appendChild(row(d,nick?nick+' · '+nm:nm,
+      (d.paused?'paused · ':'')+(d.lastWu?ut('wind',w.s)+' from '+Math.round(w.d)+'°':d.locked?'locked':'activating…')+(d.batt!=null?' · '+d.batt+'%':''),d===calPrimary()?'feeds session':(stnRange()?'station':'')));}
+    else if(k==='rf')rows.appendChild(row(d,d.link.name||'Rangefinder',(d.paused?'paused · ':'')+(d.last?rfDist(d.last.m)+' · '+(d.last.deg>0?'+':'')+d.last.deg+'° · '+rfAge(d.last.t):'waiting for a ranging…'),''));
+    else rows.appendChild(row(d,d.link.name||'LabRadar',(d.paused?'paused · ':'')+(d.last?'last '+ut('vel',d.last.v):'no shot yet')+(d.armed?' · armed':''),''));
+  });
+  const kids=[el('h3',null,title)];
+  if(!list.length)kids.push(el('div','note','Nothing connected.'));else kids.push(rows);
+  if(k==='wx'&&list.length&&!homeLive)kids.push(el('div','note','Live wind is off — tap the Weather pill to resume.'));
+  if(k==='rf'&&list.length&&APP.rfFill===false)kids.push(el('div','note','Filling is off — tap the Range pill to resume.'));
+  if(k==='ch'){
+    const c=chClean(APP.chronoStr),st=c&&chStats(chKept(c));   // the same string stats as Sensors
+    kids.push(el('div','devstr',st?'Shot string: '+st.n+' shots · MV '+ut('vel',st.mean)+' · ES '+ut('vel',st.es)+(st.sd!=null?' · SD '+ut('vel',st.sd):''):'No shot string yet.'));
+    if(st)kids.push(btn('Use MV → session',()=>{chUse();closeSheet();},'btn primary'));   // Main's own "use the string" path
+  }
+  const acts=el('div','btnrow');
+  if(k==='wx'){acts.append(btn(list.length?'+ Connect another':'Connect Calypso',async()=>{closeSheet();await calAdd();if(calOn().length&&!homeLive)toggleHomeLive();devSync();}),
+    btn('Station setup',()=>devGo('sensors','stn-panel')));}
+  else if(k==='rf')acts.append(btn(list.length?'+ Connect another':'Connect rangefinder',async()=>{closeSheet();await rfAdd();if(APP.rfFill===false)rfSetFill(true);devSync();}));
+  else{if(!list.length)acts.append(btn('Connect LabRadar',async()=>{closeSheet();await lrConnect();devSync();}));
+    acts.append(btn('Shot string · Xero import',()=>devGo('sensors','ch-str')));}
+  kids.push(acts);
+  box.replaceChildren(el('div','sgrab'),...kids);
+}
+function devInit(){
+  const sb=document.getElementById('sbox');if(sb&&!sb._dg){sb._dg=true;sb.addEventListener('pointerdown',()=>{sb._down=Date.now();});}
+  ['wx','rf','ch'].forEach(k=>{const b=document.getElementById('dev-'+k);if(!b||b._g)return;b._g=true;
+    senGesture(b,{tap:()=>devToggle(k),end:(st,cancel)=>{if(!cancel)devSheet(k);}});});
+  devSync();
+}
+
+/* V2.11.0 r7 — shot strip: the Field distance control + angle / wind (/ cant) buttons on the Advanced
+   and Wind pages, replacing their own copies of those inputs. Everything writes the session (distance,
+   Home's angle and cant fields, session wind) through the same paths as Home; the solver's old fields
+   stay in the DOM, hidden, and are mirrored from the session before each solve. */
+const STRIPS={traj:{wind:true},solver:{wind:true,cant:true},wind:{wind:false}};
+function stripMirror(){
+  const set=(id,v)=>{const e=document.getElementById(id);if(e&&document.activeElement!==e)e.value=String(v);};
+  const ha=document.getElementById('home-angle'),hc=document.getElementById('home-cant');
+  set('sv-tdist',S.dist_m);set('sv-angle',ha?(+ha.value||0):0);set('sv-cant',hc?(+hc.value||0):0);set('sv-wind',S.wind.speed);set('sv-wdir',S.wind.dir);
+}
+function stripAfter(){
+  stripMirror();const p=curPage();
+  if(p==='solver')solve();else if(p==='wind'){const sp=document.getElementById('wd-spd'),di=document.getElementById('wd-dir');if(sp)sp.value=S.wind.speed;if(di)di.value=S.wind.dir;renderWind();}
+  fieldSync();
+}
+function stripInit(){
+  Object.entries(STRIPS).forEach(([pg,o])=>{
+    const page=document.getElementById('page-'+pg);if(!page||page.querySelector('.sstrip'))return;
+    const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+    const box=el('div','sstrip');box.dataset.strip=pg;
+    const d=el('button','fdist-v sstrip-d');d.type='button';d.setAttribute('aria-label','Distance — tap to type, hold and drag to adjust');
+    const num=el('span','fdist-num');num.append(el('span','sd-val','—'),el('span','fdist-u sd-unit',''));d.append(el('span','sstrip-l','Distance'),num,el('span','fdist-hint','⇕'));
+    const row=el('div','sstrip-row');
+    const b=(cls,txt,fn)=>{const x=el('button','fdist-sub '+cls,txt);x.type='button';x.onclick=fn;row.appendChild(x);};
+    b('sd-angle','Angle 0°',()=>openAngleSheet('angle'));
+    if(o.wind)b('sd-wind','Wind —',openWindSheet);
+    if(o.cant)b('sd-cant','Cant 0°',()=>openAngleSheet('cant'));
+    box.append(d,row);
+    const anchor=page.querySelector('.outcard');if(anchor)anchor.after(box);else page.prepend(box);
+    senGesture(d,{tap:()=>pickSheet('dist'),hold:st=>{st.box=box;fdHold(st);},drag:fdDrag,end:fdEnd});
+  });
+  fieldSync();
+}
+// session wind, typed: pauses live wind first (as the Weather pill does), so the next Calypso reading can't overwrite it
+function openWindSheet(){
+  openSheet('<h3>Wind</h3>');
+  const box=document.getElementById('sbox'),el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const g=el('div','fgrid');
+  const f1=el('div','fld'),l1=el('label',null,'Speed'),i1=el('input');i1.type='number';i1.id='sh-wspd';i1.step='0.1';i1.min='0';i1.dataset.q='wind';i1.value=String(S.wind.speed);f1.append(l1,i1);
+  const f2=el('div','fld'),l2=el('label',null,'From ° (0 head · 90 right · 180 tail · 270 left)'),i2=el('input');i2.type='number';i2.id='sh-wdir';i2.step='5';i2.value=String(Math.round(S.wind.dir));f2.append(l2,i2);
+  g.append(f1,f2);box.appendChild(g);
+  if(wxFeeding())box.appendChild(el('div','note','Live wind is on: setting a wind here pauses it (tap Weather to resume).'));
+  const set=()=>{const sp=parseFloat(i1.value),dr=parseFloat(i2.value);if(isNaN(sp)||isNaN(dr))return;
+    if(wxFeeding())toggleHomeLive();Bus.setWind(Math.max(0,sp),((dr%360)+360)%360,'manual');devSync();stripAfter();renderQuick();closeSheet();};
+  [i1,i2].forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')set();}));
+  const row=el('div','btnrow'),ok=el('button','btn primary','Set'),no=el('button','btn','Cancel');ok.type=no.type='button';ok.onclick=set;no.onclick=closeSheet;row.append(ok,no);box.appendChild(row);
+  setTimeout(()=>{try{i1.focus();i1.select();}catch(e){}},50);
+}
+// one session line for every page but Home (the chip bar overflowed: Weather, Wind, Distance off-screen)
+function sesSync(){
+  const t=document.getElementById('ses-txt');if(!t)return;
+  const r=getRifle(),p=getProj(),cw=getWx(S.curWxId),tc=S.ct??cw?.temp;
+  t.replaceChildren();
+  const l1=document.createElement('span');l1.textContent=[r?r.name:'Choose rifle',p?p.name:'projectile'].join(' · ');
+  const l2=document.createElement('span');l2.className='ses-2';
+  // line 2 = what changes shot to shot; the weather profile's name is in the picker sheet
+  l2.textContent=[S.mv?ut('vel',S.mv):null,tc!=null?ut('temp',tc):'no weather',ut('wind',S.wind.speed)+' @ '+Math.round(S.wind.dir)+'°'+(S.wind.source==='calypso'?' ⊙':''),ut('range',S.dist_m)].filter(Boolean).join(' · ');
+  t.append(l1,l2);
+}
+
+/* ═════════ V2.11.0 r10 — polish: Truing sub-tabs, empty-pane hint, wide-table hint, profile ⋯ menu ═════════ */
+const TRU_TABS=['vel','imp','bc','mvt'];
+function setTruTab(t,quiet){
+  t=TRU_TABS.includes(t)?t:'vel';
+  document.documentElement.dataset.tt=t;   // CSS shows only that tool's blocks, in the page and in the right pane
+  document.querySelectorAll('.trtabs button').forEach(b=>{const on=b.dataset.trt===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',String(on));});
+  if(APP.truTab!==t){APP.truTab=t;if(!quiet)saveDBSoon();}
+  r10Sync();
+}
+const PANE_EMPTY={bench:'Create or pick a design: its drawing, mass, SD and centre of gravity appear here.',
+  'truing:vel':'Enter a measured velocity downrange and tap True BC: the trued BC appears here.',
+  'truing:imp':'Enter the dial that centred a group and tap True BC from impacts: the result appears here.',
+  'truing:mvt':'Add MV observations at two or more temperatures: the table and the fitted slope appear here.',
+  'truing:bc':'Enter the geometry: SD and BC appear here.',stab:'Choose a rifle and a projectile: Sg and the twist table appear here.'};
+// a page pane with nothing visible in it says what will appear there
+function paneEmptySync(){
+  const rail=document.getElementById('sol-rail'),box=rail&&rail.querySelector('.pane-empty');if(!box)return;
+  if(typeof paneShown==='undefined'||paneShown!=='page'){box.hidden=true;return;}
+  const shown=[...rail.children].filter(e=>!['pane-sw','rail-head'].includes(e.id)&&!e.classList.contains('pane-empty')&&e.tagName!=='SPAN')
+    .some(e=>getComputedStyle(e).display!=='none'&&e.textContent.trim()!=='');
+  const pg=curPage(),k=pg==='truing'?'truing:'+(APP.truTab||'vel'):pg;
+  box.hidden=shown;box.textContent=shown?'':(PANE_EMPTY[k]||'Results appear here.');
+}
+// a table wider than its box: fade at the right edge + "swipe" hint until it's scrolled to the end
+function tblHints(){
+  const scopes=[document.querySelector('.page.active'),document.getElementById('sol-rail')].filter(Boolean);
+  scopes.forEach(sc=>sc.querySelectorAll('.tablebox,.xs-box').forEach(b=>{
+    if(!b._xs){b._xs=true;b.addEventListener('scroll',()=>tblEdge(b),{passive:true});}
+    tblEdge(b);
+  }));
+}
+function tblEdge(b){
+  const more=b.scrollWidth>b.clientWidth+2,end=b.scrollLeft+b.clientWidth>=b.scrollWidth-2;
+  if(b.classList.contains('xs')!==more)b.classList.toggle('xs',more);
+  if(b.classList.contains('xs-end')!==(more&&end))b.classList.toggle('xs-end',more&&end);
+  // the hint lives inside the box (sticky at its left edge), so it moves with the box between the panes
+  let h=b.querySelector(':scope > .xs-hint');
+  if(more&&!h){h=document.createElement('div');h.className='xs-hint';h.textContent='Swipe the table sideways →';b.prepend(h);}
+  if(h){const hide=!more||end||b.scrollLeft>8;if(h.hidden!==hide)h.hidden=hide;}
+}
+// profile rows: ☆ stays, tap the name to edit, ⋯ for Edit / Clone / Share / Delete (the original buttons stay, hidden, and do the work)
+function profMenus(){
+  document.querySelectorAll('#page-profiles .pacts').forEach(a=>{
+    if(a._menu)return;a._menu=true;
+    const pick=sel=>a.querySelector(sel);
+    const acts=[['Edit','[data-e]'],['Clone','[data-c]'],['Share','[data-sh]'],['Delete','[data-d]']].filter(([,sel])=>pick(sel));
+    acts.forEach(([,sel])=>pick(sel).classList.add('dup-hide'));
+    const row=a.closest('.pitem'),name=row&&row.firstElementChild,nm=row?(row.querySelector('.pn')||{}).textContent||'':'';
+    if(name&&pick('[data-e]')){name.classList.add('pitem-open');name.setAttribute('role','button');name.tabIndex=0;
+      name.onclick=()=>pick('[data-e]').click();name.onkeydown=e=>{if(e.key==='Enter')pick('[data-e]').click();};}
+    const m=document.createElement('button');m.type='button';m.className='btn-xs pmenu';m.textContent='⋯';m.setAttribute('aria-label','More actions for '+nm);
+    m.onclick=()=>{
+      openSheet('');const box=document.getElementById('sbox');
+      const h=document.createElement('h3');h.textContent=nm;const list=document.createElement('div');list.className='flist';
+      acts.forEach(([label,sel])=>{const b=document.createElement('button');b.type='button';b.textContent=label;if(label==='Delete')b.className='danger-row';
+        b.onclick=()=>{closeSheet();pick(sel).click();};list.appendChild(b);});
+      box.append(h,list);
+    };
+    a.appendChild(m);
+  });
+}
+function r10Sync(){tblHints();paneEmptySync();profMenus();}
+function r10Init(){
+  if(typeof MutationObserver!=='function')return;
+  let t=0;const run=()=>{t=0;r10Sync();};
+  new MutationObserver(()=>{if(!t)t=setTimeout(run,120);}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['style','hidden']});
+  window.addEventListener('resize',()=>{if(!t)t=setTimeout(run,120);});
+  r10Sync();
+}
+
+/* ═════════ V2.11.0 r11 — colours. Eight colours are the user's (background, panels, text, accent,
+   windage, warning, danger, OK); every other token is derived from them, quiet text is pushed until it
+   reads at ≥ 4.5 : 1, and the text on accent buttons picks black or white. Off (APP.theme null) = the
+   original stylesheet untouched and the reticle / chart in their original colours. A <style> at the end
+   of <head> carries :root and html.hc variants, so high contrast still works on a custom theme. */
+const THEME_KEYS=[['bg','Background','#0a0b0e'],['panel','Panels','#12151b'],['text','Text','#f5f3ee'],['accent','Accent · elevation','#72b4c2'],
+  ['gold','Windage','#caa869'],['warn','Warning','#e07a5f'],['red','Danger','#d4574e'],['green','OK','#7ab87a']];
+const THEME_ORIG={retBg:'#0a0c0f',retRing:'rgba(255,255,255,.05)',retLine:'rgba(230,228,222,.92)',retDim:'rgba(149,146,137,.75)',retDot:'rgba(126,184,196,.95)',
+  retDot2:'rgba(126,184,196,.65)',retCross:'rgba(126,184,196,.35)',retHold:'rgba(122,184,122,.95)',retOff:'rgba(224,122,95,.92)',retOffTxt:'#e07a5f',
+  retCap:'rgba(149,146,137,.6)',retDim2:'rgba(149,146,137,.7)',retHash:'rgba(189,186,177,.55)',retHash2:'rgba(189,186,177,.45)',
+  chGrid:'rgba(255,255,255,.04)',chZero:'rgba(111,168,200,.35)',chZeroM:'rgba(200,169,110,.5)',chTgt:'rgba(126,184,196,.3)',chLine:'#7eb8c4',chLbl:'rgba(86,84,79,.9)'};
+const hexOk=h=>typeof h==='string'&&/^#[0-9a-f]{6}$/i.test(h);
+const h2rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const rgb2h=a=>'#'+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+const mixH=(a,b,t)=>{const x=h2rgb(a),y=h2rgb(b);return rgb2h(x.map((v,i)=>v+(y[i]-v)*t));};
+const rgbaH=(h,al)=>'rgba('+h2rgb(h).join(',')+','+al+')';
+const lumH=h=>{const c=h2rgb(h).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);});return .2126*c[0]+.7152*c[1]+.0722*c[2];};
+const contrast=(a,b)=>{const x=lumH(a),y=lumH(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+const colorDist=(a,b)=>{const x=h2rgb(a),y=h2rgb(b),r=(x[0]+y[0])/2,d=x.map((v,i)=>v-y[i]);return Math.sqrt((2+r/256)*d[0]*d[0]+4*d[1]*d[1]+(2+(255-r)/256)*d[2]*d[2]);};
+function themeClean(t){
+  if(!t||typeof t!=='object')return null;
+  const o={};THEME_KEYS.forEach(([k,,d])=>{o[k]=hexOk(t[k])?t[k].toLowerCase():d;});return o;
+}
+const themeOn=()=>!!(APP.theme&&typeof APP.theme==='object');
+const themeVals=()=>themeClean(APP.theme)||Object.fromEntries(THEME_KEYS.map(([k,,d])=>[k,d]));
+// quiet text: start at the blend, move toward the text colour until it reads at ≥ 4.5 : 1 on the panels
+function quietOn(text,bg,panel,t){let c=mixH(text,bg,t);for(let i=0;i<12&&contrast(c,panel)<4.5;i++){t-=.04;c=mixH(text,bg,Math.max(0,t));}return c;}
+function themeDerive(v,hc){
+  const dark=lumH(v.bg)<.4,ext=dark?'#ffffff':'#000000';
+  const text=hc?mixH(v.text,ext,.6):v.text;
+  const text2=hc?mixH(v.text,ext,.3):quietOn(text,v.bg,v.panel,.22),text3=quietOn(text,v.bg,v.panel,hc?.2:.42);
+  const onAcc=contrast('#0a0b0e',v.accent)>=contrast('#ffffff',v.accent)?'#0a0b0e':'#ffffff';
+  return{'--bg':v.bg,'--bg2':v.panel,'--bg3':mixH(v.panel,text,.05),'--bg4':mixH(v.panel,text,.10),
+    '--border':rgbaH(mixH(text,v.gold,.5),hc?.26:.09),'--border2':rgbaH(mixH(text,v.gold,.5),hc?.42:.18),
+    '--text':text,'--text2':text2,'--text3':text3,'--accent':v.accent,'--gold':v.gold,'--warn':v.warn,'--red':v.red,'--green':v.green,'--blue':v.accent,
+    '--src-auto':rgbaH(v.accent,hc?.28:.14),'--src-man':rgbaH(v.gold,hc?.32:.16),'--tick':rgbaH(v.gold,.55),'--glow':rgbaH(v.accent,.30),'--on-accent':onAcc};
+}
+function tc(k){
+  if(!themeOn())return THEME_ORIG[k];
+  const v=themeVals(),d=themeDerive(v,document.documentElement.classList.contains('hc')),t3=d['--text3'],t2=d['--text2'];
+  return({retBg:mixH(v.bg,'#000000',.15),retRing:rgbaH(d['--text'],.05),retLine:rgbaH(d['--text'],.92),retDim:rgbaH(t3,.75),retDot:rgbaH(v.accent,.95),
+    retDot2:rgbaH(v.accent,.65),retCross:rgbaH(v.accent,.35),retHold:rgbaH(v.green,.95),retOff:rgbaH(v.warn,.92),retOffTxt:v.warn,retCap:rgbaH(t3,.6),
+    retDim2:rgbaH(t3,.7),retHash:rgbaH(t2,.55),retHash2:rgbaH(t2,.45),chGrid:rgbaH(d['--text'],.04),chZero:rgbaH(v.accent,.35),chZeroM:rgbaH(v.gold,.5),
+    chTgt:rgbaH(v.accent,.3),chLine:v.accent,chLbl:rgbaH(t3,.8)})[k]||THEME_ORIG[k];
+}
+function themeApply(redraw){
+  let st=document.getElementById('theme-style');
+  if(!st){st=document.createElement('style');st.id='theme-style';document.head.appendChild(st);}
+  const m=document.querySelector('meta[name="theme-color"]');
+  if(!themeOn()){st.textContent='';if(m)m.setAttribute('content','#0a0b0e');}
+  else{const v=themeVals(),decl=o=>Object.entries(o).map(([k,x])=>k+':'+x).join(';');
+    st.textContent=':root:not(.hc){'+decl(themeDerive(v,false))+'}html.hc{'+decl(themeDerive(v,true))+'}html{background-image:none}';
+    if(m)m.setAttribute('content',v.bg);}
+  if(redraw!==false){try{renderQuick();if(typeof lastTraj!=='undefined'&&lastTraj)drawChart();}catch(e){}}
+}
+// checks shown under the colour pickers: readability and warnings that stay distinct
+function themeChecks(v){
+  const out=[],d=themeDerive(v,false);
+  [['text','Text'],['accent','Accent'],['gold','Windage'],['warn','Warning'],['red','Danger'],['green','OK']].forEach(([k,n])=>{
+    // body text needs 4.5 : 1; the signal colours (large numbers, icons, borders) 3 : 1 — the built-in red is 3.5
+    const need=k==='text'?4.5:3,r=Math.min(contrast(v[k],v.panel),contrast(v[k],v.bg));if(r<need)out.push({k,msg:n+' reads at '+r.toFixed(1)+' : 1 on the background — under '+need+' : 1, hard to read in sun'});});
+  [['warn','red','Warning and Danger'],['warn','accent','Warning and Accent'],['red','accent','Danger and Accent'],['red','green','Danger and OK'],['warn','green','Warning and OK'],['warn','gold','Warning and Windage']]
+    .forEach(([a,b,n])=>{if(colorDist(v[a],v[b])<60)out.push({k:a,msg:n+' look almost the same — warnings must stand out'});});
+  return{list:out,quiet:contrast(d['--text3'],v.panel)};
+}
+function themeSet(k,val,save){
+  if(!hexOk(val))return;
+  APP.theme={...themeVals(),[k]:val.toLowerCase()};themeApply();
+  if(save)saveDBSoon();themeEditorSync();
+}
+function themeReset(){APP.theme=null;saveDB();themeApply();renderSettings();}
+function themeEditorSync(){
+  const v=themeVals(),c=themeChecks(v);
+  THEME_KEYS.forEach(([k])=>{const hx=document.getElementById('th-hex-'+k),inp=document.getElementById('th-'+k),r=document.getElementById('th-row-'+k);
+    if(hx)hx.textContent=v[k];if(inp&&document.activeElement!==inp)inp.value=v[k];if(r)r.classList.toggle('th-bad',c.list.some(x=>x.k===k));});
+  const box=document.getElementById('th-checks');if(!box)return;
+  box.replaceChildren();
+  if(!c.list.length){const ok=document.createElement('div');ok.className='flag ok';ok.textContent=themeOn()?'✓ Readable and the warnings stand out.':'Default colours.';box.appendChild(ok);}
+  c.list.forEach(x=>{const f=document.createElement('div');f.className='flag warn';f.textContent='⚠ '+x.msg;box.appendChild(f);});
+}
+function themeEditorInit(){
+  THEME_KEYS.forEach(([k])=>{const i=document.getElementById('th-'+k);if(!i||i._t)return;i._t=true;
+    i.addEventListener('input',()=>themeSet(k,i.value,false));i.addEventListener('change',()=>themeSet(k,i.value,true));});
+  themeEditorSync();
+}
+/* V2.11.0 r6 — Advanced: the Trajectory and Solver pages behind one bottom tab, as two sub-tabs.
+   The pages themselves are unchanged (every gotoPage('traj'/'solver') still works); the tab reopens
+   the sub-tab used last and stays lit on both. */
+const ADV_PAGES=['traj','solver'];
+function goAdv(){gotoPage(ADV_PAGES.includes(APP.advLast)?APP.advLast:'traj');}
+function advSync(p){
+  const on=ADV_PAGES.includes(p),b=document.getElementById('nav-adv');if(b)b.classList.toggle('on',on);
+  if(!on)return;
+  if(!b){const m=document.getElementById('nav-more');if(m)m.classList.add('on');}   // r8: Advanced not on the bar → More
+  if(APP.advLast!==p){APP.advLast=p;saveDBSoon();}
+  document.querySelectorAll('.advtabs button').forEach(t=>{const sel=t.dataset.adv===p;t.classList.toggle('on',sel);t.setAttribute('aria-selected',String(sel));});
+}
+const PAGE_NAMES={home:'Home',traj:'Advanced · Trajectory',solver:'Advanced · Shot solver',wind:'Wind',dope:'Dope'};
+function hdrPage(p){const e=document.getElementById('hdr-page');if(e)e.textContent=PAGE_NAMES[p]||(MORE_PAGES.find(m=>m[0]===p)||[])[1]||'';}
+function fieldSync(statusMsg){
+  const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
+  const copy=(a,b)=>{const e=document.getElementById(a);if(e)set(b,e.textContent);};
+  copy('home-elev','fa-elev');copy('home-elev-u','fa-elev-u');copy('home-wind','fa-wind');copy('home-wind-u','fa-wind-u');
+  if(statusMsg!=null)set('fa-status',statusMsg);
+  const r=getRifle(),p=getProj(),cw=getWx(S.curWxId),t=S.ct??cw?.temp;
+  set('fsum-txt',[r?r.name:'Choose rifle',p?p.name:'projectile',S.mv?ut('vel',S.mv):null,t!=null?ut('temp',t):null].filter(Boolean).join(' · '));
+  const grab=!!document.querySelector('#home-distance.grab,.sstrip.grab');
+  if(!grab)fdShow(Math.round(fdToDisp(S.dist_m)));
+  set('fd-unit',lab('range',fdUnit()));
+  const ang=document.getElementById('home-angle'),cnt=document.getElementById('home-cant');
+  const aT='Angle '+(ang?(+ang.value||0):0)+'°',wT='Wind '+ut('wind',S.wind.speed)+' @ '+Math.round(S.wind.dir)+'°'+(S.wind.source==='calypso'?' ⊙':''),cT='Cant '+(cnt?(+cnt.value||0):0)+'°';
+  set('fd-angle',aT);set('fd-wind',wT);
+  const all=(sel,t)=>document.querySelectorAll(sel).forEach(e=>{e.textContent=t;});   // r7: every shot strip
+  all('.sd-unit',lab('range',fdUnit()));all('.sd-angle',aT);all('.sd-wind','≋ '+wT.slice(5));all('.sd-cant',cT);   // strips: ≋ instead of the word, so it fits beside cant
+  // §20E: a distance that no longer matches the last ranging is a manual override
+  const src=document.getElementById('fd-src');
+  if(src){const f=typeof rfFilled!=='undefined'?rfFilled:null,same=f&&Math.abs(S.dist_m-f.m)<0.05;
+    src.textContent=!f?'':same?'⊙ '+f.name:'✎ manual';src.classList.toggle('man',!!f&&!same);}
+  const tip=document.getElementById('fd-tip');if(tip)tip.style.display=APP.fdTipSeen?'none':'';
+}
+function fieldInit(){
+  const b=document.getElementById('fd-btn');
+  if(b&&!b._g){b._g=true;senGesture(b,{tap:()=>pickSheet('dist'),hold:fdHold,drag:fdDrag,end:fdEnd});}
+  hdrPage(curPage());fieldSync();
+  if(!fieldInit._done){fieldInit._done=true;backInit();kbInit();devInit();divInit();helpSync();APP.theme=themeClean(APP.theme);themeApply(false);stripInit();sesSync();renderNav();setTruTab(APP.truTab,true);r10Init();   // V2.11.0 r2 + r3 + r5 + r7 + r8 + r10
+    Bus.on(()=>{if(curPage()==='holds')renderHolds();});}   // r7: Holds follows the session like the other pages
+}
+
 /* ── benchrest modules ── */
 function renderHomeMods(tr){
-  const L=activeLayout(),on=id=>L&&L.mods.some(m=>m.id===id&&m.on);
+  const L=activeLayout(),on=id=>L&&activeMods(L).some(m=>m.id===id&&m.on);
   const ok=tr&&!tr.bcPending&&tr.pts,z=ok?zeroConds():null,scope=rifleScope(getRifle()),click=scope?.clickStepMrad||0.1;
   const solve=(w,dir)=>ok?solveShot(tr.pts,nearestPt,z.range,S.dist_m,0,w,dir,S.mv,click,z.wSpd,z.wDir):null;
   const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
@@ -4931,15 +5851,27 @@ function renderLayoutEditor(){
   const name=el('input');name.type='text';name.id='lay-name-in';name.maxLength=40;name.value=L.name;
   name.oninput=()=>{L.name=name.value.trim().slice(0,40)||'Layout';saveDB();if(L.id===APP.layoutId)document.getElementById('home-layout-name').textContent=L.name+' ▾';
     const r=[...document.querySelectorAll('#lay-list .lay-name')][APP.layouts.indexOf(L)];if(r&&r.firstChild)r.firstChild.textContent=L.name;};
-  const mods=el('div','lay-mods');
-  L.mods.forEach((m,i)=>{
+  // V2.11.0 r8: which screen is being edited; the inner screen follows the outer one until it gets its own order
+  const inner=layEditScreen==='inner',own=Array.isArray(L.modsInner),list=inner&&own?L.modsInner:L.mods,ro=inner&&!own;
+  const scr=el('div','seg');scr.id='lay-screen';
+  [['outer','Outer screen'],['inner','Inner screen']].forEach(([k,t])=>{const b=el('button',layEditScreen===k?'on':'',t);b.type='button';b.onclick=()=>{layEditScreen=k;renderLayoutEditor();};scr.appendChild(b);});
+  const scrNote=el('div','lay-scrnote');
+  if(inner){
+    scrNote.appendChild(el('span','note',own?'The inner screen has its own order.':'The inner screen uses the outer screen\'s order.'));
+    const b=el('button','btn',own?'Same as outer screen':'Give the inner screen its own order');b.type='button';b.id='lay-own';
+    b.onclick=()=>{if(own)delete L.modsInner;else L.modsInner=L.mods.map(m=>({...m}));layoutChanged(L);};scrNote.appendChild(b);
+  }
+  const mods=el('div','lay-mods'+(ro?' lay-ro':''));
+  list.forEach((m,i)=>{
     const r=el('div','lay-mod'+(m.on?'':' lay-modoff'));r.dataset.mod=m.id;
-    const up=el('button','btn-xs','▲');up.setAttribute('aria-label','Move '+HOME_MODS[m.id].name+' up');up.disabled=i===0;
-    up.onclick=()=>{[L.mods[i-1],L.mods[i]]=[L.mods[i],L.mods[i-1]];layoutChanged(L);};
-    const dn=el('button','btn-xs','▼');dn.setAttribute('aria-label','Move '+HOME_MODS[m.id].name+' down');dn.disabled=i===L.mods.length-1;
-    dn.onclick=()=>{[L.mods[i+1],L.mods[i]]=[L.mods[i],L.mods[i+1]];layoutChanged(L);};
-    const tg=el('button','btn-xs'+(m.on?' on':''),m.on?'On':'Off');tg.onclick=()=>{m.on=!m.on;layoutChanged(L);};
-    r.append(up,dn,el('span','lay-modname',HOME_MODS[m.id].name),tg);mods.appendChild(r);
+    const h=el('button','lay-grip','⠿');h.type='button';h.setAttribute('aria-label','Drag to move '+HOME_MODS[m.id].name);h.disabled=ro;
+    const up=el('button','btn-xs','▲');up.setAttribute('aria-label','Move '+HOME_MODS[m.id].name+' up');up.disabled=ro||i===0;
+    up.onclick=()=>{[list[i-1],list[i]]=[list[i],list[i-1]];layoutChanged(L);};
+    const dn=el('button','btn-xs','▼');dn.setAttribute('aria-label','Move '+HOME_MODS[m.id].name+' down');dn.disabled=ro||i===list.length-1;
+    dn.onclick=()=>{[list[i+1],list[i]]=[list[i],list[i+1]];layoutChanged(L);};
+    const tg=el('button','btn-xs'+(m.on?' on':''),m.on?'On':'Off');tg.disabled=ro;tg.onclick=()=>{m.on=!m.on;layoutChanged(L);};
+    r.append(h,el('span','lay-modname',HOME_MODS[m.id].name),up,dn,tg);mods.appendChild(r);
+    if(!ro)layGrip(h,r,mods,L,list);
   });
   const num=(q,v,step,fn)=>{const i=el('input');i.type='number';i.dataset.q=q;i.step=step;i.value=v==null?'':String(v);i.onchange=()=>fn(i.value===''?null:+i.value);return i;};
   const dist=num('range',L.set.dist,'5',v=>{L.set.dist=v>0?v:null;if(L.id===APP.layoutId&&L.set.dist)Bus.set('dist_m',L.set.dist);layoutChanged(L);});
@@ -4949,7 +5881,71 @@ function renderLayoutEditor(){
   const reset=el('button','btn','Reset to template');reset.onclick=()=>{const t=layoutFromTpl(L.tpl,L.name);L.mods=t.mods;L.set=t.set;layoutChanged(L);};
   const done=el('button','btn primary','Done');done.onclick=()=>{layoutEditId=null;renderLayouts();};
   const br=el('div','btnrow');br.append(reset,done);
-  ed.replaceChildren(el('h2',null,'Edit layout'),fld('Name',name),el('div','note','Home, top to bottom. ▲▼ moves a module, On/Off shows or hides it. The fold rail keeps the solution, turret and conditions on the right.'),mods,grid,br);
+  ed.replaceChildren(el('h2',null,'Edit layout'),fld('Name',name),scr,scrNote,el('div','note','Home, top to bottom. Drag ⠿ (or ▲▼) to move a module, On/Off shows or hides it. On the inner screen the solution, turret and conditions sit in the right pane.'),mods,grid,br);
+}
+/* V2.11.0 r8 — drag a module row by its ⠿ grip: the row follows the finger, the list reorders live
+   (each row's centre decides), the new order is saved on release. ▲▼ stay for keyboard use. */
+let layEditScreen='outer';
+function layGrip(h,row,box,L,list){
+  /* V2.11.0 r9 — animated drag. The held row lifts and follows the finger (translateY, no transition);
+     when it crosses another row's centre the list reorders and the rows that moved slide into place
+     (FLIP: measure, reorder, invert, play). On release the row settles into its slot. Near the top or
+     bottom of the screen the page scrolls. Positions are page coordinates (client + scroll), so the row
+     stays under the finger while the page scrolls. Reduced-motion: no slides. The finger is followed on
+     the document — moving the row in the list would drop pointer capture on it. */
+  const reduce=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const SLIDE='transform .18s cubic-bezier(.2,.8,.2,1)';
+  let id=null,startY=0,top0=0,lastY=0,raf=0;
+  const sy=()=>window.scrollY||0;
+  const topOf=el=>el.getBoundingClientRect().top+sy()-(el._ty||0);   // natural (untransformed) page top
+  const follow=()=>{   // the row follows the finger but stays inside the list
+    const t=topOf(row),bx=box.getBoundingClientRect(),lo=bx.top+sy(),hi=bx.bottom+sy()-row.offsetHeight;
+    const want=t+lastY+sy()-startY-(t-top0),top=hi>lo?Math.min(hi,Math.max(lo,want)):want,ty=top-t;
+    row._ty=ty;row.style.transform='translateY('+ty+'px) scale(1.02)';};
+  const place=clientY=>{
+    const rows=[...box.children].filter(r=>r!==row);
+    const next=rows.find(r=>{const b=r.getBoundingClientRect();return clientY<b.top-(r._ty||0)+b.height/2;});
+    const want=next||null,now=row.nextElementSibling;
+    if(want===now||(!want&&box.lastElementChild===row))return;
+    const before=new Map(rows.map(r=>[r,topOf(r)]));
+    if(want)box.insertBefore(row,want);else box.appendChild(row);
+    buzz(5);
+    if(reduce())return;
+    rows.forEach(r=>{const d=before.get(r)-topOf(r);if(!d)return;
+      r.style.transition='none';r.style.transform='translateY('+d+'px)';r._ty=d;
+      void r.offsetHeight;   // commit the inverted position, then play to 0
+      r.style.transition=SLIDE;r.style.transform='';r._ty=0;});
+  };
+  const edge=()=>{   // auto-scroll while the finger is near the top or bottom
+    raf=0;if(id===null)return;
+    const H=window.innerHeight||0,z=90,v=lastY<z?-(z-lastY)/6:lastY>H-z-70?(lastY-(H-z-70))/6:0;
+    if(v){window.scrollBy(0,Math.max(-18,Math.min(18,v)));place(lastY);follow();}
+    if(v&&typeof requestAnimationFrame==='function')raf=requestAnimationFrame(edge);
+  };
+  const move=e=>{
+    if(e.pointerId!==id)return;e.preventDefault();lastY=e.clientY;
+    place(e.clientY);follow();
+    if(!raf&&typeof requestAnimationFrame==='function')raf=requestAnimationFrame(edge);
+  };
+  const up=e=>{
+    if(e.pointerId!==id)return;id=null;
+    if(raf&&typeof cancelAnimationFrame==='function')cancelAnimationFrame(raf);raf=0;
+    document.removeEventListener('pointermove',move,true);document.removeEventListener('pointerup',up,true);document.removeEventListener('pointercancel',up,true);
+    const done=()=>{row.classList.remove('lay-drag','lay-settle');row.style.transition='';row.style.transform='';row._ty=0;
+      const order=[...box.children].map(r=>r.dataset.mod),before=list.map(m=>m.id).join();
+      if(order.join()!==before){const by=Object.fromEntries(list.map(m=>[m.id,m]));list.splice(0,list.length,...order.map(k=>by[k]));layoutChanged(L);}};
+    if(reduce()||!row._ty){done();return;}
+    row.classList.add('lay-settle');row.style.transition=SLIDE+',box-shadow .18s';row.style.transform='translateY(0) scale(1)';row._ty=0;
+    let fired=false;const fin=()=>{if(fired)return;fired=true;done();};
+    row.addEventListener('transitionend',fin,{once:true});setTimeout(fin,240);   // timeout: no transitionend if nothing moved
+  };
+  h.addEventListener('contextmenu',e=>e.preventDefault());
+  h.addEventListener('pointerdown',e=>{
+    if(e.button>0||id!==null)return;id=e.pointerId;e.preventDefault();
+    startY=e.clientY+sy();lastY=e.clientY;top0=topOf(row);row._ty=0;
+    row.style.transition='box-shadow .15s';row.classList.add('lay-drag');buzz(10);
+    document.addEventListener('pointermove',move,{capture:true,passive:false});document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',up,true);
+  });
 }
 
 /* ═════════ CORE-16 part 2 (V1.27.0) — COURSE RUNNER (PRS · Big bore) ═════════
@@ -4964,7 +5960,7 @@ function renderLayoutEditor(){
 const courseRun=()=>APP.run||(APP.run={cardId:null,si:0,ti:0,calls:{},start:null});
 function courseCard(){const r=courseRun();return DB.dopeCards.find(c=>c.id===r.cardId)||DB.dopeCards[0]||null;}
 function courseStage(){const c=courseCard();if(!c||!c.stages.length)return null;return c.stages[Math.min(courseRun().si,c.stages.length-1)];}
-function courseOn(){const L=activeLayout();return!!(L&&L.mods.some(m=>m.id==='course'&&m.on));}
+function courseOn(){const L=activeLayout();return!!(L&&activeMods(L).some(m=>m.id==='course'&&m.on));}
 function courseMaxRange(){const st=courseOn()?courseStage():null;return st?Math.max(0,...st.dists.map(d=>+d.range||0))+25:0;}
 let courseIv=null;
 function courseSave(){saveDBSoon();renderQuick();}
@@ -5208,7 +6204,7 @@ const isCoarse=()=>window.matchMedia?matchMedia('(pointer: coarse)').matches:('o
    button at the top right); the choice is remembered per page (APP.panes). Blocks are MOVED, never copied
    (ids unchanged, every renderer keeps working), and go back to their exact place on every page change. */
 const PANE_RAIL=['home','traj','solver','wind','dope','holds'];
-const PANE_PAGE={bench:['bn-out'],stab:['st-out','st-twbox'],truing:['tu-result','bc-out','bc-benchbox']};
+const PANE_PAGE={bench:['bn-out'],stab:['st-out','st-twbox'],truing:['tu-result','td-result','bc-out','bc-benchbox','mvt-tblbox','mvt-fit']};   // r10: each truing tool's results
 const PANE_LABEL={page:'Results',rail:'Solution',none:'Hide'};
 let twoPane=false,paneShown=null;     // paneShown: 'rail' | 'page' | 'none' while two panes are on, else null
 const paneModes=p=>PANE_RAIL.includes(p)?['rail']:PANE_PAGE[p]?['page','rail']:['none','rail'];
@@ -5233,8 +6229,9 @@ function applyPane(p){
   if(show)show.style.display=m==='none'?'':'none';
   renderRailHead();
   if(m==='rail')renderQuick();
+  if(typeof divPos==='function')divPos();   // V2.11.0 r3: the divider follows the pane's edge
 }
-function setPaneMode(p,m){if(!paneModes(p).includes(m))return;APP.panes={...(APP.panes&&typeof APP.panes==='object'?APP.panes:{}),[p]:m};saveDB();applyPane(p);}
+function setPaneMode(p,m){if(!paneModes(p).includes(m))return;APP.panes={...(APP.panes&&typeof APP.panes==='object'?APP.panes:{}),[p]:m};saveDB();applyPane(p);divPos();}
 const screenInfo=()=>`Screen ${window.innerWidth} × ${window.innerHeight} CSS px · ${isCoarse()?'touch':'mouse'} · layout: ${({phone:'phone (single column)',inner:'fold inner screen (two panes, per page)',wide:twoPane?'wide (two panes, per page)':'wide (single column)'})[layout]}`;
 function applyLayout(){
   const mode=layoutMode(window.innerWidth,window.innerHeight,isCoarse()),two=mode==='inner'||(mode==='wide'&&window.innerHeight>=560);
@@ -5243,7 +6240,8 @@ function applyLayout(){
   layout=mode;twoPane=two;
   document.documentElement.classList.toggle('fold',two);
   applyPane(curPage());
-  info();renderQuick();
+  if(Array.isArray(APP.layouts)&&APP.layouts.length&&APP.layouts.some(l=>Array.isArray(l.modsInner)))applyHomeLayout();   // V2.11.0 r8: fold ↔ unfold switches module order
+  info();renderQuick();divPos();
 }
 const homeVisible=()=>paneShown==='rail'||document.getElementById('page-home').classList.contains('active');
 function renderRailHead(){
@@ -5460,7 +6458,7 @@ function stnState(D,shotBrg){
   const rows=r.stations.map(t=>{
     const d=calByName(t.unit),age=d&&d.lastWu?(Date.now()-d.lastWu)/1000:null,ok=t.dist!=null&&t.dist>=0;
     const m=!ok?null:t.mount==='north'?(b==null?null:norm360(-b)):norm360(stnMarkRel(t,S.dist_m,base)-turn);
-    const why=!t.unit?'no Calypso chosen':!ok?'no distance':!d?'not connected':d.locked?'locked':age==null?'waiting for wind':age>STN_STALE_S?'signal lost':m==null?'needs the target bearing (Home)':null;
+    const why=!t.unit?'no Calypso chosen':!ok?'no distance':!d?'not connected':d.locked?'locked':d.paused?'paused':age==null?'waiting for wind':age>STN_STALE_S?'signal lost':m==null?'needs the target bearing (Home)':null;
     if(why)return{t,why};
     const win=stnWin(t),w=calReading(d,homeWindSrc,win);
     return{t,why:null,x:stnPos({dist:t.dist,ang:(+t.ang||0)-turn}).x,s:w.s,d:w.d,win,...stnComponents(w.s,w.d,m)};
@@ -5770,6 +6768,7 @@ DB.dopeCards.forEach(migrateDopeCard);
 S.tgtBrg=APP.hmTgtBrg??null;syncBearingFields();renderCalMount();
 refreshUnits();startUnitObserver();
 initLayouts();applyHomeLayout();
+fieldInit();  // V2.11.0 r1
 applyLayout();window.addEventListener('resize',()=>dbnc('layout',applyLayout,120));
 renderStoreWarn();renderIosHint();requestPersist();fxCheck();
 importFromLink();

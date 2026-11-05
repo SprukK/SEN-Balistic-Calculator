@@ -17,7 +17,11 @@ async function open(file,ls,screen=[390,866]){
     beforeParse(w){w.alert=()=>{};w.confirm=()=>true;if(ls)w.localStorage.setItem(SK,ls);setScreen(w,...screen);
       w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}});
   const w=dom.window;w.errs=[];w.addEventListener('error',e=>w.errs.push(e.message));
-  await wait(700);all.push(w);return w;
+  await wait(700);
+  // V2.11.0: the Field layout (named "Default") is in use. This suite checks the pre-V2.11.0 Home ("Classic"), so a
+  // fresh install is put back to Classic first with the new Default last — the other layouts keep their positions.
+  if(!ls&&w.eval("typeof APP==='object'&&!!APP.fieldDefault"))w.eval("APP.layouts.push(APP.layouts.shift());useLayout(APP.layouts[0].id)");
+  all.push(w);return w;
 }
 const J=(w,e)=>JSON.parse(w.eval('JSON.stringify('+e+')'));
 const $=(w,id)=>w.document.getElementById(id);
@@ -30,7 +34,7 @@ const MODS=['home-dash','home-rail-panel','home-turret-panel','home-livebar','ho
 console.log('=== HOME LAYOUT TEST: '+NEW+' ===');
 // 1. Fresh install: seeded layouts; Default = the previous release's Home.
 const o=await open(OLD),w=await open(NEW);
-chk('five layouts seeded, Default in use',J(w,'APP.layouts.map(l=>l.name)').join()==='Default,Benchrest 50 m,Benchrest 100 m,PRS,Big bore'&&J(w,'activeLayout().name')==='Default'&&/^Default ▾$/.test(txt(w,'home-layout-name')));
+chk('six layouts seeded (V2.11.0: + the Field layout named Default, the old Default named Classic), Classic in use',J(w,'APP.layouts.map(l=>l.name)').join()==='Classic,Benchrest 50 m,Benchrest 100 m,PRS,Big bore,Default'&&J(w,'activeLayout().name')==='Classic'&&/^Classic ▾$/.test(txt(w,'home-layout-name')));
 const oldOrder=[...$(o,'page-home').children].map(e=>e.id).filter(id=>MODS.includes(id)||id==='home-setup');
 const newOrder=[...$(w,'page-home').children].map(e=>e.id).filter(id=>MODS.includes(id)||id==='home-setup');
 chk('Default: same blocks in the same order as the previous release',JSON.stringify(oldOrder)===JSON.stringify(newOrder),newOrder.join(','));
@@ -39,7 +43,7 @@ chk('Default: benchrest modules hidden, nothing else hidden',['home-windoff','ho
 // 2. Switch to Benchrest 50 m from the Home sheet.
 session(w);await wait(30);
 w.eval('openLayoutSheet()');const opt=[...w.document.querySelectorAll('#sbox .navsheet button')];
-chk('sheet lists every layout + Manage',opt.map(b=>b.textContent).join('|')==='Default|Benchrest 50 m|Benchrest 100 m|PRS|Big bore|Manage layouts ›');
+chk('sheet lists every layout + Manage',opt.map(b=>b.textContent).join('|')==='Classic|Benchrest 50 m|Benchrest 100 m|PRS|Big bore|Default|Manage layouts ›');
 opt[1].click();await wait(30);
 chk('switch sets the fixed distance (50 m) and the name',w.eval('S.dist_m')===50&&txt(w,'home-layout-name')==='Benchrest 50 m ▾');
 chk('Benchrest modules shown in template order, turret/bearing/rail hidden',visibleHome(w).join()==='home-dash,home-windoff,home-windtable,home-chrono,home-timer,home-livebar,home-manwind,home-cond,home-inputs',visibleHome(w).join());
@@ -73,7 +77,7 @@ w.Date.now=realNow;
 // 7. Editor.
 w.eval("gotoPage('layouts')");await wait(20);
 const rowsL=[...w.document.querySelectorAll('#lay-list .lay-row')];
-chk('Layouts page lists all five, the active one marked',rowsL.length===5&&/in use/.test(rowsL[1].textContent));
+chk('Layouts page lists all six (V2.11.0: + Field layout), the active one marked',rowsL.length===6&&/in use/.test(rowsL[1].textContent));
 [...rowsL[1].querySelectorAll('button')].find(b=>b.textContent==='Edit').click();await wait(20);
 const nm=$(w,'lay-name-in');nm.value='Polzela league';nm.dispatchEvent(new w.Event('input'));
 chk('rename shows on Home at once',txt(w,'home-layout-name')==='Polzela league ▾');
@@ -99,7 +103,7 @@ chk('the last layout cannot be deleted',J(w,'APP.layouts.length')===1&&!lastBtns
 // 8. Persistence + boot applies the active layout.
 w.eval("newLayout('br100');useLayout(APP.layouts[1].id);saveDB()");await wait(50);
 const r=await open(NEW,w.localStorage.getItem(SK));
-chk('restart: layouts, active layout and Home order restored',J(r,'APP.layouts.map(l=>l.name)').join()==='Default,Benchrest 100 m'&&txt(r,'home-layout-name')==='Benchrest 100 m ▾'&&visibleHome(r)[1]==='home-windoff');
+chk('restart: layouts, active layout and Home order restored',J(r,'APP.layouts.map(l=>l.name)').join()==='Classic,Benchrest 100 m'&&txt(r,'home-layout-name')==='Benchrest 100 m ▾'&&visibleHome(r)[1]==='home-windoff');
 chk('restart: chrono values kept',J(r,'APP.chrono.es')===5);
 
 // 9. Fold rail with a layout.
@@ -119,7 +123,7 @@ w.eval(`activeLayout().name='<img src=x id=pwn>';applyHomeLayout();gotoPage('lay
 chk('layout names are text, never HTML',!w.document.getElementById('pwn')&&/<img/.test(txt(w,'home-layout-name')));
 w.eval('closeSheet()');
 const g=J(w,`normLayout({id:5,name:'x'.repeat(99),mods:[{id:'evil'},{id:'chrono',on:1},{id:'chrono',on:0},null],set:{dist:-3,timerMin:'a',shots:1e9}})`);
-chk('garbage layout normalised (known modules once each, sane settings)',g.mods.length===14&&g.mods[0].id==='chrono'&&g.mods[0].on===true&&g.name.length===40&&g.set.dist===null&&g.set.timerMin===20&&g.set.shots===999&&typeof g.id==='string');
+chk('garbage layout normalised (known modules once each, sane settings)',g.mods.length===18&&g.mods[0].id==='chrono'&&g.mods[0].on===true&&g.name.length===40&&g.set.dist===null&&g.set.timerMin===20&&g.set.shots===999&&typeof g.id==='string');
 
 const errs=all.flatMap(x=>x.errs);
 chk('ZERO uncaught errors',errs.length===0,errs.slice(0,3).join(' / '));

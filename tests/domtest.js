@@ -49,7 +49,16 @@ for(const b of $$('#nav button[data-page]')){
   if(errs.length!==e0)barFails.push(b.dataset.page+':threw');
   else if(!$('#page-'+b.dataset.page).classList.contains('active'))barFails.push(b.dataset.page+':not-active');
 }
-chk('all 5 bar tabs navigate',barFails.length===0,barFails.join(' '));
+chk('all bar tabs with a page navigate (V2.11.0 r6: Home · Wind · Dope)',barFails.length===0&&$$('#nav button[data-page]').map(b=>b.dataset.page).join()==='home,wind,dope',barFails.join(' ')+' '+$$('#nav button[data-page]').map(b=>b.dataset.page).join());
+// V2.11.0 r6: Advanced = Trajectory + Shot solver as sub-tabs, reopens the last one
+{const e0=errs.length,adv=$('#nav-adv');click(adv);
+ const t1=$('#page-traj').classList.contains('active')&&adv.classList.contains('on');
+ click($$('#page-traj .advtabs button').find(b=>b.dataset.adv==='solver'));
+ const t2=$('#page-solver').classList.contains('active')&&adv.classList.contains('on')&&$$('#page-solver .advtabs button.on').map(b=>b.dataset.adv).join()==='solver';
+ click($$('#nav button[data-page]').find(b=>b.dataset.page==='home'));const t3=!adv.classList.contains('on');
+ click(adv);const t4=$('#page-solver').classList.contains('active');
+ chk('Advanced tab: Trajectory first, Shot solver sub-tab, stays lit, reopens the last sub-tab',t1&&t2&&t3&&t4&&errs.length===e0,[t1,t2,t3,t4].join());
+ click($$('#page-solver .advtabs button').find(b=>b.dataset.adv==='traj'));}
 chk('More unlit on a bar page',!$('#nav-more').classList.contains('on'));
 
 // 4. act-bar chips open pickers

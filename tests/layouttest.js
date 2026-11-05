@@ -93,7 +93,7 @@ chk('Bench: inputs stay in the left pane, Home blocks are back on Home',!!w2.doc
 w2.eval("gotoPage('stab')");
 chk('Stability: Sg results + twist table in the pane, McGyro panel left',railIds(w2)==='rail-head,st-out,st-twbox'&&!!w2.document.querySelector('#page-stab #st-mcg'));
 w2.eval("gotoPage('truing')");
-chk('BC / Truing: truing result, BC/SD card, benchmark table in the pane',railIds(w2)==='rail-head,tu-result,bc-out,bc-benchbox');
+chk('BC / Truing: every truing tool\'s results in the pane (V2.11.0 r10: + impacts result, MV–temp table and fit)',railIds(w2)==='rail-head,tu-result,td-result,bc-out,bc-benchbox,mvt-tblbox,mvt-fit',railIds(w2));
 w2.eval("gotoPage('bench')");[...$w('pane-sw').querySelectorAll('button')].find(b=>b.textContent==='Solution').click();await wait(20);
 chk('Bench → Solution: rail in the pane, results back in the Bench page in their exact place',railIds(w2)==='rail-head,home-dash,home-turret-panel,home-cond'&&benchOrder().startsWith('bn-out,')&&sw()==='Results|Solution*'&&J2('APP.panes.bench')==='rail',benchOrder());
 const wb=$w('home-wind').textContent;w2.eval("Bus.setWind(6,90,'manual')");await wait(30);

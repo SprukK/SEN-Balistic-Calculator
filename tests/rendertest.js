@@ -17,7 +17,10 @@ const errs=[];
 const open=async vp=>{
   const ctx=await b.newContext({viewport:vp,hasTouch:true,isMobile:true,deviceScaleFactor:2.6});
   const p=await ctx.newPage();p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(FILE);await p.waitForTimeout(1000);return p;
+  await p.goto(FILE);await p.waitForTimeout(1000);
+  // V2.11.0 r2: Field is the default layout; this suite measures the pre-r1 Home ("Classic"), whose rail is long enough to scroll
+  await p.evaluate(()=>{if(typeof APP==='object'&&APP.fieldDefault)useLayout(APP.layouts.find(l=>l.tpl==='default').id);});await p.waitForTimeout(100);
+  return p;
 };
 const box=(p,sel)=>p.evaluate(s=>{const r=document.querySelector(s).getBoundingClientRect();return{top:Math.round(r.top),bottom:Math.round(r.bottom)};},sel);
 

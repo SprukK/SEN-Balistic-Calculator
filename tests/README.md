@@ -137,6 +137,30 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node rangefindertest.js ../index.html)
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node chronotest.js ../index.html)
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node labradartest.js ../index.html)
+
+# V2.11.0 r1: Field screen (summary, answer, distance gestures)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node fieldtest.js ../index.html)
+
+# V2.11.0 r2: device row (Weather · Range · Chrono), Field as default, Android back button
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node devicetest.js ../index.html)
+
+# V2.11.0 r4: type scale + tap sizes on every page, real Chromium (Playwright, as rendertest.js)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules:/opt/npm-tools/node_modules node typetest.js ../index.html)
+
+# V2.11.0 r5: help text behind ⓘ, unit presets
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node helptest.js ../index.html)
+
+# V2.11.0 r7: shot strip on Advanced / Wind, live Holds, session bar, rounded pressure
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node striptest.js ../index.html)
+
+# V2.11.0 r8: choosable bottom bar, drag to reorder Home modules, inner-screen module order
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node customtest.js ../index.html)
+
+# V2.11.0 r10: Truing sub-tabs, empty-pane hint, wide-table hint, profile ⋯ menu, flatter panels
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node polishtest.js ../index.html)
+
+# V2.11.0 r11: colours (eight user colours, derived tokens, checks, themed reticle and chart)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node themetest.js ../index.html)
 ```
 
 ## Provenance

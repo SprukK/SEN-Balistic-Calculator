@@ -7,6 +7,64 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.11.0 — minor — UI redesign graduated from SEN-sandbox r11 (Field layout as "Default", devices row, Advanced tab, customisation, colours); physics unchanged
+
+**Problem.** UX review of V2.10.0 (2026-11-03), against three rules: fast access to data and inputs, a clean screen without clutter, modular and customisable.
+- On the outer screen the distance input sat below the nav bar, and the clicks sat under a ~420 px reticle.
+- The same shot inputs appeared on four pages.
+- 1,218 visible texts were under 12 px, and 281 controls were under 48 px tall.
+- Every panel explained itself in full, all the time.
+- The bottom bar was fixed, there was one module order for both screens, and reordering was ▲▼ only.
+- Android's back button closed the app, and pull-to-refresh dropped every Bluetooth link.
+
+The redesign was built and tested as a UI-only fork, **SprukK/SEN-sandbox** (r1–r11, 2026-11-03 to 11-04), with its own storage. The owner range-tested it on the Honor (LabRadar LX included), and it was graduated on 2026-11-05. The per-release detail is in `SANDBOX-LOG.md` in that repo. The sandbox stays frozen at r11; the next UI iteration starts from Main.
+
+**Fix.**
+- **New Field layout, named "Default", first and in use.** The pre-V2.11.0 Home is kept as **Classic**.
+  - Modules: Session summary · Answer (large elevation / windage clicks from the same solve as the reticle) · Distance · Devices · Reticle · Turret.
+  - **Distance control.** Tap → number sheet; its m / yd / ft switch *is* Settings → Range. Hold 350 ms and drag: ← → ±1, ↑ ↓ ±10, with light acceleration on quick drags. §20E source shown (✎ manual / ⊙ rangefinder).
+  - **Upgrade.** Runs once per store (`APP.fieldDefault`). Existing layouts, the active-session data and every profile are untouched; the new modules are off in every other layout.
+- **Devices row (Weather · Range · Chrono).**
+  - Tap pauses or resumes that kind of sensor. Hold opens the connected devices, each with its own Pause, plus Connect / Station setup / Shot string.
+  - A paused Calypso drops out of the stations as a stale one does. A paused rangefinder shows its ranging but fills nothing. A paused LabRadar shows a shot without adding it. MV changes only through "Use MV → session".
+- **Navigation.**
+  - **Advanced** tab: Trajectory and Shot solver as sub-tabs, remembering the last one.
+  - Bottom bar **Home · Advanced · Wind · Dope · More**, with three slots choosable in Settings.
+  - A two-line session bar replaces the overflowing chips.
+  - A **shot strip** (distance · angle · wind · cant) on Trajectory, Shot solver and Wind; the solver takes the whole shot from the session. Solve / Recompute buttons are hidden on live pages, and Holds follows the session.
+- **Android back button.** Back closes a sheet → goes to the previous page → goes Home → shows "Press back again to close". History guards are added only from real gestures, because Chrome skips entries added without one.
+- **Readability.**
+  - Text is at least 12 px and tap targets at least 48 px; inputs are 16 px.
+  - Static explanations sit behind ⓘ (Settings → Help text: Behind i / Always show).
+  - Units have Metric / Imperial / Custom presets.
+  - Panels are flatter. Profile rows have a ⋯ menu. Wide tables get a "swipe" hint.
+  - Truing has sub-tabs (Velocity · Impacts · BC / SD · MV–temp). An empty right pane says what will appear there.
+- **Customisation.**
+  - Drag a module row by its grip, animated. The inner screen can have its own module order (`modsInner`, sanitised).
+  - A draggable divider between the two panes on the inner screen.
+  - **Colours:** eight user colours, with the rest derived. The reticle and chart follow them. Contrast and look-alike checks run, and Reset is always readable. With no custom colours, nothing changes.
+- **Pull-to-refresh** is blocked while any Calypso, rangefinder or LabRadar is connected. Settings → Reload app reloads on purpose.
+- **Sheets** sit above the on-screen keyboard. The layout sheet's active entry is readable again (it was accent-on-accent in V2.10.0).
+- **No physics, formula, drag table, solver, device protocol or storage-schema change.** Main code was touched only where the UI needed a hook. These are listed per release in SANDBOX-LOG.md (e.g. `tc()` for reticle and chart colours, the device pause holds, `normLayout` for `modsInner`).
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.11.0.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.11.0`), this log.
+- Tests, new: `fieldtest.js` (43), `devicetest.js` (41), `typetest.js` (18, Playwright), `helptest.js` (22), `striptest.js` (22), `customtest.js` (26), `polishtest.js` (23), `themetest.js` (24).
+- Tests changed for the intended UI changes:
+  - `domtest.js`: bar Home · Advanced · Wind · Dope, plus an Advanced check.
+  - `homelayouttest.js` and `rendertest.js`: these measure Classic; six layouts, 18 modules.
+  - `layouttest.js`: Truing pane lists every tool's results.
+- `tests/README.md` updated.
+
+**Verify.**
+- Full regression, 40 runs, all green; `runtests.js` 143/143 unchanged.
+- Real V2.10.0 → V2.11.0 upgrade (jsdom, V2.10.0 store with PRS active and a renamed rifle): Default (Field) is first and active, Classic keeps its eight modules, PRS has the new modules off, the rifle is kept, no errors.
+- A sandbox-era store with a "Field" layout comes up as "Default".
+- Lab `maindatatest.js` 13/13 against the new `index.html`.
+- Chromium at 412 and 780 px: all 14 pages, no sideways scroll, no script errors.
+- **Owner check still open:** Calypso device-row pills and the pull-down block with a Calypso connected.
+
+---
+
 ## V2.10.0 — minor — LabRadar LX live into the chrono shot string; chrono session analysis (CALC-07)
 
 **Problem.** Main took only a typed MV, ES and SD. The chrono shot-string work (CALC-07) was built on 29 Oct as V2.6.0 but parked on the local branch `calc-07-chrono` and never shipped. The LabRadar LX protocol was decoded and confirmed live in the Lab (Probe V1.7.0, 31 Oct), but Main couldn't connect to it.
