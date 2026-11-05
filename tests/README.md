@@ -170,6 +170,9 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 
 # V2.15.0: inner screen — left / right side of Home per layout
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node splittest.js ../index.html)
+
+# V2.16.0: Chrono Advanced + Chrono Graph Home modules, shot-string notes
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node chadvtest.js ../index.html)
 ```
 
 ## Provenance

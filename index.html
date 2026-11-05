@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.15.0</title>
+<title>SEN Ballistics V2.16.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -216,6 +216,7 @@ html[data-tt="bc"] [data-tt]:not([data-tt="bc"]),html[data-tt="mvt"] [data-tt]:n
 .lay-mod .lay-modname{flex:1;min-width:0;font-family:var(--sans);font-size:14px;line-height:1.3}
 .lay-grip{min-width:44px;min-height:48px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text3);font-size:20px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
 .lay-mods{position:relative}
+.cha-box{max-height:260px;overflow-y:auto}.cha th,.cha td{text-align:right;font-family:var(--mono)}.cha-new td{color:var(--accent);font-weight:600}.cha-off td{color:var(--text3);text-decoration:line-through}   /* V2.16.0 */
 .lay-sidehead{font-size:13px;margin:12px 0 6px;color:var(--text2)}.lay-side{min-width:44px}   /* V2.15.0 */
 .lay-mod{will-change:transform}
 .lay-mod.lay-drag{position:relative;z-index:5;background:var(--bg4);border-radius:8px;border-color:var(--accent);box-shadow:0 10px 28px rgba(0,0,0,.55),0 0 0 1px var(--accent)}   /* r9: lifted while dragged */
@@ -668,6 +669,16 @@ html.help-all .help-btn{display:none}
       <div class="cond-cell"><div class="cl">SD</div><div class="cv" id="cr-sd">—</div></div>
     </div>
     <div class="note" id="cr-vert">—</div>
+  </div>
+  <div class="panel mod-off" id="home-chronoadv">   <!-- V2.16.0 -->
+    <h2>Chrono — every shot</h2>
+    <div class="note" id="cha-sum">—</div>
+    <div class="tablebox cha-box" style="margin:0"><table class="cha"><thead><tr><th>#</th><th>m/s</th><th>fps</th><th>SD m/s (Δ)</th><th>Time</th></tr></thead><tbody id="cha-body"></tbody></table></div>
+  </div>
+  <div class="panel mod-off" id="home-chronograph">   <!-- V2.16.0 -->
+    <h2>Chrono graph</h2>
+    <canvas id="chg-canvas" style="width:100%;height:140px;display:block" role="img" aria-label="Each shot's velocity above or below the mean"></canvas>
+    <div class="note" id="chg-lab">—</div>
   </div>
   <div class="panel mod-off" id="home-timer">
     <h2 id="tm-head">Card</h2>
@@ -1157,6 +1168,7 @@ html.help-all .help-btn{display:none}
     <h2>Chronograph · shot string + MV (Garmin Xero C1 Pro)</h2>
     <div class="fld"><label>Shot string</label><textarea id="ch-str" rows="3" style="width:100%;font-family:var(--mono);font-size:12px" placeholder="282.3 283.0 281.5 …"></textarea><div class="note" id="ch-hint">Velocities in <span data-ul="vel">m/s</span>, separated by spaces, commas or new lines — or paste a Garmin Xero CSV.</div></div>
     <div class="btnrow"><button class="btn" onclick="chReadString()">Read shots</button><button class="btn" onclick="document.getElementById('ch-file').click()">Import Xero CSV</button><button class="btn" onclick="driveSaveShots()">Save to Drive</button><button class="btn-xs" onclick="chClear()">Clear</button><input type="file" id="ch-file" accept=".csv,text/csv,text/plain" style="display:none" onchange="chImportFile(this)"></div>
+    <div class="fld"><label>Notes</label><textarea id="ch-notes" rows="2" maxlength="2000" style="width:100%" placeholder="Pellet / slug lot, regulator, fill, conditions …"></textarea><div class="note">Saved with the shot string and uploaded to its Google Sheet.</div></div>   <!-- V2.16.0 -->
     <div id="ch-msg"></div>
     <div id="ch-res"></div>
     <div class="fgrid3"><div class="fld"><label>MV m/s</label><input type="number" id="ch-mv" step="0.1"></div><div class="fld"><label>ES m/s</label><input type="number" id="ch-es" step="0.1"></div><div class="fld"><label>SD m/s</label><input type="number" id="ch-sd" step="0.1"></div></div>
@@ -1191,7 +1203,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.15.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.16.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -3860,7 +3872,7 @@ function dopeRfRender(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.15.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4436,7 +4448,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.15.0'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.0'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4854,9 +4866,9 @@ function lrShot(d,v){
   d.last={v,t:Date.now()};
   if(d.paused){lrRender();return;}   // V2.11.0 r2: paused → shown, not added to the shot string
   let c=chClean(APP.chronoStr);
-  if(!c||c.src!=='labradar')c={shots:[],off:[],name:'LabRadar '+(d.link.name||'')+(d.series!=null?' · series '+d.series:''),date:new Date().toISOString().slice(0,10),src:'labradar',unit:'ms'};
+  if(!c||c.src!=='labradar')c={shots:[],times:[],off:[],name:'LabRadar '+(d.link.name||'')+(d.series!=null?' · series '+d.series:''),date:new Date().toISOString().slice(0,10),src:'labradar',unit:'ms'};
   if(c.shots.length>=CH_MAX){chMsg('Shot string full ('+CH_MAX+' shots): clear it to keep recording.');return;}
-  c.shots.push(v);
+  c.shots.push(v);c.times.push(Date.now());   // V2.16.0: arrival time (Chrono Advanced)
   const ta=document.getElementById('ch-str');if(ta)ta.value=c.shots.map(x=>un('vel',x)).join(' ');
   chSet(c);
 }
@@ -5049,14 +5061,16 @@ function useChronoMV(){
 const CH_MAX=200;
 function chClean(o){
   if(!o||typeof o!=='object')return null;
-  const shots=(Array.isArray(o.shots)?o.shots:[]).filter(v=>isNum(v)&&v>0&&v<1500).slice(0,CH_MAX);
+  // V2.16.0: times[i] = when shot i arrived (ms, LabRadar live) or null; kept in step with the shots
+  const tm=Array.isArray(o.times)?o.times:[],pairs=(Array.isArray(o.shots)?o.shots:[]).map((v,i)=>[v,isNum(tm[i])&&tm[i]>0?tm[i]:null]).filter(([v])=>isNum(v)&&v>0&&v<1500).slice(0,CH_MAX);
+  const shots=pairs.map(p=>p[0]),times=pairs.map(p=>p[1]);
   if(!shots.length)return null;
   let off=[...new Set((Array.isArray(o.off)?o.off:[]).filter(i=>Number.isInteger(i)&&i>=0&&i<shots.length))];
   if(off.length>=shots.length)off=[];   // at least one shot is always kept
   const str=(v,n)=>isStr(v)?v.slice(0,n):'';
   const xo=o.xero&&typeof o.xero==='object'?o.xero:{},xero={};
   ['avg','sd','es'].forEach(k=>{if(isNum(xo[k])&&xo[k]>=0)xero[k]=xo[k];});
-  return{shots,off,name:str(o.name,60),date:str(o.date,60),src:o.src==='xero'?'xero':o.src==='labradar'?'labradar':'typed',unit:o.unit==='fps'?'fps':'ms',xero:Object.keys(xero).length?xero:null};
+  return{shots,times,off,name:str(o.name,60),date:str(o.date,60),src:o.src==='xero'?'xero':o.src==='labradar'?'labradar':'typed',unit:o.unit==='fps'?'fps':'ms',xero:Object.keys(xero).length?xero:null};
 }
 function chStats(v){
   const n=v.length;if(!n)return null;
@@ -5121,7 +5135,7 @@ function chImportFile(inp){
     document.getElementById('ch-str').value=r.shots.map(v=>un('vel',v)).join(' ');chSet(r);};
   rd.readAsText(f);inp.value='';
 }
-function chClear(){APP.chronoStr=null;saveDB();document.getElementById('ch-str').value='';chMsg('');chRender();}
+function chClear(){APP.chronoStr=null;APP.chNotes='';saveDB();document.getElementById('ch-str').value='';const n=document.getElementById('ch-notes');if(n)n.value='';chMsg('');chRender();}   // V2.16.0: + notes
 function chKept(c){return c.shots.filter((_,i)=>!c.off.includes(i));}
 function chToggle(i){
   const c=chClean(APP.chronoStr);if(!c)return;
@@ -5153,6 +5167,7 @@ function chVert(st){
 function chRender(){
   const box=document.getElementById('ch-res');if(!box)return;
   const c=chClean(APP.chronoStr);
+  chHomeRender();   // V2.16.0: Chrono Advanced + Graph on Home follow every change
   if(!c){box.replaceChildren();return;}
   const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
   const kept=chKept(c),st=chStats(kept),out=[];
@@ -5186,6 +5201,87 @@ function chRender(){
 Bus.on(()=>{if(document.getElementById('page-sensors')?.classList.contains('active'))chRender();});
 
 
+/* ═════════ V2.16.0 — Chrono Advanced + Chrono Graph (Home modules) ═════════
+   Both read the CALC-07 shot string (APP.chronoStr) — the same shots, exclusions and statistics as Sensors.
+   Chrono Advanced: every shot as it arrives, newest on top — Shot #, velocity m/s, velocity fps (both always,
+   by owner request), the running SD of the kept shots up to that shot (sample SD, n−1) with its change from the
+   previous shot's running SD, and the time the shot arrived (LabRadar live; typed / imported strings have none).
+   Chrono Graph: each shot a bar from the mean line, up = faster, down = slower — like an audio waveform; the
+   scale and the bars ease to each new shot; ±1 SD band; excluded shots grey. Text and canvas only, no HTML. */
+const chFmtT=t=>{if(!isNum(t))return'—';const d=new Date(t),p=n=>String(n).padStart(2,'0');return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());};
+// running SD of the kept shots up to each shot (null for an excluded shot or fewer than 2 kept)
+function chRunning(c){
+  const out=[];let n=0,mean=0,m2=0,prev=null;
+  c.shots.forEach((v,i)=>{
+    if(c.off.includes(i)){out.push({sd:null,d:null,off:true});return;}
+    n++;const d=v-mean;mean+=d/n;m2+=d*(v-mean);   // Welford
+    const sd=n>1?Math.sqrt(m2/(n-1)):null;out.push({sd,d:sd!=null&&prev!=null?sd-prev:null,off:false});if(sd!=null)prev=sd;
+  });
+  return out;
+}
+function chAdvRender(){
+  const box=document.getElementById('cha-body'),sum=document.getElementById('cha-sum');if(!box||!sum)return;
+  const c=chClean(APP.chronoStr);
+  if(!c){sum.textContent='No shot string yet — LabRadar shots appear here live (or type a string on Sensors).';box.replaceChildren();return;}
+  const st=chStats(chKept(c)),run=chRunning(c),el=(t,txt,cls)=>{const e=document.createElement(t);if(txt!=null)e.textContent=txt;if(cls)e.className=cls;return e;};
+  sum.textContent=st.n+' kept of '+c.shots.length+' · mean '+st.mean.toFixed(1)+' m/s ('+(st.mean/0.3048).toFixed(1)+' fps) · ES '+st.es.toFixed(2)+' · SD '+(st.sd!=null?st.sd.toFixed(2):'—')+' m/s';
+  const rows=[];
+  for(let i=c.shots.length-1;i>=0;i--){
+    const v=c.shots[i],r=run[i],tr=el('tr',null,r.off?'cha-off':i===c.shots.length-1?'cha-new':'');
+    const sd=r.off?'excluded':r.sd==null?'—':r.sd.toFixed(2)+(r.d==null?'':' '+(r.d>0?'↑':r.d<0?'↓':'=')+(r.d?Math.abs(r.d).toFixed(2):''));
+    tr.append(el('td',String(i+1)),el('td',v.toFixed(2)),el('td',(v/0.3048).toFixed(1)),el('td',sd),el('td',chFmtT(c.times[i])));
+    rows.push(tr);
+  }
+  box.replaceChildren(...rows);
+}
+const CHG={h:[],scale:1,mean:null,raf:0,n:0};
+function chGraphRender(){
+  const cv=document.getElementById('chg-canvas'),lab=document.getElementById('chg-lab');if(!cv||!lab)return;
+  const c=chClean(APP.chronoStr);
+  if(!c){lab.textContent='No shots yet.';CHG.h=[];CHG.n=0;chGraphDraw(null);return;}
+  const st=chStats(chKept(c));
+  lab.textContent=c.shots.length+' shots · mean '+st.mean.toFixed(1)+' m/s · ES '+st.es.toFixed(2)+' · SD '+(st.sd!=null?st.sd.toFixed(2):'—');
+  if(c.shots.length<CHG.h.length)CHG.h=CHG.h.slice(0,c.shots.length);
+  while(CHG.h.length<c.shots.length)CHG.h.push(0);   // a new shot grows from the mean line
+  CHG.n=c.shots.length;
+  const reduce=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce||typeof requestAnimationFrame!=='function'){chGraphStep(c,st,1);return;}
+  if(!CHG.raf){const tick=()=>{CHG.raf=0;const cc=chClean(APP.chronoStr);if(!cc)return;if(chGraphStep(cc,chStats(chKept(cc)),0.22))CHG.raf=requestAnimationFrame(tick);};CHG.raf=requestAnimationFrame(tick);}
+}
+// one easing step toward the targets; returns true while still moving
+function chGraphStep(c,st,k){
+  const dev=c.shots.map(v=>v-st.mean),want=Math.max(0.5,...dev.map(Math.abs))*1.15;
+  CHG.scale+=(want-CHG.scale)*k;let moving=Math.abs(want-CHG.scale)>want*0.002;
+  dev.forEach((d,i)=>{CHG.h[i]+=(d-CHG.h[i])*k;if(Math.abs(d-CHG.h[i])>0.002)moving=true;});
+  if(k>=1){CHG.scale=want;CHG.h=dev.slice();moving=false;}
+  chGraphDraw(c,st);return moving;
+}
+function chGraphDraw(c,st){
+  const cv=document.getElementById('chg-canvas');if(!cv)return;
+  const W=Math.max(200,cv.clientWidth||300),H=140,dpr=window.devicePixelRatio||1;
+  if(cv.width!==Math.round(W*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);}
+  const g=cv.getContext&&cv.getContext('2d');if(!g)return;
+  const css=k=>{try{return getComputedStyle(document.documentElement).getPropertyValue(k).trim();}catch(e){return'';}};
+  const up=css('--accent')||'#72b4c2',dn=css('--gold')||'#caa869',dim=css('--text3')||'#7d7a72',line=css('--border2')||'rgba(255,255,255,.2)';
+  g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  const mid=H/2,half=H/2-10;
+  g.strokeStyle=line;g.lineWidth=1;g.beginPath();g.moveTo(0,mid);g.lineTo(W,mid);g.stroke();
+  if(!c)return;
+  if(st&&st.sd!=null){const b=Math.min(half,st.sd/CHG.scale*half);g.fillStyle=line;g.globalAlpha=.35;g.fillRect(0,mid-b,W,2*b);g.globalAlpha=1;}
+  const n=c.shots.length,slot=W/Math.max(n,24),bw=Math.max(2,slot*0.62);
+  c.shots.forEach((v,i)=>{
+    const h=CHG.h[i]||0,y=Math.max(-half,Math.min(half,h/CHG.scale*half)),x=i*slot+(slot-bw)/2,off=c.off.includes(i);
+    g.fillStyle=off?dim:h>=0?up:dn;g.globalAlpha=off?.45:i===n-1?1:.8;
+    g.fillRect(x,y>=0?mid-y:mid,bw,Math.max(1.5,Math.abs(y)));
+  });
+  g.globalAlpha=1;g.fillStyle=dim;g.font='11px sans-serif';g.textBaseline='top';
+  g.fillText('+'+CHG.scale.toFixed(1)+' m/s',4,2);g.textBaseline='bottom';g.fillText('−'+CHG.scale.toFixed(1)+' m/s',4,H-2);
+}
+function chHomeRender(){chAdvRender();chGraphRender();}
+// notes for the shot string (Sensors → Chronograph); saved with the settings, uploaded to the shot string's Sheet
+function chNotesInit(){const t=document.getElementById('ch-notes');if(!t)return;t.value=isStr(APP.chNotes)?APP.chNotes:'';
+  t.oninput=()=>{APP.chNotes=t.value.slice(0,2000);saveDBSoon();};}
+
 /* ═════════ CORE-16 (V1.26.0) — HOME LAYOUTS ═════════
    A layout is a named, editable list of Home modules (order + on/off) plus a few settings
    (fixed distance, card timer, shots per card). Modules are the existing Home blocks — moved,
@@ -5211,6 +5307,8 @@ const HOME_MODS={
   windoff:{el:'home-windoff',name:'Wind offset now (mm + clicks)'},
   windtable:{el:'home-windtable',name:'Wind offset table 1–5'},
   chrono:{el:'home-chrono',name:'Chrono ES / SD → vertical'},
+  chronoadv:{el:'home-chronoadv',name:'Chrono Advanced — every shot live'},   // V2.16.0
+  chronograph:{el:'home-chronograph',name:'Chrono Graph — live shot waveform'},   // V2.16.0
   timer:{el:'home-timer',name:'Card timer + shot count'},
   course:{el:'home-course',name:'Course runner (stage · targets · calls)'}
 };
@@ -5888,6 +5986,7 @@ function renderHomeMods(tr){
       tb.append(head,mm,ck);}
     set('wt-dist',uq('range',S.dist_m));
   }
+  if(on('chronoadv')||on('chronograph'))chHomeRender();   // V2.16.0
   if(on('chrono')){
     const c=APP.chrono||{},tp=ok?nearestPt(tr.pts,S.dist_m):null;
     set('cr-mv',c.mv>0?uq('vel',c.mv):'—');set('cr-es',c.es>0?uq('vel',c.es):'—');set('cr-sd',c.sd>0?uq('vel',c.sd):'—');
@@ -7013,16 +7112,16 @@ function driveSave(files){
   if(files.every(f=>driveEnqueue(...f)))driveTapSend();else driveRender();
 }
 function driveBackupNow(){
-  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.15.0'};
+  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.0'};
   driveSave([['backups','SEN backup '+driveStamp()+'.json','application/json',JSON.stringify(d,null,1),'backup']]);
 }
 function driveSaveProfile(t,id){
   const b=shareBundle(t,id),type=SHARE_TYPES[t],rec=b&&DB[type].find(x=>x.id===id);if(!b)return;
-  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.15.0'},null,1)]]);
+  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.16.0'},null,1)]]);
 }
 function driveSaveDope(){
   const c=getCard();if(!c)return;
-  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.15.0'},null,1)]];
+  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.0'},null,1)]];
   const h=dopePrintHTML(c);   // null when the card can't be computed — the JSON still goes
   if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print)','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title>'+h.replace(/<table>/g,'<table border="1" cellpadding="4" style="border-collapse:collapse">'),'',DRIVE_DOC]);   // → Google Doc
   driveSave(f);
@@ -7030,10 +7129,11 @@ function driveSaveDope(){
 function driveSaveShots(){
   const c=chClean(APP.chronoStr);if(!c){alert('No shot string to save.');return;}
   const kept=c.shots.filter((v,i)=>!c.off.includes(i)),st=chStats(kept),nm=c.name||('Shots '+driveStamp());
-  const csv='shot,velocity_ms,velocity_fps,kept\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes'].join(',')).join('\n')+
-    '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n';
+  const run=chRunning(c),notes=isStr(APP.chNotes)?APP.chNotes.trim():'',q=t=>'"'+String(t).replace(/"/g,'""')+'"';   // V2.16.0: + running SD, time, notes
+  const csv='shot,velocity_ms,velocity_fps,kept,running_sd_ms,time\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes',run[i].sd==null?'':run[i].sd.toFixed(2),c.times[i]?new Date(c.times[i]).toISOString():''].join(',')).join('\n')+
+    '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n'+(notes?'\nnotes\n'+q(notes)+'\n':'');
   driveSave([['shots',nm,'text/csv',csv,'',DRIVE_SHEET],   // → Google Sheet
-    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,source:c.src,app:'SEN Ballistics V2.15.0',saved:new Date().toISOString()},null,1)]]);
+    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.16.0',saved:new Date().toISOString()},null,1)]]);
 }
 function driveWindRows(){
   const now=Date.now(),win=wavgWin();
@@ -7045,7 +7145,7 @@ function driveSaveWind(){
   const rows=driveWindRows();if(!rows.length||rows.every(r=>!r.readings)){alert('No wind readings to save — connect a Calypso first.');return;}
   const t=new Date().toISOString(),keys=Object.keys(rows[0]);
   driveSave([['wind','Wind '+driveStamp(),'text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n','',DRIVE_SHEET],   // → Google Sheet
-    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.15.0'},null,1)]]);
+    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.16.0'},null,1)]]);
 }
 // Restore: JSON files in Backups, Profiles and Dope cards, newest first → the normal import.
 async function driveRestoreList(){
@@ -7131,6 +7231,7 @@ refreshUnits();startUnitObserver();
 initLayouts();applyHomeLayout();
 fieldInit();  // V2.11.0 r1
 driveInit();  // V2.13.0 CORE-26
+chNotesInit();chHomeRender();   // V2.16.0
 applyLayout();window.addEventListener('resize',()=>dbnc('layout',applyLayout,120));
 renderStoreWarn();renderIosHint();requestPersist();fxCheck();
 importFromLink();

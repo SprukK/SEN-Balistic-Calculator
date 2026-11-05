@@ -7,6 +7,52 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.16.0 — minor — Chrono Advanced + Chrono Graph Home modules; shot-string notes to Drive
+
+**Requests (owner, 2026-11-05).**
+- Two new chrono modules for Home, usable on the outer or the inner screen.
+- A notes field on the chronograph panel that goes to the same Google Sheet as the velocities.
+
+**Fix.**
+- **Chrono Advanced** (Home module, off by default, either side of the inner screen) lists every shot as it arrives, newest on top. Columns:
+  - Shot #;
+  - velocity in **m/s and fps** (both always, by request);
+  - the **running SD** of the kept shots up to that shot (sample SD, n−1, Welford), with its change from the previous shot's running SD (↑ / ↓);
+  - the **arrival time**.
+  - The newest row is highlighted; excluded shots are struck through, marked "excluded" and skipped by the running SD.
+  - A summary line shows kept / total, mean (m/s + fps), ES and SD.
+  - *Reading of "SD in relation to the previous shot":* the running SD with its change, so both readings are on the row.
+- **Chrono Graph** (Home module, off by default): each shot is a bar from the mean line, faster up (accent), slower down (windage colour), so the string reads like an audio waveform.
+  - A new bar grows from the mean line, and every bar and the scale ease to the new mean (requestAnimationFrame).
+  - Reduced motion: no animation.
+  - The scale is the largest deviation + 15 %; a ±1 SD band is shaded; excluded shots are grey; a label shows mean / ES / SD.
+  - Bar width stays fixed up to 24 shots, then narrows.
+- **Arrival times:** the shot string now carries `times[]` beside `shots[]`, filled by LabRadar live shots and kept in step when the string is cleaned. Typed and imported strings have none ("—").
+- **Notes:** Sensors → Chronograph → **Notes** saves as you type (`APP.chNotes`, ≤ 2000 characters, kept across restarts). **Clear** starts a new string and clears the notes too.
+- **Drive "Save to Drive" for the shot string** (Google Sheet): new columns `running_sd_ms` and `time` (ISO) per shot, plus a **notes** cell under the stats (quoted, line breaks kept). The JSON copy carries the notes.
+- Both modules read the same shot string, exclusions and statistics as Sensors. Text and canvas only, no HTML.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.16.0.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.16.0`), this log.
+- Tests:
+  - `tests/chadvtest.js` (new, 24);
+  - `tests/drivetest.js` (38: CSV columns + notes);
+  - `tests/homelayouttest.js` (20 modules);
+  - `tests/README.md`.
+
+**Verify.**
+- `chadvtest.js` 24/24. Covers:
+  - modules off everywhere; 5 LabRadar shots listed newest first;
+  - running SD reproduced independently, with ↑ / ↓ changes;
+  - HH:MM:SS arrival times; exclusion;
+  - graph bars ease to deviation / scale, a new bar grows, reduced motion jumps;
+  - times stay with their shots when cleaned; typed strings "—";
+  - notes saved / restart / Clear; either side of the inner screen;
+  - no `innerHTML`.
+- Full regression green (44 runs); `runtests.js` 149/149. Lab `maindatatest.js` 13/13.
+- Chromium at 412 and 780 px: both modules with 10 LabRadar shots, no sideways scroll, no errors.
+
+---
+
 ## V2.15.0 — minor — Inner screen: choose what goes on the left and right of Home, per layout
 
 **Problem (owner, 2026-11-05).** With the inner screen's own order (V2.11.0), only the left column could be arranged. The right pane on Home always held the reticle, turret and conditions.
