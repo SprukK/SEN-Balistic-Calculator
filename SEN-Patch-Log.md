@@ -7,6 +7,23 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.11.1 — patch — Layouts: Edit scrolls to the editor; active layout highlighted
+
+**Problem (owner, 2026-11-05).** On Layouts, tapping Edit opened the editor below the list without moving the screen, so it looked as if nothing happened. The layout in use was marked only by its border.
+
+**Fix.**
+- **Edit, Duplicate and a new layout from a template** open the editor and scroll it to the top of the screen (`layEditOpen`). The scroll is smooth, or a jump when the phone's reduced-motion setting is on. Re-renders while editing (▲▼, On/Off, drag, settings) don't scroll again.
+- The row being edited gets an outlined **editing** tag.
+- **Layout in use:** a 4 px accent bar on the left, an accent-tinted background, and the name in accent bold, next to the filled "in use" tag. All in theme tokens, so custom colours (CORE-24) follow.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.11.1.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.11.1`), `tests/homelayouttest.js` (36: + highlight, scroll on Edit / Duplicate / new layout, no re-scroll, reduced motion — 5 fail on V2.11.0), this log.
+
+**Verify.**
+- Full regression green, all 40 runs. `runtests.js` 143/143; no physics touched.
+- Chromium at 412 and 780 px: after Edit, the editor's top sits 12 px below the top of the screen; no sideways scroll, no errors.
+
+---
+
 ## V2.11.0 — minor — UI redesign graduated from SEN-sandbox r11 (Field layout as "Default", devices row, Advanced tab, customisation, colours); physics unchanged
 
 **Problem.** UX review of V2.10.0 (2026-11-03), against three rules: fast access to data and inputs, a clean screen without clutter, modular and customisable.

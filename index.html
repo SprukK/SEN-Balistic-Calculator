@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.11.0</title>
+<title>SEN Ballistics V2.11.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -379,7 +379,10 @@ html.no-ptr,html.no-ptr body{overscroll-behavior-y:contain}   /* V2.11.0 r3: no 
 .cs-cur .cs-dial{font-size:19px}.cs-timer{font-family:var(--disp);font-weight:800;font-size:20px;color:var(--gold)}
 .laybar{display:flex;justify-content:flex-end;margin:-4px 0 8px}
 .lay-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
-.lay-row.lay-on{border-color:var(--accent)}
+.lay-row.lay-on{border-color:var(--accent);border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent)}  /* V2.11.1: active layout stands out */
+.lay-row.lay-on .lay-name{color:var(--accent);font-weight:700}
+.lay-tag.lay-tag-ed{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+#lay-edit{scroll-margin-top:12px}
 .lay-name{font-family:var(--mono);font-size:13px;color:var(--text)}
 .lay-tag{font-size:9px;color:var(--on-accent,#0a0b0e);background:var(--accent);border-radius:4px;padding:1px 6px;margin-left:8px}
 .lay-acts{display:flex;gap:6px;flex-wrap:wrap}.lay-del{color:var(--warn)}
@@ -1179,7 +1182,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.11.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.11.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -3773,7 +3776,7 @@ function printDope(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.11.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.11.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4349,7 +4352,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.11.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.11.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -5829,19 +5832,23 @@ function renderLayouts(){
   box.replaceChildren(...APP.layouts.map(l=>{
     const row=el('div','lay-row'+(l.id===APP.layoutId?' lay-on':''));
     const nm=el('div','lay-name',l.name);if(l.id===APP.layoutId)nm.appendChild(el('span','lay-tag','in use'));
+    if(l.id===layoutEditId)nm.appendChild(el('span','lay-tag lay-tag-ed','editing'));   // V2.11.1
     const acts=el('div','lay-acts');
     if(l.id!==APP.layoutId)acts.appendChild(btn('Use',()=>{useLayout(l.id);renderLayouts();}));
-    acts.append(btn('Edit',()=>{layoutEditId=l.id;renderLayouts();}),btn('Duplicate',()=>dupLayout(l.id)));
+    acts.append(btn('Edit',()=>layEditOpen(l.id)),btn('Duplicate',()=>dupLayout(l.id)));
     if(APP.layouts.length>1)acts.appendChild(btn('Delete',()=>delLayout(l.id),'btn-xs lay-del'));
     row.append(nm,acts);return row;
   }));
   renderLayoutEditor();
 }
 function dupLayout(id){const s=APP.layouts.find(l=>l.id===id);if(!s)return;const c=normLayout(JSON.parse(JSON.stringify(s)));c.id=uid();c.name=(s.name+' copy').slice(0,40);
-  APP.layouts.splice(APP.layouts.indexOf(s)+1,0,c);layoutEditId=c.id;saveDB();renderLayouts();}
+  APP.layouts.splice(APP.layouts.indexOf(s)+1,0,c);saveDB();layEditOpen(c.id);}
 function delLayout(id){if(APP.layouts.length<2)return;const l=APP.layouts.find(x=>x.id===id);if(!l||!confirm('Delete layout "'+l.name+'"?'))return;
   APP.layouts=APP.layouts.filter(x=>x.id!==id);if(APP.layoutId===id)APP.layoutId=APP.layouts[0].id;if(layoutEditId===id)layoutEditId=null;saveDB();applyHomeLayout();renderLayouts();}
-function newLayout(t){const L=layoutFromTpl(t);APP.layouts.push(L);layoutEditId=L.id;saveDB();renderLayouts();}
+function newLayout(t){const L=layoutFromTpl(t);APP.layouts.push(L);saveDB();layEditOpen(L.id);}
+// V2.11.1: opening the editor (Edit, Duplicate, new layout) scrolls it into view; re-renders while editing don't
+function layEditOpen(id){layoutEditId=id;renderLayouts();const ed=document.getElementById('lay-edit');if(!ed||!ed.scrollIntoView)return;
+  const reduce=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;ed.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});}
 function layoutChanged(L){saveDB();if(L.id===APP.layoutId)applyHomeLayout();renderLayouts();}
 function renderLayoutEditor(){
   const ed=document.getElementById('lay-edit');if(!ed)return;
