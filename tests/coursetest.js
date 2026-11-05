@@ -48,12 +48,14 @@ const inputs=x=>JSON.stringify(J(x,'DB.dopeCards[0].stages.map(s=>s.dists.map(d=
 chk('upgrade leaves every solution input identical (range, angle, wind, direction)',inputs(w)===inputs(o),inputs(w));
 chk('every target computes dope after the upgrade',cells(w).length===4&&cells(w).every(x=>!/—\|—\|—/.test(x)),cells(w).join(' / ')+'  (previous release: '+oldCells.join(' / ')+')');
 
-// 3. Headwind fix: 0° is a headwind, not a crosswind from the right.
-const fix=async file=>{const x=await open(file,{ls:legacy});x.eval(`gotoPage('dope');const d=DB.dopeCards[0].stages[0].dists[1];d.wind=5;d.wdir=0;document.getElementById('dc-sel').value=DB.dopeCards[0].id;loadDope();calcDope()`);await wait(20);return x.eval(`document.getElementById('dc-rw-'+DB.dopeCards[0].stages[0].dists[1].id).textContent`);};
-const oldHw=await fix(OLD),newHw=await fix(NEW);
-chk('5 m/s at 0° (headwind) → no windage now',newHw==='→0',newHw);
-chk('…the previous release turned it into a crosswind',oldHw!=='→0',oldHw);
-chk('the editor shows 0°, not 90°',w.eval(`(()=>{const d=DB.dopeCards[0].stages[0].dists[1];d.wdir=0;renderStages();return document.querySelector('#dr-'+d.id+' input[data-q="-"]:nth-of-type(1)')&&[...document.querySelectorAll('#dr-'+d.id+' input')][3].value})()`)==='0');
+// 3. V2.14.0: dope cards carry no wind (solved live when shooting). A stored wind (5 m/s at 0° or from the right) is
+// ignored: windage = spin drift from the zero, the same as the same target with no wind; no wind inputs in the editor.
+const rw=async(spd,dir)=>{const x=await open(NEW,{ls:legacy});x.eval(`gotoPage('dope');const d=DB.dopeCards[0].stages[0].dists[1];d.wind=${spd};d.wdir=${dir};document.getElementById('dc-sel').value=DB.dopeCards[0].id;loadDope();calcDope()`);await wait(20);
+  return x.eval(`document.getElementById('dc-rw-'+DB.dopeCards[0].stages[0].dists[1].id).textContent`);};
+const w0=await rw(0,90),wHead=await rw(5,0),wRight=await rw(5,90);
+chk('V2.14.0: a stored wind is ignored — 5 m/s headwind or from the right gives the no-wind windage (spin drift only)',wHead===w0&&wRight===w0&&/^(0|[←→]\d+)$/.test(w0),[w0,wHead,wRight].join(' / '));
+chk('…the stored wind values themselves are kept in the card (nothing deleted)',inputs(w)===inputs(o));
+chk('the editor has no wind or direction inputs',w.eval(`(()=>{renderStages();return document.querySelectorAll('#dc-stages input[data-q="wind"]').length===0&&![...document.querySelectorAll('#dc-stages th')].some(t=>/^(Wind(?!age)|Dir)/.test(t.textContent.trim()))})()`)===true);
 
 // 4. Imports: v1 files upgrade; v2 fields kept; junk sanitised.
 w.eval(`importData({schema:{dopeCards:1},dopeCards:[{id:'imp1',name:'OLD FILE',mv:280,zero:50,notes:'',stages:[{id:'s',name:'S',notes:'',dists:[{id:'d1',range:60,angle:0,wind:0,wdir:90},{id:'d2',range:80,angle:0,wind:0,wdir:90}]}]}]})`);
@@ -73,6 +75,7 @@ const d0=J(w,'DB.dopeCards[0].stages[0].dists[0].id');
 const det=w.document.getElementById('dd-'+d0);
 chk('target details hidden until ⋯ is tapped',det.style.display==='none');
 w.eval(`toggleDistDetail('${d0}')`);chk('⋯ opens them',det.style.display==='');
+chk('V2.14.0: the row has only ⋯ (fits 412 px); "Delete target" sits in the details',w.document.querySelectorAll('#dr-'+d0+' button').length===1&&[...det.querySelectorAll('button')].some(b=>b.textContent==='Delete target'&&/delDist/.test(b.getAttribute('onclick'))));
 const ins=det.querySelectorAll('input'),sel=det.querySelector('select');
 const fire=(el,v)=>{el.value=v;el.dispatchEvent(new w.Event('change',{bubbles:true}));};
 fire(ins[0],'Steel 1');fire(ins[1],'95');fire(sel,'stand');fire(ins[3],'3');

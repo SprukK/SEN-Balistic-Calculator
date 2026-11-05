@@ -7,6 +7,32 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.14.0 — minor — Dope cards: no wind columns; windage = spin drift on every stage; the table fits the phone
+
+**Problem (owner, 2026-11-05).** On Dope → Stages the target table was wider than the outer screen and scrolled sideways. Owner ruling: remove the Wind and Dir° columns — wind is solved live when shooting.
+
+**Fix.**
+- **Every stage** now has the ranged-stage columns: **Range · Ang° · Drop · Elev · Windage**. Windage is spin drift only, measured from the zero (Litz, EST), as CALC-22 ranged stages since V2.12.0. The "⊙ ranged" line stays on rangefinder stages ("targets from the rangefinder").
+- **Cards carry no wind:** the card solve and print use zero wind. A wind typed into an older card stays in the stored data (nothing deleted; export / import unchanged) but is ignored.
+  - Consequence: such a card now shows spin-only windage instead of a wind hold.
+  - Its drop and elevation change only where that stored wind had a head / tail part (head / tailwind is integrated in the flight since V1.31.0).
+  - With no wind, drop and elevation are identical to V2.13.0 (checked on a 5-target card, angles −1° to +12°, 25–220 m).
+- **Row fits 412 px:** the row keeps only ⋯; **Delete target** moved into the target details. Range and angle inputs are 76 / 52 px wide, with tighter cell padding. A 300 m row at −13° fits; only absurd values (e.g. a 124 m drop at 1134 m) scroll inside the stage, never the page.
+- **Print:** one "Wind clk (spin only, EST)" column on every stage. The card note and the empty-card hint say wind isn't on the card.
+- The course runner already used live wind, not the card's, so it is unchanged.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.14.0.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.14.0`), this log.
+- Tests changed for the intended behaviour:
+  - `coursetest.js`: the V1.23.0 headwind check is replaced by "a stored wind is ignored"; stored wind values kept; no wind inputs; row has only ⋯ with Delete in the details.
+  - `rfdopetest.js`: a plain card has the ranged columns and spin windage.
+  - `drivetest.js`: app version pattern.
+
+**Verify.**
+- Full regression green: `coursetest` 22, `rfdopetest` 33, `drivetest` 36. `chronotest` 45 re-run on its own after a killed run. `runtests.js` 149/149. Lab `maindatatest.js` 13/13.
+- Chromium: Dope with 4 targets to 300 m at 412 and 780 px — no sideways scroll in the stage or the page, no errors.
+
+---
+
 ## V2.13.0 — minor — Google Drive connector: backup, profiles, dope cards, shot strings, wind snapshots (CORE-26)
 
 **Problem (owner, 2026-11-05).** Getting data off the phone meant Export JSON and a manual upload. Shot strings and wind statistics had no export at all.

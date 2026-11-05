@@ -88,7 +88,7 @@ chk('card Sg = the Shot solver\'s session Sg (same rifle, projectile, MV, air) �
  chk('Shot solver at 100 m: "Spin drift from the zero", same drift as the card row T3 (100 m)',m&&Math.abs(+m[1]-(-T3.sd/100))<0.006,f);
  w.eval(`APP.solverSpin=false;gotoPage('dope')`);await wait(20);}
 chk('Litz formula anchor unchanged: Sg 1.5, 1.0 s → 85.725 mm',Math.abs(w.eval("spinDrift_mm(1.5,1.0,'right')")-85.725)<1e-9);
-chk('note: no wind, spin drift only, EST, Sg shown',/Ranged stages: no wind — windage = spin drift only, measured from the zero \(Litz, EST/.test(txt('dc-note'))&&/at Sg \d\.\d\d\./.test(txt('dc-note')),txt('dc-note'));
+chk('note: no wind, spin drift only, EST, Sg shown',/No wind on dope cards \(solved live when shooting\) — windage = spin drift only, measured from the zero \(Litz, EST/.test(txt('dc-note'))&&/at Sg \d\.\d\d\./.test(txt('dc-note')),txt('dc-note'));
 
 // pause, session switch, off
 w.eval('RFS[0].paused=true;rfRender()');
@@ -110,14 +110,14 @@ w.eval(`newDope()`);await wait(20);
 const wc=J('getCard()');
 w.eval(`calcDope()`);await wait(20);
 const wst=w.document.querySelectorAll('#dc-stages .stage')[0];
-const ww=J(`(()=>{const c=getCard(),tr=computeCardTraj(c),z=tr.z;return c.stages[0].dists.map(d=>{const s=solveShot(tr.pts,nearestPt,z.range,d.range,d.angle||0,d.wind||0,d.wdir??90,c.mv,tr.click,z.wSpd,z.wDir);return (d.wind?(s.clWind>=0?'→':'←')+Math.abs(s.clWind).toFixed(0):'—');});})()`);
-chk('a wind card is unchanged: wind inputs, "Wind cl" column, windage "—" at zero wind (no spin drift added)',!!wst.querySelector('input[data-q="wind"]')&&/Wind cl/.test(wst.textContent)&&!/⊙ ranged/.test(wst.textContent)&&wc.stages[0].dists.map(d=>txt('dc-rw-'+d.id)).join()===ww.join()&&ww.every(x=>x==='—')&&!('rf' in wc.stages[0]),ww.join());
+const ww=J(`(()=>{const c=getCard(),tr=computeCardTraj(c),z=tr.z;return c.stages[0].dists.map(d=>{const s=solveShot(tr.pts,nearestPt,z.range,d.range,d.angle||0,0,90,c.mv,tr.click,z.wSpd,z.wDir);return spinClk(cardSpinWind(tr,s,d),tr.click,'→','←');});})()`);
+chk('V2.14.0: a plain card has the same columns as a ranged stage (no wind inputs), windage = spin drift, no ranged tag',!wst.querySelector('input[data-q="wind"]')&&/Windage/.test(wst.textContent)&&!/Wind cl/.test(wst.textContent)&&!/⊙ ranged/.test(wst.textContent)&&wc.stages[0].dists.map(d=>txt('dc-rw-'+d.id)).join()===ww.join()&&!('rf' in wc.stages[0]),ww.join());
 chk('…the card being filled is still the first one (status names it)',J('dopeRf.cardId')===cid&&new RegExp('in "'+J('DB.dopeCards.find(c=>c.id==="'+cid+'").name')+'"').test(txt('dc-rf-status')));
 
 // print + export / import
 w.eval(`document.getElementById('dc-sel').value='${cid}';loadDope();calcDope();printDope()`);await wait(20);
 const ph=$('print-content').textContent;
-chk('print: ranged stage has "Wind clk (spin only, EST)" and no wind column; T1 printed',/Wind clk \(spin only, EST\)/.test(ph)&&/T1/.test(ph)&&/Gong/.test(ph));
+chk('print: "Wind clk (spin only, EST)" and no wind column; T1 printed',/Wind clk \(spin only, EST\)/.test(ph)&&/T1/.test(ph)&&/Gong/.test(ph));
 const rec=J(`sanitiseRecord('dopeCards',JSON.parse(JSON.stringify(DB.dopeCards.find(c=>c.id==='${cid}')))).rec`);
 const recW=J(`sanitiseRecord('dopeCards',JSON.parse(JSON.stringify(DB.dopeCards.find(c=>c.id==='${wc.id}')))).rec`);
 chk('export / import keeps the ranged stage kind; wind cards get no new key',rec.stages[0].rf===true&&rec.stages[0].dists.length===5&&!('rf' in recW.stages[0]));

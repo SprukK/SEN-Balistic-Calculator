@@ -99,7 +99,7 @@ btn('Back up now').click();await wait(120);
 const bk=inDir('Backups');
 chk('Back up now: one file "SEN backup YYYY-MM-DD HH-MM.json" in Backups',bk.length===1&&/^SEN backup \d{4}-\d\d-\d\d \d\d-\d\d\.json$/.test(bk[0].name)&&bk[0].mimeType==='application/json',bk.map(f=>f.name).join());
 const bj=JSON.parse(bk[0].body);
-chk('…the export format (profiles, units, settings, schema, app V2.13.0) without Drive state',Array.isArray(bj.rifles)&&bj.rifles.length===J('DB.rifles.length')&&bj.schema&&bj.units&&bj.app2&&!('drive' in bj.app2)&&bj.app==='SEN Ballistics V2.13.0');
+chk('…the export format (profiles, units, settings, schema, app version) without Drive state',Array.isArray(bj.rifles)&&bj.rifles.length===J('DB.rifles.length')&&bj.schema&&bj.units&&bj.app2&&!('drive' in bj.app2)&&/^SEN Ballistics V2\.\d+\.\d+$/.test(bj.app));
 chk('…last backup shown, nothing waiting',/last backup \d{4}-\d\d-\d\d \d\d:\d\d/.test($('drive-status').textContent)&&J('drv.queue.length')===0&&/Sent 1 file/.test($('drive-msg').textContent));
 
 // profile, dope, shots, wind
