@@ -161,6 +161,9 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 
 # V2.11.0 r11: colours (eight user colours, derived tokens, checks, themed reticle and chart)
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node themetest.js ../index.html)
+
+# V2.12.0 CALC-22: dope card filled from the rangefinder (simulated Titan; ranged stage, spin-drift windage)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node rfdopetest.js ../index.html)
 ```
 
 ## Provenance

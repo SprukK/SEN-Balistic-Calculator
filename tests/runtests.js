@@ -199,5 +199,16 @@ chk('runTraj accepts silent arg',    runTraj.length, 1);
 chk('autoTraj is a function',        typeof autoTraj, 'function');
 chk('refreshActivePage is a fn',     typeof refreshActivePage, 'function');
 chk('trajFail is a function',        typeof trajFail, 'function');
+console.log('\n=== V2.12.0 SPIN DRIFT FROM THE ZERO ===');
+// Zero-pass TOF: with matching air the zero pass and the flight pass are the same flight → TOF at the zero range agrees
+// (pass-2 TOF is the py-ballisticcalc-verified one, V1.29.1).
+chk('zero-pass TOF = flight TOF at the zero range (matched air)', pts.zeroTof, at(50).tof, 1e-5);
+const envZ={rho:airDensity(-5,1013,80),aS:sos(-5),bc7:0.128,bc1:0.245},ptsZ=rk4traj(255,0.128,60,50,200,0.044,env.rho,env.aS,1,'g7',0.245,null,envZ);
+chk('zero-pass TOF follows the zero air (denser air → slower → longer)', ptsZ.zeroTof>at(50).tof?1:0, 1);
+chk('from the zero: exactly 0 at the zero range', spinFromZero_mm(1.26,0.4,100,1.26,0.4,100,'right'), 0, 1e-12);
+// independent arithmetic (Python): 1.25·2.7·1^1.83·25.4 − 1.25·2.6·0.19^1.83·25.4·300/50
+chk('from the zero: Sg 1.5 t 1.0 s @300 m, zero 50 m (Sg 1.4, t 0.19 s) = 62.01195 mm (Python)', spinFromZero_mm(1.5,1.0,300,1.4,0.19,50,'right'), 62.01194996, 1e-6);
+chk('from the zero: left twist mirrors', spinFromZero_mm(1.5,1.0,300,1.4,0.19,50,'left'), -62.01194996, 1e-6);
+chk('from the zero: no zero TOF → not computed (never silently raw)', spinFromZero_mm(1.5,1.0,300,1.4,null,50,'right'), null);
 console.log('\nPASS '+pass+'   FAIL '+fail);
 process.exit(fail?1:0);

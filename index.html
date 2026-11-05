@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.11.1</title>
+<title>SEN Ballistics V2.12.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -305,6 +305,12 @@ html[data-tt="bc"] [data-tt]:not([data-tt="bc"]),html[data-tt="mvt"] [data-tt]:n
 .stage{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px}
 .stage-head{display:flex;gap:8px;align-items:center;margin-bottom:10px}
 .stage-head input{flex:1}
+.rf-badge{font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:1px 6px;white-space:nowrap}  /* V2.12.0 CALC-22 */
+#dc-rf{margin-top:10px}
+.stage{overflow-x:auto}   /* V2.12.0: an extreme row (very long drop) scrolls inside its stage, never the page */
+.rf-line{margin:-2px 0 8px}
+.dist-tbl.rf td:nth-child(1) .di{min-width:88px}.dist-tbl.rf td:nth-child(2) .di{min-width:64px}   /* fewer columns: room for 1134.5 and −13 */
+#dc-rf .note{margin-top:6px}
 .stage-num{font-family:var(--mono);font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;flex-shrink:0}
 .di{font-family:var(--mono);font-size:11px;padding:5px 6px;min-height:32px;width:100%}
 .dist-tbl td{padding:3px 4px;border:none}
@@ -1003,6 +1009,7 @@ html.help-all .help-btn{display:none}
     <h2>Card</h2>
     <div class="fgrid"><div class="fld"><label>Select card</label><select id="dc-sel" onchange="loadDope()"></select></div>
       <div class="fld" style="justify-content:flex-end"><button class="btn" onclick="newDope()">+ New card</button></div></div>
+    <div id="dc-rf"></div>   <!-- V2.12.0 CALC-22: fill a card from the rangefinder -->
   </div>
   <div id="dc-editor" style="display:none">
     <div class="panel">
@@ -1182,7 +1189,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.11.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.12.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1277,6 +1284,10 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
     return x>px&&x>zero_m?py+(zero_m-px)/(x-px)*(y-py):y;}
   for(let i=0;i<60;i++){const m=(lo+hi)/2;finalY(m)>0?hi=m:lo=m;}
   const za=(lo+hi)/2;
+  // V2.12.0: time of flight to the zero range in the zero pass (zero air) — spin drift is referenced to the zero
+  let zeroTof=null;{let x=0,y=-sight_m,vx=mv*Math.cos(za),vy=mv*Math.sin(za),n=0,px=0;
+    while(x<zero_m&&n++<1e5){px=x;[x,y,vx,vy]=step(x,y,vx,vy,dt,zen);}
+    if(x>=zero_m)zeroTof=(n-1+(x>px?(zero_m-px)/(x-px):1))*dt;}
   // PASS 2 — current-atmosphere integration with the fixed zero angle.
   // V2.10.0 (CALC-07): flight.mv launches this pass at another MV with the same zero angle (the shot-to-shot
   // MV spread of a real rifle). Omitted → mv: bit-identical to before.
@@ -1307,6 +1318,7 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
     }
   }
   out.za=za;out.sight=sight_m; // V1.32.0: bore-line geometry for cant
+  out.zeroTof=zeroTof;         // V2.12.0
   // Same trajectory for another shot angle / head-tailwind (solveShot), cached per rounded key.
   if(!flight){const A=[mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1,bands,zeroEnv],cache=new Map();
     // head may be a number, or a function of distance (wind field) passed with headKey identifying it.
@@ -1808,6 +1820,14 @@ function aeroJumpMoa(sg,Lcal,crossFromRight_ms,twistDir){
   return(twistDir==='left'?-1:1)*litzJumpPerMph(sg,Lcal)*crossFromRight_ms/MPH_MS;
 }
 function spinDrift_mm(sg,tof,twistDir){if(!(sg>0)||twistDir==='smooth')return null;return(twistDir==='left'?-1:1)*1.25*(sg+1.2)*Math.pow(tof,1.83)*25.4;}
+/* V2.12.0 — spin drift measured from the zero (owner ruling 2026-11-05). The windage zero was set where the group
+   centred at the zero range, so the spin drift there (zero air: Sg and TOF of the zero pass) is inside the zero as a
+   fixed angle. What is left at range d: drift(d) − drift(zero)·d/zero. Exactly 0 at the zero range. Same rule as
+   the wind ("minus the drift baked into the zero") and the aerodynamic jump. null when either part can't be computed. */
+function spinFromZero_mm(sg,tof,d,sgZ,tofZ,zero,twistDir){
+  const a=spinDrift_mm(sg,tof,twistDir),b=zero>0&&tofZ>0?spinDrift_mm(sgZ,tofZ,twistDir):null;
+  return a==null||b==null?null:a-b*d/zero;
+}
 /* E2 · MV–temperature model — least-squares linear fit over per-rifle observations
    [{t,v},…]. Needs ≥2 points at distinct temperatures for a slope. */
 function mvtFit(arr){
@@ -3570,7 +3590,9 @@ function solve(){
   const lat=+document.getElementById('sv-lat').value||0, az=+document.getElementById('sv-az').value||0;
   let coH=0,coV=0,sdMm=null,sgI=null,advNote='';
   if(APP.solverCor){coH=coriolisH_mm(pts,tp,lat);coV=coriolisV_mm(pts,tp,lat,az);}
-  if(APP.solverSpin){sgI=sessionSg();if(sgI)sdMm=spinDrift_mm(sgI.sg,tp.tof,sgI.twistDir);}
+  if(APP.solverSpin){sgI=sessionSg();if(sgI){   // V2.12.0: measured from the zero (zero air Sg + zero-pass TOF)
+    const r=getRifle(),p=getProj(),sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,projC(p).c,zc.temp,zc.pres);
+    sdMm=spinFromZero_mm(sgI.sg,tp.tof,tdist,sgZ,pts.zeroTof,zc.range,sgI.twistDir);}}
   // V2.8.0 aerodynamic jump: crosswind at the muzzle (+ = from the right) — station wind at the firing line when stations are in use.
   document.getElementById('sv-aj-off').classList.toggle('on',!APP.solverAJ);
   document.getElementById('sv-aj-on').classList.toggle('on',!!APP.solverAJ);
@@ -3603,7 +3625,7 @@ function solve(){
   if(sol.cantPerDeg!=null)fl+=`<div class="flag ${cant?'warn':'info'}">Cant: each 1° moves the impact ${uq('drop',Math.abs(sol.cantPerDeg))} sideways at ${uq('range',tdist)}${cant?` · now ${Math.abs(cant)}° ${cant>0?'right':'left'} → ${uq('drop',Math.abs(sol.cantX))} ${sol.cantX>=0?'right':'left'}, ${uq('drop',Math.abs(sol.cantY))} low (dial unchanged — level the rifle)`:''}.</div>`;
   if(APP.solverCor)fl+=`<div class="flag info">Coriolis @ lat ${lat}° az ${az}°: impact ${coH>=0?'R':'L'} ${uq('drop',Math.abs(coH))} · ${coV>=0?'HIGH':'LOW'} ${uq('drop',Math.abs(coV))} → dial ${(-coH/tdist).toFixed(3)} / ${(-coV/tdist).toFixed(3)} mrad (included above).</div>`;
   if(APP.solverSpin)fl+=sdMm!=null
-    ?`<div class="flag warn">Spin drift (Litz EST ⚠ unvalidated subsonic): Sg ${sgI.sg.toFixed(2)}${sgI.est?' (C EST)':''} → impact ${sdMm>=0?'R':'L'} ${uq('drop',Math.abs(sdMm))} → dial ${(-sdMm/tdist).toFixed(2)} mrad (included above).</div>`
+    ?`<div class="flag warn">Spin drift from the zero (Litz EST ⚠ unvalidated subsonic): Sg ${sgI.sg.toFixed(2)}${sgI.est?' (C EST)':''} → impact ${sdMm>=0?'R':'L'} ${uq('drop',Math.abs(sdMm))} → dial ${(-sdMm/tdist).toFixed(2)} mrad (included above).</div>`
     :`<div class="flag info">Spin drift n/a — pellet, smooth bore, or no verified C for this projectile.</div>`;
   if(APP.solverAJ){
     if(aj.moa==null)fl+=`<div class="flag info">Aerodynamic jump n/a — ${esc(aj.why)}.</div>`;
@@ -3629,6 +3651,7 @@ function newDope(){
 }
 function loadDope(){
   currentDopeId=document.getElementById('dc-sel').value||null;
+  dopeRfRender();   // V2.12.0
   const c=getCard();
   document.getElementById('dc-editor').style.display=c?'block':'none';
   document.getElementById('dc-empty').style.display=c?'none':'block';
@@ -3675,18 +3698,18 @@ function renderStages(){
         <input type="text" value="${(s.name||'').replace(/"/g,'&quot;')}" onchange="updStage('${s.id}','name',this.value)">
         <input type="number" class="st-time" data-q="-" min="0" step="5" placeholder="⏱ s" title="Stage time limit (seconds)" value="${s.time??''}" onchange="updStage('${s.id}','time',this.value===''?null:Math.max(0,+this.value)||null)">
         <button class="btn-xs" style="color:var(--warn)" onclick="delStage('${s.id}')">✕</button></div>
-      <input type="text" value="${(s.notes||'').replace(/"/g,'&quot;')}" placeholder="terrain / position notes" onchange="updStage('${s.id}','notes',this.value)" style="margin-bottom:8px">
-      <table class="dist-tbl"><thead><tr><th style="text-align:left">Range <span data-ul="range"></span></th><th>Ang°</th><th>Wind <span data-ul="wind"></span></th><th>Dir°</th><th>Drop</th><th>Elev</th><th>Wind cl</th><th></th></tr></thead>
-      <tbody>${s.dists.map(d=>distRow(s.id,d)).join('')}</tbody></table>
+      <input type="text" value="${(s.notes||'').replace(/"/g,'&quot;')}" placeholder="terrain / position notes" onchange="updStage('${s.id}','notes',this.value)" style="margin-bottom:8px">${s.rf?'<div class="rf-line"><span class="rf-badge">⊙ ranged</span> <span class="note">from the rangefinder · no wind, windage = spin drift (EST)</span></div>':''}
+      <table class="dist-tbl${s.rf?' rf':''}"><thead><tr><th style="text-align:left">Range <span data-ul="range"></span></th><th>Ang°</th>${s.rf?'':'<th>Wind <span data-ul="wind"></span></th><th>Dir°</th>'}<th>Drop</th><th>Elev</th><th>${s.rf?'Windage':'Wind cl'}</th><th></th></tr></thead>
+      <tbody>${s.dists.map(d=>distRow(s.id,d,s.rf)).join('')}</tbody></table>
       <button class="btn-xs" style="margin-top:8px" onclick="addDist('${s.id}')">+ Target</button>
     </div>`).join('')||'<div class="note">No stages yet.</div>';
 }
 const openDist=new Set();
 function toggleDistDetail(did){openDist.has(did)?openDist.delete(did):openDist.add(did);const r=document.getElementById('dd-'+did);if(r)r.style.display=openDist.has(did)?'':'none';}
 function targetInfo(d){return[d.pos?TARGET_POS[d.pos]:'',d.size?ut('tsize',d.size):'',d.shots>1?d.shots+'×':'',d.brg!=null?Math.round(d.brg)+'°':''].filter(Boolean).join(' · ');}
-function distDetail(sid,d){
+function distDetail(sid,d,rf){
   const u=(f,expr)=>`onchange="updDist('${sid}','${d.id}','${f}',${expr})"`;
-  return`<tr id="dd-${d.id}" class="ddet" style="${openDist.has(d.id)?'':'display:none'}"><td colspan="8"><div class="fgrid3">
+  return`<tr id="dd-${d.id}" class="ddet" style="${openDist.has(d.id)?'':'display:none'}"><td colspan="${rf?6:8}"><div class="fgrid3">
     <div class="fld"><label>Label</label><input type="text" maxlength="40" value="${esc(d.label||'')}" ${u('label',"this.value.trim()||'T'")} onblur="renderStages()"></div>
     <div class="fld"><label>Bearing ° compass</label><div style="display:flex;gap:4px"><input type="number" data-q="-" step="1" value="${d.brg??''}" ${u('brg',"this.value===''?null:norm360(+this.value)")}><button class="btn-xs" onclick="captureDistBearing('${sid}','${d.id}')">📍</button></div></div>
     <div class="fld"><label>Size mm</label><input type="number" data-q="tsize" step="1" min="0" value="${d.size??''}" ${u('size',"this.value===''?null:Math.max(0,+this.value)||null")}></div>
@@ -3698,14 +3721,14 @@ async function captureDistBearing(sid,did){
   try{const b=await readCompass();updDist(sid,did,'brg',b);openDist.add(did);renderStages();}
   catch(e){alert(e.message);}
 }
-function distRow(sid,d){
+function distRow(sid,d,rf){   // V2.12.0: rf = ranged stage (no wind inputs)
   return`<tr id="dr-${d.id}">
     <td><span class="tl">${esc(d.label||'')}</span><input class="di" type="number" data-q="range" value="${d.range}" onchange="updDist('${sid}','${d.id}','range',+this.value)"></td>
     <td><input class="di" type="number" data-q="-" value="${d.angle||0}" onchange="updDist('${sid}','${d.id}','angle',+this.value)"></td>
-    <td><input class="di" type="number" data-q="wind" value="${d.wind||0}" onchange="updDist('${sid}','${d.id}','wind',+this.value)"></td>
-    <td><input class="di" type="number" data-q="-" value="${d.wdir??90}" onchange="updDist('${sid}','${d.id}','wdir',+this.value)"></td>
+    ${rf?'':`<td><input class="di" type="number" data-q="wind" value="${d.wind||0}" onchange="updDist('${sid}','${d.id}','wind',+this.value)"></td>
+    <td><input class="di" type="number" data-q="-" value="${d.wdir??90}" onchange="updDist('${sid}','${d.id}','wdir',+this.value)"></td>`}
     <td class="res" id="dc-rc-${d.id}">—</td><td class="res" id="dc-re-${d.id}">—</td><td class="res" id="dc-rw-${d.id}">—</td>
-    <td style="white-space:nowrap"><button class="btn-xs" title="target details" onclick="toggleDistDetail('${d.id}')">⋯</button><button class="btn-xs" onclick="delDist('${sid}','${d.id}')">✕</button></td></tr>`+distDetail(sid,d);
+    <td style="white-space:nowrap"><button class="btn-xs" title="target details" onclick="toggleDistDetail('${d.id}')">⋯</button><button class="btn-xs" onclick="delDist('${sid}','${d.id}')">✕</button></td></tr>`+distDetail(sid,d,rf);
 }
 function addStage(){const c=getCard();if(!c)return;c.stages.push({id:uid(),name:'Stage '+(c.stages.length+1),notes:'',dists:[{id:uid(),range:100,angle:0,wind:0,wdir:90}]});migrateDopeCard(c);saveDB();renderStages();}
 function delStage(id){const c=getCard();if(!c)return;c.stages=c.stages.filter(s=>s.id!==id);saveDB();renderStages();}
@@ -3725,11 +3748,11 @@ function computeCardTraj(c){
   const drag=p.type==='pellet'?'g1':'g7';
   const bcBase=drag==='g7'?p.bcg7:p.bcg1;
   if(!(bcBase>0))return{bcPending:true,projName:p.name};
-  let sgP=1,sgPZ=1;
+  let sgP=1,sgPZ=1,sgCard=null,sgZero=null;   // V2.12.0: the card's Sg in its current and zero air (spin drift on ranged stages)
   if(r&&r.twistDir!=='smooth'){const cInfo=projC(p);if(cInfo.valid){
     const noPen=bcIsTrued(p,drag);
-    const sg=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,cw.temp,cwp);if(sg<1.5&&!noPen)sgP=bcEffSg(1,sg);
-    const sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,z.temp,z.pres);if(sgZ<1.5&&!noPen)sgPZ=bcEffSg(1,sgZ);
+    const sg=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,cw.temp,cwp);if(p.type!=='pellet')sgCard=sg;if(sg<1.5&&!noPen)sgP=bcEffSg(1,sg);
+    const sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,c.mv,cInfo.c,z.temp,z.pres);if(p.type!=='pellet')sgZero=sgZ;if(sgZ<1.5&&!noPen)sgPZ=bcEffSg(1,sgZ);
   }}
   // FIX-10: BC unscaled (density-independent); zero angle solved in the rifle's zero atmosphere.
   const bc7=p.bcg7*sgP, bc1=p.bcg1*sgP;
@@ -3737,7 +3760,15 @@ function computeCardTraj(c){
   let maxR=200;c.stages.forEach(s=>s.dists.forEach(d=>maxR=Math.max(maxR,d.range+25)));
   const sc=rifleScope(r);const sight=(r?.sight||44)/1000, click=sc?.clickStepMrad||0.1, au=sc?.adjUnit||'mil';
   const pts=rk4traj(c.mv,bc7,p.mass,z.range,maxR,sight,rhoC,aS,1,drag,bc1,projBands(p,drag),zEnv);
-  return{pts,click,p,r,sc,cw,rhoC,sgP,z};
+  return{pts,click,p,r,sc,cw,rhoC,sgP,z,sg:sgCard,sgZ:sgZero,twistDir:r?r.twistDir:null};
+}
+/* V2.12.0 CALC-22 — windage on a ranged stage: no wind, only spin drift (Litz EST), measured from the zero exactly as
+   the Shot solver's spin-drift row (spinFromZero_mm). mrad, or null when not computed (pellet, smooth bore, Sg not
+   computed). The zero's own wind correction (sol.mrWind) stays in. */
+const spinClk=(mr,click,R,L)=>{if(mr==null)return'—';const n=Math.round(Math.abs(mr/click));return n===0?'0':(mr>=0?R:L)+n;};   // '0' rather than '←0'
+function cardSpinWind(tr,sol,d){
+  if(tr.sg==null)return null;const mm=spinFromZero_mm(tr.sg,sol.tp.tof,d.range,tr.sgZ,tr.pts.zeroTof,tr.z.range,tr.twistDir);
+  return mm==null?null:sol.mrWind-mm/d.range;
 }
 function calcDope(){
   const c=getCard();if(!c)return;
@@ -3746,15 +3777,17 @@ function calcDope(){
   if(tr.bcPending){document.getElementById('dc-note').textContent=`${tr.projName} has no BC yet — enter one in its profile or measure it in the Truing tab before generating dope.`;c.stages.forEach(s=>s.dists.forEach(d=>{const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};set('dc-rc-'+d.id,'—');set('dc-re-'+d.id,'no BC');set('dc-rw-'+d.id,'—');}));return;}
   const z=tr.z;
   c.stages.forEach(s=>s.dists.forEach(d=>{
-    const sol=solveShot(tr.pts,nearestPt,z.range,d.range,d.angle||0,d.wind||0,d.wdir??90,c.mv,tr.click,z.wSpd,z.wDir);
+    const sol=solveShot(tr.pts,nearestPt,z.range,d.range,d.angle||0,s.rf?0:d.wind||0,d.wdir??90,c.mv,tr.click,z.wSpd,z.wDir);
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
     if(sol){
       set('dc-rc-'+d.id,U.drop(sol.tp.drop));
       set('dc-re-'+d.id,(sol.clElev>=0?'↑':'↓')+Math.abs(sol.clElev).toFixed(0));
-      set('dc-rw-'+d.id,(d.wind?(sol.clWind>=0?'→':'←')+Math.abs(sol.clWind).toFixed(0):'—'));
+      const sw=s.rf?cardSpinWind(tr,sol,d):null;   // V2.12.0
+      set('dc-rw-'+d.id,s.rf?spinClk(sw,tr.click,'→','←'):(d.wind?(sol.clWind>=0?'→':'←')+Math.abs(sol.clWind).toFixed(0):'—'));
     }else{set('dc-rc-'+d.id,'OOR');set('dc-re-'+d.id,'—');set('dc-rw-'+d.id,'—');}
   }));
   document.getElementById('dc-note').textContent=`${tr.p.name} · ${tr.r?tr.r.name:'no rifle'} · MV ${uq('vel',c.mv)} · zero ${uq('zrange',z.range)}${z.wSpd>0?' (zeroed in '+uq('wind',z.wSpd)+')':''} · ρ ${tr.rhoC.toFixed(4)} · ${tr.sgP<1?'Sg penalty ×'+tr.sgP.toFixed(3):'Sg ≥1.5'}`;
+  if(c.stages.some(x=>x.rf))document.getElementById('dc-note').textContent+=tr.sg==null?' · Ranged stages: no wind; spin drift not computed ('+(tr.p.type==='pellet'?'pellet':tr.r&&tr.r.twistDir==='smooth'?'smooth bore':'Sg not computed')+') — windage —.':' · Ranged stages: no wind — windage = spin drift only, measured from the zero (Litz, EST: fitted on rifle bullets, not validated for subsonic slugs) at Sg '+tr.sg.toFixed(2)+'.';   // V2.12.0
 }
 function printDope(){
   const c=getCard();if(!c){alert('Select a card.');return;}
@@ -3763,10 +3796,12 @@ function printDope(){
   const z=tr.z;
   let h=`<div class="pd"><h1>DOPE — ${esc(c.name||'Unnamed')}</h1><div class="pdm">Rifle: ${tr.r?esc(tr.r.name):'—'} · ${tr.sc?esc(tr.sc.name):""} · Proj: ${esc(tr.p.name)}<br>MV ${ut('vel',c.mv)} · Zero ${ut('zrange',z.range)}${z.wSpd>0?' · zeroed in '+ut('wind',z.wSpd)+' @ '+z.wDir+'°':''} · ${tr.click} mrad/click<br>Zero atmos: ${ut('temp',z.temp)} ${ut('pres',z.pres)} ${z.rh}% · Current: ${esc(tr.cw.name)}${c.notes?'<br>'+esc(c.notes):''}</div>`;
   c.stages.forEach((s,si)=>{
-    h+=`<div class="sh">STAGE ${si+1}: ${esc(s.name||'')}${s.time?' · ⏱ '+s.time+' s':''}${s.notes?' — '+esc(s.notes):''}</div><table><thead><tr><th>Target</th><th>Range</th><th>Angle</th><th>Drop ${U.dropU()}</th><th>Elev clk</th><th>Wind</th><th>Wind clk</th><th>Info</th></tr></thead><tbody>`;
+    h+=`<div class="sh">STAGE ${si+1}: ${esc(s.name||'')}${s.time?' · ⏱ '+s.time+' s':''}${s.notes?' — '+esc(s.notes):''}</div><table><thead><tr><th>Target</th><th>Range</th><th>Angle</th><th>Drop ${U.dropU()}</th><th>Elev clk</th>${s.rf?'<th>Wind clk (spin only, EST)</th>':'<th>Wind</th><th>Wind clk</th>'}<th>Info</th></tr></thead><tbody>`;
     s.dists.forEach(d=>{
-      const sol=solveShot(tr.pts,nearestPt,z.range,d.range,d.angle||0,d.wind||0,d.wdir??90,c.mv,tr.click,z.wSpd,z.wDir);
-      if(sol)h+=`<tr><td>${esc(d.label||'')}</td><td>${ut('range',d.range)}</td><td>${d.angle||0}°</td><td>${U.drop(sol.tp.drop)}</td><td>${(sol.clElev>=0?'U':'D')}${Math.abs(sol.clElev).toFixed(0)}</td><td>${ut('wind',d.wind||0)}</td><td>${d.wind?(sol.clWind>=0?'R':'L')+Math.abs(sol.clWind).toFixed(0):'—'}</td><td>${esc(targetInfo(d))}</td></tr>`;
+      const sol=solveShot(tr.pts,nearestPt,z.range,d.range,d.angle||0,s.rf?0:d.wind||0,d.wdir??90,c.mv,tr.click,z.wSpd,z.wDir);
+      if(sol&&s.rf){const sw=cardSpinWind(tr,sol,d);   // V2.12.0 CALC-22: ranged stage, no wind
+        h+=`<tr><td>${esc(d.label||'')}</td><td>${ut('range',d.range)}</td><td>${d.angle||0}°</td><td>${U.drop(sol.tp.drop)}</td><td>${(sol.clElev>=0?'U':'D')}${Math.abs(sol.clElev).toFixed(0)}</td><td>${spinClk(sw,tr.click,'R','L')}</td><td>${esc(targetInfo(d))}</td></tr>`;}
+      else if(sol)h+=`<tr><td>${esc(d.label||'')}</td><td>${ut('range',d.range)}</td><td>${d.angle||0}°</td><td>${U.drop(sol.tp.drop)}</td><td>${(sol.clElev>=0?'U':'D')}${Math.abs(sol.clElev).toFixed(0)}</td><td>${ut('wind',d.wind||0)}</td><td>${d.wind?(sol.clWind>=0?'R':'L')+Math.abs(sol.clWind).toFixed(0):'—'}</td><td>${esc(targetInfo(d))}</td></tr>`;
     });
     h+='</tbody></table>';
   });
@@ -3774,9 +3809,51 @@ function printDope(){
   document.getElementById('print-content').innerHTML=h;
   window.print();
 }
+/* ═════ V2.12.0 CALC-22 — fill a dope card from the rangefinder ═════
+   On: a new stage "Ranged · <time>" (rf: no wind inputs; windage = spin drift only) in the open card, or in a new
+   card from the session when none is open. Each ranging (not paused) adds a target with its distance and angle (LOS,
+   as sent); a ranging within 1 m of the last row within 30 s updates that row (scan mode streams). In memory only. */
+let dopeRf=null;   // {cardId, stageId, t}
+const rfStamp=t=>{const d=new Date(t);return d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+function dopeRfTarget(){const c=dopeRf&&DB.dopeCards.find(x=>x.id===dopeRf.cardId),s=c&&c.stages.find(x=>x.id===dopeRf.stageId);return s?{c,s}:null;}
+function dopeRfSet(on){
+  if(!on){dopeRf=null;dopeRfRender();return;}
+  const stamp=rfStamp(Date.now());
+  let c=getCard();
+  if(!c){newDope();c=getCard();if(!c)return;c.name='Ranged '+stamp;c.stages=[];}
+  const st={id:uid(),name:'Ranged · '+stamp.split(' ').pop(),notes:'',time:null,rf:true,dists:[]};
+  c.stages.push(st);dopeRf={cardId:c.id,stageId:st.id,t:0};
+  saveDB();refreshDopeSel();loadDope();
+}
+function dopeRfAdd(L){
+  const T=dopeRfTarget();if(!T){dopeRf=null;dopeRfRender();return;}
+  if(!L||!(L.m>0))return;
+  const{c,s}=T,m=Math.round(L.m*10)/10,last=s.dists[s.dists.length-1];
+  if(last&&Math.abs(last.range-m)<=1&&L.t-dopeRf.t<=30000){last.range=m;last.angle=L.deg;}
+  else s.dists.push({id:uid(),range:m,angle:L.deg,wind:0,wdir:90,label:'T'+(s.dists.length+1)});
+  dopeRf.t=L.t;migrateDopeCard(c);saveDB();
+  if(currentDopeId===c.id&&curPage()==='dope'){renderStages();const tr=computeCardTraj(c);if(tr)calcDope();}
+  dopeRfRender();
+}
+function dopeRfRender(){
+  const box=document.getElementById('dc-rf');if(!box)return;
+  if(dopeRf&&!dopeRfTarget())dopeRf=null;   // its card or stage was deleted
+  const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+  const seg=el('div','seg');seg.id='dc-rf-seg';
+  [['Off',false],['On',true]].forEach(([t,v])=>{const b=el('button',!!dopeRf===v?'on':'',t);b.type='button';b.onclick=()=>{if(!!dopeRf!==v)dopeRfSet(v);};seg.appendChild(b);});
+  const f=el('div','fld');f.append(el('label',null,'Fill from rangefinder'),seg);
+  const live=RFS.filter(d=>!d.gone&&d.link.connected()),T=dopeRfTarget();
+  let msg;
+  if(!T)msg='Each ranging adds a target (distance + angle) to a new "Ranged" stage. No wind on that stage — windage shows spin drift only; wind is solved live at the match.';
+  else{const n=T.s.dists.length;
+    msg='Adding to "'+T.s.name+'" in "'+T.c.name+'" · '+n+' target'+(n===1?'':'s')+' · '+
+      (!live.length?'no rangefinder connected — connect one on Sensors':live.every(d=>d.paused)?'rangefinder paused — nothing is added':'range a target');}
+  const note=el('div','note',msg);note.id='dc-rf-status';
+  box.replaceChildren(f,note);
+}
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.11.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.12.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4352,7 +4429,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.11.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.12.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4399,7 +4476,7 @@ function sanitiseRecord(type,raw){
   const missing=(IMPORT_REQUIRED[type]||[]).filter(k=>!(rec[k]>0));
   if(missing.length)return{reject:'missing '+missing.join(', ')};
   if(rec.stages){
-    rec.stages=rec.stages.map(st=>({id:st.id,name:st.name,notes:isStr(st.notes)?st.notes:'',time:isNum(st.time)&&st.time>0?st.time:null,
+    rec.stages=rec.stages.map(st=>({id:st.id,name:st.name,notes:isStr(st.notes)?st.notes:'',time:isNum(st.time)&&st.time>0?st.time:null,...(st.rf===true?{rf:true}:{}),
       dists:st.dists.map(d=>({id:d.id,range:d.range,angle:d.angle,wind:d.wind,wdir:d.wdir,label:isStr(d.label)?d.label.slice(0,40):'',
         brg:isNum(d.brg)?norm360(d.brg):null,size:isNum(d.size)&&d.size>0?d.size:null,pos:d.pos in TARGET_POS?d.pos:'',shots:isNum(d.shots)&&d.shots>=1?Math.round(d.shots):1}))}));
     migrateDopeCard(rec);
@@ -4642,6 +4719,7 @@ function rfFrame(d,b){
   const r=rfParse(b);if(!r)return; // not a ranging frame — ignored
   d.last={m:r.m,deg:r.deg,t:Date.now()};d.n++;
   if(APP.rfFill!==false&&!d.paused)rfFill(d);   // V2.11.0 r2: a paused rangefinder still shows its ranging, fills nothing
+  if(dopeRf&&!d.paused)dopeRfAdd(d.last);   // V2.12.0 CALC-22: and adds a target to the card being filled
   rfRender();
 }
 // Write a ranging into the session: S.dist_m (all pages) and both shot-angle inputs (Home, Solver).
@@ -4680,6 +4758,7 @@ function rfRender(){
   document.getElementById('rf-last').textContent=lastD?'Last ranging: '+rfDist(lastD.last.m)+' at '+(lastD.last.deg>0?'+':'')+lastD.last.deg+'° from '+(lastD.link.name||'rangefinder')+' · '+rfTime(lastD.last.t)+(APP.rfFill===false?' (not filled: switch is off)':''):'';
   rfSrcRender();
   devSync();   // V2.11.0 r2
+  dopeRfRender();   // V2.12.0
 }
 // Source line under the distance/angle inputs on Home and the Solver: "from <unit>" while the session
 // still holds that ranging, "typed" once either value differs from it (§20E: source visible, override kept).
@@ -6111,8 +6190,10 @@ const FORMULAS=[
              {l:'Kolbe, 59 °F, 29.92 inHg, dry, 1000 fps, 1:20″ (graph ≈ 1.43)',got:()=>mcgyroAir(MCG_KOLBE,80,1000*0.3048,15,1013.25,0).sg,want:1.43,tol:0.02,u:''},
              {l:'Kolbe, 86 °F, 29.92 inHg, dry, 2000 fps (graph ≈ 2.12; unscaled 2.02)',got:()=>mcgyroAir(MCG_KOLBE,80,2000*0.3048,30,1013.25,0).sg,want:2.12,tol:0.02,u:''},
              {l:'Kolbe, 86 °F, 560 fps (graph ≈ 1.86)',got:()=>mcgyroAir(MCG_KOLBE,80,560*0.3048,30,1013.25,0).sg,want:1.86,tol:0.02,u:''}]},
-  {name:'Spin drift (Litz)',status:'est',eq:'drift_in = 1.25·(Sg+1.2)·t^1.83',src:'Litz empirical fit from supersonic rifle data — NOT validated for subsonic airgun slugs. Default off',used:'Solver (optional)',
-    anchors:[{l:'formula reproduction: Sg 1.5, t 1.0 s',got:()=>spinDrift_mm(1.5,1.0,'right'),want:85.725,tol:1e-6,u:'mm'}]},
+  {name:'Spin drift (Litz)',status:'est',eq:'drift_in = 1.25·(Sg+1.2)·t^1.83; from the zero (V2.12.0): drift(d) − drift(zero)·d/zero',src:'Litz empirical fit from supersonic rifle data — NOT validated for subsonic airgun slugs. Default off. Referenced to the zero like wind and jump (the windage zero absorbs the drift at the zero range; zero air Sg + zero-pass TOF)',used:'Solver (optional) · dope card ranged stages',
+    anchors:[{l:'formula reproduction: Sg 1.5, t 1.0 s',got:()=>spinDrift_mm(1.5,1.0,'right'),want:85.725,tol:1e-6,u:'mm'},
+             {l:'V2.12.0 from the zero: at the zero range = 0',got:()=>spinFromZero_mm(1.26,0.4,100,1.26,0.4,100,'right'),want:0,tol:1e-12,u:'mm'},
+             {l:'V2.12.0 from the zero: Sg 1.5, t 1.0 s @ 300 m, zero 50 m (Sg 1.4, t 0.19 s) (Python)',got:()=>spinFromZero_mm(1.5,1.0,300,1.4,0.19,50,'right'),want:62.01194996,tol:1e-6,u:'mm'}]},
   {name:'G1 ≈ G7 / 0.509',status:'est',eq:'BC_G1 ≈ BC_G7 / 0.509',src:'Litz conversion factor, ±5–8 % — skill §4A',used:'BC / Truing estimate',
     anchors:[{l:'Queen G7 0.128',got:()=>0.128/0.509,want:0.2515,tol:1e-4,u:'lb/in²'}]},
   {name:'MV spread → vertical spread',status:'est',eq:'Δy ≈ g·t²·ΔV/V₀ (fixed launch angle, small ΔV)',src:'first-order from the point-mass equations; reproduced against py-ballisticcalc fixed-angle runs (V1.26.0) within 2.5 % to 100 m',used:'Home › Chrono module',

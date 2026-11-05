@@ -7,6 +7,49 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.12.0 — minor — Dope card filled from the rangefinder (CALC-22); spin drift measured from the zero
+
+**Problem (owner idea, 2026-11-05).** Building a dope card for a course meant typing every distance and angle. The rangefinder (CALC-09) could only fill the session, one shot at a time. Owner ruling on windage: the card uses no wind at all, so it shows only the minimal windage from spin drift; wind is solved live at the match.
+
+**Fix.**
+- **Dope → Card → "Fill from rangefinder" (Off / On).**
+  - **On** adds a new stage, "Ranged · HH:MM", to the open card. If no card is open, it first creates one from the session ("Ranged <date time>"), holding only that stage.
+  - The status line says where targets go, how many there are, and whether a rangefinder is connected or paused.
+  - The switch is not saved; a restart turns it off.
+- **Each ranging adds a target:** distance (0.1 m, as sent), signed angle (LOS, as sent), wind 0. Targets are named T1, T2… and can be renamed.
+  - A ranging within **1 m of the last row within 30 s updates that row** instead of adding one, because scan mode streams frames. An update keeps a renamed label.
+  - A paused rangefinder (device row) adds nothing.
+  - It works independently of the session-fill switch; the session distance still fills as before.
+  - If the card being filled is deleted, the switch turns itself off.
+- **Ranged stages** carry a "⊙ ranged · no wind" line and have no wind inputs. Columns: **Range · Ang° · Drop · Elev · Windage**.
+  - **Windage = spin drift only:** the Shot solver's Litz formula (`spinDrift_mm`, in Formulas since V1.14.0) with the card's own Sg (Miller, the card's rifle, projectile, MV and air), **measured from the zero** exactly as the solver now does (below), plus the zero's own wind correction as for every card.
+  - Shown as clicks with an arrow, or "0" when it rounds to nothing.
+  - Labelled **EST** in the card note: fitted on rifle bullets, not validated for subsonic slugs.
+  - Pellets, smooth bores and slugs where Sg isn't computed show "—", with the reason.
+- **Wind stages and existing cards are unchanged.** Same inputs, same results; no spin drift is added to them.
+- **Print:** a ranged stage prints "Wind clk (spin only, EST)" instead of the two wind columns.
+- **Export / import:** the stage keeps `rf: true` (boolean only, whitelisted). Wind stages get no new key. Dope-card schema stays v2.
+- **Layout:** range and angle inputs on ranged stages are wider (they have the room). A stage table wider than the screen scrolls inside its stage, never the page (an absurd 1134 m row was the case found).
+- The Litz formula itself and every earlier physics anchor are unchanged (Sg 1.5, 1.0 s → 85.725 mm).
+
+- **Spin drift measured from the zero (owner ruling 2026-11-05, Shot solver + ranged stages).**
+  - The windage zero was set where the group centred at the zero range, so the spin drift there is already inside the zero as a fixed angle. The correction is now drift(d) − drift(zero) · d / zero: exactly 0 at the zero range, the same rule the app already applies to wind ("minus the drift baked into the zero") and to the aerodynamic jump.
+  - The zero's drift uses the **zero air** (Sg at the zero temperature and pressure) and the **zero pass's time of flight**. `rk4traj` now records the TOF to the zero range in its zero pass (`pts.zeroTof`); no trajectory output changes.
+  - If the zero's part can't be computed, spin drift shows as not computed — never silently raw.
+  - **Effect** (Queen, 280 m/s, Sg 1.26): the old raw value was too large by a constant ≈ 0.07 mrad with a 50 m zero and ≈ 0.13 mrad (1.3 clicks) with a 100 m zero. At 100 m with a 100 m zero the solver used to ask for ~1 click left; it is now 0. Inside the zero range the correction turns very slightly the other way (drift is non-linear in TOF).
+  - Solver flag reads "Spin drift from the zero (Litz EST …)". Formulas page entry updated, with two new anchors.
+  - Still EST: the Litz fit itself isn't validated subsonic. The range check is zero-wind groups at 2–3 distances, comparing the left/right offset with the zero (field queue item "C1 spin-drift validation").
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.12.0.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.12.0`), `tests/rfdopetest.js` (new, 33 — fails on V2.11.1), `tests/runtests.js` (+6 spin-from-zero anchors → 149), `tests/README.md`, this log.
+
+**Verify.**
+- `runtests.js` 149/149. New anchors: zero-pass TOF = flight TOF at the zero range in matched air, and longer in denser zero air; exactly 0 at the zero range; Sg 1.5 / 1.0 s at 300 m with zero 50 m (Sg 1.4, 0.19 s) = 62.01195 mm, reproduced independently in Python; left twist mirrors; missing zero TOF → not computed.
+- `rfdopetest.js` 33/33 (simulated Titan as `rangefindertest.js`). Includes: spin from the zero ≈ 0 at the zero range; slightly left inside the zero; the Shot solver's spin row at 100 m equals the card's T3 at 100 m. It covers: single and scan-mode rangings; the 30 s rule; renamed label kept; paused unit; session switch off; Off; card deleted. Elevation equals the solver at zero wind. Windage equals −(Litz spin drift from the zero) / range in clicks, with the card's Sg equal to the solver's session Sg. Pellet gives "—". Wind card unchanged. Print, export / import, and non-boolean `rf` dropped. Nothing written to the rangefinder; no errors.
+- Full regression green, all 41 runs. Lab `maindatatest.js` 13/13.
+- Chromium at 412 and 780 px: no sideways page scroll, no errors.
+
+---
+
 ## V2.11.1 — patch — Layouts: Edit scrolls to the editor; active layout highlighted
 
 **Problem (owner, 2026-11-05).** On Layouts, tapping Edit opened the editor below the list without moving the screen, so it looked as if nothing happened. The layout in use was marked only by its border.
