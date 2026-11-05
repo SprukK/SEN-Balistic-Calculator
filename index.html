@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.14.1</title>
+<title>SEN Ballistics V2.15.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -216,6 +216,7 @@ html[data-tt="bc"] [data-tt]:not([data-tt="bc"]),html[data-tt="mvt"] [data-tt]:n
 .lay-mod .lay-modname{flex:1;min-width:0;font-family:var(--sans);font-size:14px;line-height:1.3}
 .lay-grip{min-width:44px;min-height:48px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text3);font-size:20px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
 .lay-mods{position:relative}
+.lay-sidehead{font-size:13px;margin:12px 0 6px;color:var(--text2)}.lay-side{min-width:44px}   /* V2.15.0 */
 .lay-mod{will-change:transform}
 .lay-mod.lay-drag{position:relative;z-index:5;background:var(--bg4);border-radius:8px;border-color:var(--accent);box-shadow:0 10px 28px rgba(0,0,0,.55),0 0 0 1px var(--accent)}   /* r9: lifted while dragged */
 .lay-mod.lay-settle{box-shadow:0 0 0 1px var(--accent)}
@@ -1190,7 +1191,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.14.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.15.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -3859,7 +3860,7 @@ function dopeRfRender(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.14.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.15.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4435,7 +4436,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.14.1'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.15.0'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -5227,10 +5228,15 @@ function layoutFromTpl(t,name){
   return{id:uid(),name:name||T.name,tpl:t,mods:[...T.on.map(id=>({id,on:true})),...Object.keys(HOME_MODS).filter(k=>!T.on.includes(k)).map(id=>({id,on:false}))],set:{...T.set}};
 }
 // Keep every stored layout valid: known modules only, each exactly once, new modules appended (off).
-function normMods(arr){
+// V2.15.0: on the inner screen's own order each module has a side, 'l' (Home column) or 'r' (right pane). Missing
+// (layouts from V2.11–V2.14) → the right pane those versions always showed: reticle, turret, conditions.
+const INNER_RIGHT_DEFAULT=new Set(['solution','turret','cond']);
+function normMods(arr,inner){
   const seen=new Set(),mods=[];
-  (Array.isArray(arr)?arr:[]).forEach(m=>{if(m&&HOME_MODS[m.id]&&!seen.has(m.id)){seen.add(m.id);mods.push({id:m.id,on:!!m.on});}});
-  Object.keys(HOME_MODS).forEach(id=>{if(!seen.has(id))mods.push({id,on:false});});
+  const side=m=>m&&(m.side==='l'||m.side==='r')?m.side:INNER_RIGHT_DEFAULT.has(m.id)?'r':'l';
+  const add=(id,on,m)=>mods.push(inner?{id,on,side:side({...m,id})}:{id,on});
+  (Array.isArray(arr)?arr:[]).forEach(m=>{if(m&&HOME_MODS[m.id]&&!seen.has(m.id)){seen.add(m.id);add(m.id,!!m.on,m);}});
+  Object.keys(HOME_MODS).forEach(id=>{if(!seen.has(id))add(id,false,{id});});
   return mods;
 }
 function normLayout(L){
@@ -5238,7 +5244,7 @@ function normLayout(L){
   const s=L.set||{};
   const out={id:typeof L.id==='string'&&L.id?L.id:uid(),name:String(L.name||'Layout').slice(0,40),tpl:LAYOUT_TPL[L.tpl]?L.tpl:'blank',mods,
     set:{dist:s.dist>0?+s.dist:null,timerMin:s.timerMin>0?Math.min(180,+s.timerMin):20,shots:s.shots>0?Math.min(999,Math.round(s.shots)):25}};
-  if(Array.isArray(L.modsInner))out.modsInner=normMods(L.modsInner);   // V2.11.0 r8: the inner screen's own order (optional)
+  if(Array.isArray(L.modsInner))out.modsInner=normMods(L.modsInner,true);   // V2.11.0 r8: the inner screen's own order (optional); V2.15.0: + side
   return out;
 }
 // V2.11.0 r8: the module list in effect — the inner screen's own one when it has one and the app is two-pane
@@ -5271,6 +5277,7 @@ function applyHomeLayout(){
   });
   const b=document.getElementById('home-layout-name');if(b)b.textContent=L.name+' ▾';
   const dash=document.getElementById('home-dash');if(dash)dash.classList.toggle('ans-on',activeMods(L).some(m=>m.id==='answer'&&m.on));  // V2.11.0 r1
+  if(typeof twoPane!=='undefined'&&twoPane&&curPage()==='home')applyPane('home');   // V2.15.0: the right pane follows the layout's sides
   renderQuick();
 }
 function useLayout(id){
@@ -5953,20 +5960,36 @@ function renderLayoutEditor(){
   if(inner){
     scrNote.appendChild(el('span','note',own?'The inner screen has its own order.':'The inner screen uses the outer screen\'s order.'));
     const b=el('button','btn',own?'Same as outer screen':'Give the inner screen its own order');b.type='button';b.id='lay-own';
-    b.onclick=()=>{if(own)delete L.modsInner;else L.modsInner=L.mods.map(m=>({...m}));layoutChanged(L);};scrNote.appendChild(b);
+    b.onclick=()=>{if(own)delete L.modsInner;else L.modsInner=normMods(L.mods,true);layoutChanged(L);};scrNote.appendChild(b);   // V2.15.0: copy + today's sides
   }
-  const mods=el('div','lay-mods'+(ro?' lay-ro':''));
-  list.forEach((m,i)=>{
-    const r=el('div','lay-mod'+(m.on?'':' lay-modoff'));r.dataset.mod=m.id;
-    const h=el('button','lay-grip','⠿');h.type='button';h.setAttribute('aria-label','Drag to move '+HOME_MODS[m.id].name);h.disabled=ro;
-    const up=el('button','btn-xs','▲');up.setAttribute('aria-label','Move '+HOME_MODS[m.id].name+' up');up.disabled=ro||i===0;
-    up.onclick=()=>{[list[i-1],list[i]]=[list[i],list[i-1]];layoutChanged(L);};
-    const dn=el('button','btn-xs','▼');dn.setAttribute('aria-label','Move '+HOME_MODS[m.id].name+' down');dn.disabled=ro||i===list.length-1;
-    dn.onclick=()=>{[list[i+1],list[i]]=[list[i],list[i+1]];layoutChanged(L);};
-    const tg=el('button','btn-xs'+(m.on?' on':''),m.on?'On':'Off');tg.disabled=ro;tg.onclick=()=>{m.on=!m.on;layoutChanged(L);};
-    r.append(h,el('span','lay-modname',HOME_MODS[m.id].name),up,dn,tg);mods.appendChild(r);
-    if(!ro)layGrip(h,r,mods,L,list);
-  });
+  // V2.15.0: the inner screen's own order is edited as two lists, Left side and Right side; ▲▼ and drag move a
+  // module within its side, → / ← moves it to the other side (to the bottom). The outer screen stays one list.
+  const split=inner&&own;
+  const modList=sideKey=>{
+    const box=el('div','lay-mods'+(ro?' lay-ro':''));if(sideKey)box.id='lay-side-'+sideKey;
+    const items=list.filter(m=>!sideKey||m.side===sideKey);
+    items.forEach((m,k)=>{
+      const i=list.indexOf(m),prev=items[k-1],next=items[k+1];
+      const swap=o=>{const j=list.indexOf(o);[list[i],list[j]]=[list[j],list[i]];layoutChanged(L);};
+      const r=el('div','lay-mod'+(m.on?'':' lay-modoff'));r.dataset.mod=m.id;
+      const h=el('button','lay-grip','⠿');h.type='button';h.setAttribute('aria-label','Drag to move '+HOME_MODS[m.id].name);h.disabled=ro;
+      const up=el('button','btn-xs','▲');up.setAttribute('aria-label','Move '+HOME_MODS[m.id].name+' up');up.disabled=ro||!prev;
+      up.onclick=()=>swap(prev);
+      const dn=el('button','btn-xs','▼');dn.setAttribute('aria-label','Move '+HOME_MODS[m.id].name+' down');dn.disabled=ro||!next;
+      dn.onclick=()=>swap(next);
+      const tg=el('button','btn-xs'+(m.on?' on':''),m.on?'On':'Off');tg.disabled=ro;tg.onclick=()=>{m.on=!m.on;layoutChanged(L);};
+      r.append(h,el('span','lay-modname',HOME_MODS[m.id].name),up,dn);
+      if(sideKey){const mv=el('button','btn-xs lay-side',sideKey==='l'?'→':'←');mv.type='button';
+        mv.setAttribute('aria-label','Move '+HOME_MODS[m.id].name+' to the '+(sideKey==='l'?'right':'left')+' side');
+        mv.onclick=()=>{list.splice(i,1);m.side=sideKey==='l'?'r':'l';list.push(m);layoutChanged(L);};r.appendChild(mv);}
+      r.appendChild(tg);box.appendChild(r);
+      if(!ro)layGrip(h,r,box,L,list);
+    });
+    if(sideKey&&!items.length)box.appendChild(el('div','note',sideKey==='r'?'Nothing on the right — Home uses the full width.':'Nothing on the left.'));
+    return box;
+  };
+  const mods=split?el('div','lay-split'):modList(null);
+  if(split)mods.append(el('h3','lay-sidehead','Left side'),modList('l'),el('h3','lay-sidehead','Right side'),modList('r'));
   const num=(q,v,step,fn)=>{const i=el('input');i.type='number';i.dataset.q=q;i.step=step;i.value=v==null?'':String(v);i.onchange=()=>fn(i.value===''?null:+i.value);return i;};
   const dist=num('range',L.set.dist,'5',v=>{L.set.dist=v>0?v:null;if(L.id===APP.layoutId&&L.set.dist)Bus.set('dist_m',L.set.dist);layoutChanged(L);});
   const tmin=num('-',L.set.timerMin,'1',v=>{L.set.timerMin=v>0?Math.min(180,v):20;layoutChanged(L);});
@@ -5975,7 +5998,7 @@ function renderLayoutEditor(){
   const reset=el('button','btn','Reset to template');reset.onclick=()=>{const t=layoutFromTpl(L.tpl,L.name);L.mods=t.mods;L.set=t.set;layoutChanged(L);};
   const done=el('button','btn primary','Done');done.onclick=()=>{layoutEditId=null;renderLayouts();};
   const br=el('div','btnrow');br.append(reset,done);
-  ed.replaceChildren(el('h2',null,'Edit layout'),fld('Name',name),scr,scrNote,el('div','note','Home, top to bottom. Drag ⠿ (or ▲▼) to move a module, On/Off shows or hides it. On the inner screen the solution, turret and conditions sit in the right pane.'),mods,grid,br);
+  ed.replaceChildren(el('h2',null,'Edit layout'),fld('Name',name),scr,scrNote,el('div','note','Home, top to bottom. Drag ⠿ (or ▲▼) to move a module, On/Off shows or hides it. '+(split?'Each side has its own order; → / ← moves a module to the other side. Other pages keep the standard Solution pane.':'On the inner screen the solution, turret and conditions sit in the right pane.')),mods,grid,br);
 }
 /* V2.11.0 r8 — drag a module row by its ⠿ grip: the row follows the finger, the list reorders live
    (each row's centre decides), the new order is saved on release. ▲▼ stay for keyboard use. */
@@ -6026,8 +6049,9 @@ function layGrip(h,row,box,L,list){
     if(raf&&typeof cancelAnimationFrame==='function')cancelAnimationFrame(raf);raf=0;
     document.removeEventListener('pointermove',move,true);document.removeEventListener('pointerup',up,true);document.removeEventListener('pointercancel',up,true);
     const done=()=>{row.classList.remove('lay-drag','lay-settle');row.style.transition='';row.style.transform='';row._ty=0;
-      const order=[...box.children].map(r=>r.dataset.mod),before=list.map(m=>m.id).join();
-      if(order.join()!==before){const by=Object.fromEntries(list.map(m=>[m.id,m]));list.splice(0,list.length,...order.map(k=>by[k]));layoutChanged(L);}};
+      const order=[...box.children].map(r=>r.dataset.mod).filter(Boolean),ids=new Set(order),before=list.filter(m=>ids.has(m.id)).map(m=>m.id).join();
+      // V2.15.0: a side's box holds part of the list — reorder that part, keep the other side's modules
+      if(order.join()!==before){const by=Object.fromEntries(list.map(m=>[m.id,m]));list.splice(0,list.length,...order.map(k=>by[k]),...list.filter(m=>!ids.has(m.id)));layoutChanged(L);}};
     if(reduce()||!row._ty){done();return;}
     row.classList.add('lay-settle');row.style.transition=SLIDE+',box-shadow .18s';row.style.transform='translateY(0) scale(1)';row._ty=0;
     let fired=false;const fin=()=>{if(fired)return;fired=true;done();};
@@ -6314,15 +6338,24 @@ function paneIn(ids){
 function paneOut(){
   document.querySelectorAll('[data-rail-home]').forEach(mark=>{const el=document.getElementById(mark.dataset.railHome);if(el)mark.replaceWith(el);else mark.remove();});
 }
+// V2.15.0: Home's right pane on the inner screen — the modules the layout puts on the right ('r'), in its order,
+// when the layout has its own inner order; else the standard Solution blocks. null = standard.
+function homeRightIds(){
+  const L=activeLayout();if(!L||!Array.isArray(L.modsInner))return null;
+  return L.modsInner.filter(m=>m.side==='r').map(m=>({el:HOME_MODS[m.id].el,on:m.on}));
+}
 function applyPane(p){
   paneOut();
-  const m=twoPane?paneMode(p):null;paneShown=m;
+  let m=twoPane?paneMode(p):null;
+  const hr=m==='rail'&&p==='home'?homeRightIds():null;
+  if(hr&&!hr.some(x=>x.on))m='none';   // nothing on the right: Home is one full-width column
+  paneShown=m;
   document.documentElement.classList.toggle('pane-none',m==='none');
   document.documentElement.classList.toggle('pane-page',m==='page');
-  if(m==='rail')paneIn(RAIL_BLOCKS);else if(m==='page')paneIn(PANE_PAGE[p]);
+  if(m==='rail')paneIn(hr?hr.map(x=>x.el):RAIL_BLOCKS);else if(m==='page')paneIn(PANE_PAGE[p]);
   const sw=document.getElementById('pane-sw'),show=document.getElementById('pane-show');
   if(sw){const modes=paneModes(p);sw.replaceChildren(...(m&&modes.length>1?modes.map(x=>{const b=document.createElement('button');b.className='btn-xs'+(x===m?' on':'');b.textContent=PANE_LABEL[x];b.setAttribute('aria-pressed',String(x===m));b.onclick=()=>setPaneMode(p,x);return b;}):[]));}
-  if(show)show.style.display=m==='none'?'':'none';
+  if(show)show.style.display=m==='none'&&paneModes(p).includes('none')?'':'none';   // V2.15.0: not on Home's full-width column
   renderRailHead();
   if(m==='rail')renderQuick();
   if(typeof divPos==='function')divPos();   // V2.11.0 r3: the divider follows the pane's edge
@@ -6980,16 +7013,16 @@ function driveSave(files){
   if(files.every(f=>driveEnqueue(...f)))driveTapSend();else driveRender();
 }
 function driveBackupNow(){
-  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.14.1'};
+  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.15.0'};
   driveSave([['backups','SEN backup '+driveStamp()+'.json','application/json',JSON.stringify(d,null,1),'backup']]);
 }
 function driveSaveProfile(t,id){
   const b=shareBundle(t,id),type=SHARE_TYPES[t],rec=b&&DB[type].find(x=>x.id===id);if(!b)return;
-  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.14.1'},null,1)]]);
+  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.15.0'},null,1)]]);
 }
 function driveSaveDope(){
   const c=getCard();if(!c)return;
-  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.14.1'},null,1)]];
+  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.15.0'},null,1)]];
   const h=dopePrintHTML(c);   // null when the card can't be computed — the JSON still goes
   if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print)','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title>'+h.replace(/<table>/g,'<table border="1" cellpadding="4" style="border-collapse:collapse">'),'',DRIVE_DOC]);   // → Google Doc
   driveSave(f);
@@ -7000,7 +7033,7 @@ function driveSaveShots(){
   const csv='shot,velocity_ms,velocity_fps,kept\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes'].join(',')).join('\n')+
     '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n';
   driveSave([['shots',nm,'text/csv',csv,'',DRIVE_SHEET],   // → Google Sheet
-    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,source:c.src,app:'SEN Ballistics V2.14.1',saved:new Date().toISOString()},null,1)]]);
+    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,source:c.src,app:'SEN Ballistics V2.15.0',saved:new Date().toISOString()},null,1)]]);
 }
 function driveWindRows(){
   const now=Date.now(),win=wavgWin();
@@ -7012,7 +7045,7 @@ function driveSaveWind(){
   const rows=driveWindRows();if(!rows.length||rows.every(r=>!r.readings)){alert('No wind readings to save — connect a Calypso first.');return;}
   const t=new Date().toISOString(),keys=Object.keys(rows[0]);
   driveSave([['wind','Wind '+driveStamp(),'text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n','',DRIVE_SHEET],   // → Google Sheet
-    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.14.1'},null,1)]]);
+    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.15.0'},null,1)]]);
 }
 // Restore: JSON files in Backups, Profiles and Dope cards, newest first → the normal import.
 async function driveRestoreList(){

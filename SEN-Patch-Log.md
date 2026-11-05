@@ -7,6 +7,40 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.15.0 — minor — Inner screen: choose what goes on the left and right of Home, per layout
+
+**Problem (owner, 2026-11-05).** With the inner screen's own order (V2.11.0), only the left column could be arranged. The right pane on Home always held the reticle, turret and conditions.
+
+**Fix.**
+- **Layouts → Edit → Inner screen → own order** is now two lists, **Left side** and **Right side**.
+  - Each has its own ⠿ drag and ▲▼ order (within that side) and On/Off.
+  - **→ / ←** moves a module to the bottom of the other side.
+  - Any module can go on either side.
+- **Start = today's split.** Turning the own order on puts reticle, turret and conditions on the right and the rest on the left. Stored inner orders from V2.11–V2.14 (no sides) get the same split, so nothing moves until changed.
+- **Home's right pane** shows exactly the right side's modules, in order (modules switched off stay hidden). **Nothing on the right → Home is one full-width column** (no pane, no divider, no Solution button).
+- **Other pages** (Trajectory, Solver, Wind, Dope, Holds) keep the standard Solution pane: reticle, turret, conditions (owner: Claude's suggestion).
+- **"Same as outer screen" and the outer screen** behave exactly as before.
+- **Storage:** each `modsInner` entry gains `side` ('l' / 'r'), sanitised (missing or bad → today's default). The outer `mods` carry no side.
+- **Drag** in a side reorders only that side; the other side's modules are kept.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.15.0.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.15.0`), `tests/splittest.js` (new, 22), `tests/README.md`, this log.
+
+**Verify.**
+- `splittest.js` 22/22. Covers:
+  - the start split equals today's;
+  - editor lists; → / ← moves; ▲ within a side;
+  - right pane = the right side in order;
+  - drag within a side keeps the other;
+  - Trajectory / Solver keep the Solution pane;
+  - restart; outer screen untouched;
+  - empty right → full-width column;
+  - legacy and bad sides sanitised; "Same as outer screen".
+- `customtest` 26, `layouttest` 36, `fieldtest` 43 unchanged.
+- Full regression green (43 runs); Lab `maindatatest.js` 13/13.
+- Chromium 780 px (touch): editor and Home with Answer + Distance on the right; no sideways scroll, no errors.
+
+---
+
 ## V2.14.1 — patch — Drive: printable dope card as a Google Doc; shot strings and wind snapshots as Google Sheets
 
 **Problem (owner, 2026-11-05, on the Honor).** "Save to Drive" on a dope card put a `.html` print copy in Drive. Drive doesn't render HTML, so it showed the page source.

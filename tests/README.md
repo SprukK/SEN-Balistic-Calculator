@@ -167,6 +167,9 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 
 # V2.13.0 CORE-26: Google Drive connector (simulated Google sign-in + Drive v3; needs fake-indexeddb)
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node drivetest.js ../index.html)
+
+# V2.15.0: inner screen — left / right side of Home per layout
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node splittest.js ../index.html)
 ```
 
 ## Provenance
