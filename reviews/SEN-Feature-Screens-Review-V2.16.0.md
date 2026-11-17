@@ -141,3 +141,16 @@ Confidence: **Reproduced** = shown in the running app (jsdom with fake-indexeddb
 | 2 | patch | **W-01** (+ segment 1 P-01), **W-03**, W-05 (+ segment 1 P-04), W-10 | Values and reticles the shooter reads: no stale session values, no silent generic reticle, estimated reticles flagged. |
 | 3 | patch | W-04, W-07, W-08, W-09 (+ segment 2 import work), W-11, W-12, W-13, W-14 | Workflow robustness after the rulings in B. |
 | 4 | minor | F-8, F-9, W-06/F-11, F-10, F-12 — only those the owner confirms | New behaviour; Feature Register entries first. |
+
+---
+
+## F. Owner rulings (2026-11-17)
+
+| Question | Ruling | Effect on the plan |
+|---|---|---|
+| B-1 Overrides across a restart | Keep them | W-04 as recommended: persist value + source, note "kept from last session". |
+| B-2 Deleting a profile a card uses | Warn and list the cards | W-07: confirmation names the cards (and the running course card). |
+| B-3 New scope reticle | No reticle (dial only) by default; more reticle options needed | W-03 confirmed. New feature proposal F-13: more reticle options (library). |
+| B-4 Print sizes | To be decided; must allow a custom size, for print or e-ink | F-9 extended: custom size, print and e-ink output. |
+| B-5 End of a course | Summary, with the option to go back | F-12 confirmed in shape: summary screen, back to any stage/target. |
+| B-6 Duplicate names | Refuse to save | W-12: save refused with "a <type> with this name already exists". |

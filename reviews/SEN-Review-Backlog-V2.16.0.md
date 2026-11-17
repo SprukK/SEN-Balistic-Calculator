@@ -33,8 +33,8 @@ Running list kept during the five-segment review. The final to-do list is produc
 | F-6 | **Accessibility pass.** Dialog semantics and focus for sheets and forms, labels tied to every input, `aria-current` on the nav. | Owner ruling on seg 4 B-3: after the app is polished. Plan in seg 4 U-04/U-05. |
 | F-7 | **Sunlight preset.** One-tap bright colour set for reading in full sun. | Owner ruling on seg 4 B-4; check with T-13. |
 | F-8 | **Turret revolutions** (rev + clicks from the scope's clicks per revolution) on Home, Solver, cards and print. | Seg 5; `cpr` is stored but unused. |
-| F-9 | **Print layouts** for dope cards: A4 / A5 / pocket card, larger type, optional date, BC + drag, MV, atmosphere. | Seg 5 W-13 / B-4. |
+| F-9 | **Print and e-ink layouts** for dope cards: A4 / A5 / pocket and a **custom size**, for paper or the e-ink display; larger type; optional date, BC + drag, MV, atmosphere. | Seg 5 W-13 / B-4 (owner: sizes to be decided, custom size required). |
 | F-10 | **BENCH-05 completion** — manufacturability rules (bearing length, boat-tail, meplat, calibre and choke fit). | Seg 5; register lists BENCH-05 as partly built. |
 | F-11 | **SFP reticles** with a calibration magnification. | Seg 5 W-06. |
-| F-12 | **Course summary** at the end of a course. | Seg 5 B-5. |
-
+| F-12 | **Course summary** at the end of a course, with the option to go back to any stage or target. | Seg 5 B-5 (owner ruling). |
+| F-13 | **More reticle options** — a larger verified reticle library (other Vector reticles, other makers), import of verified geometry. | Seg 5 B-3 (owner). |
