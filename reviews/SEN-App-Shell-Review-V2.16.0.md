@@ -153,3 +153,15 @@ A scan for top-level functions and constants that are never referenced (comments
 | 2 | patch | U-02, U-03, U-04, U-05, U-11 | Shell behaviour: back/Escape, observer, dialog semantics, labels, dead variable. domtest + rendertest + helptest. |
 | 3 | patch (after the device check) | U-06 | Only if the Honor shows overlap. |
 | 4 | optional | U-07 (if B-01's ticker causes lag), U-08, U-10 | Performance and housekeeping, no behaviour change. |
+
+---
+
+## G. Owner rulings (2026-11-17)
+
+| Question | Ruling | Effect on the plan |
+|---|---|---|
+| B-1 Damaged layout note | Yes | U-01: show a one-line note once when a layout was dropped or reset. |
+| B-2 Back with a form open | As recommended | U-02: close at once if nothing changed; ask "discard changes?" if something was typed. |
+| B-3 Screen readers | Later, as a feature once the app is polished | U-04 and U-05 leave the patch plan and become feature proposal F-6 (accessibility pass). The `aria-current` / dialog focus work moves with it. |
+| B-4 Sunlight preset | Yes | Feature proposal F-7: one-tap bright "sunlight" colour preset next to the user colours. |
+| B-5 Old HTML copies | Archive | U-10: move the versioned builds to `archive/`; keep the six the tests load and update their paths in `tests/README.md` and the suites. |

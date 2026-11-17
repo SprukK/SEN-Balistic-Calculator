@@ -18,6 +18,7 @@ Running list kept during the five-segment review. The final to-do list is produc
 | T-11 | Seg 4 U-06 | Installed PWA on the Honor, outer and inner screen, portrait and landscape: is anything under the status bar or the camera hole? | Decides the safe-area fix |
 | T-12 | Seg 4 | Type in a profile form near the bottom of the outer screen: does the keyboard cover the field you're typing in? | Keyboard handling is only done for sheets |
 | T-13 | Seg 4 B-4 | Read Home in full sun (dark theme, then high contrast) | Decides whether a bright "sunlight" preset is worth adding |
+| T-14 | Seg 5 | Print a dope card from the phone on the printer you use (A4 and A5) and read it at arm's length | Decides the print layouts (F-9) |
 | T-10 | Seg 1 | Stability range test (SEN-Stability-Range-Test-Sheet-V1) — already on file | McGyro vs Miller decision |
 
 ## Feature proposals (for the Feature Register, 💭 Proposed — to be ruled)
@@ -29,3 +30,11 @@ Running list kept during the five-segment review. The final to-do list is produc
 | F-3 | **Import part picker.** "Take theirs" lists the preference groups (units, display, colours, Home layouts, bottom bar, other) with a checkbox each. | Owner ruling on seg 2 B-3. |
 | F-4 | **True north option.** Typed bearings can be true north with a declination setting (fallback, or simulating another location). | Owner ruling on seg 3 B-2. |
 | F-5 | **Automatic reconnect** for dropped devices. | Seg 3 B-04; priority after LoRa tests (T-9). |
+| F-6 | **Accessibility pass.** Dialog semantics and focus for sheets and forms, labels tied to every input, `aria-current` on the nav. | Owner ruling on seg 4 B-3: after the app is polished. Plan in seg 4 U-04/U-05. |
+| F-7 | **Sunlight preset.** One-tap bright colour set for reading in full sun. | Owner ruling on seg 4 B-4; check with T-13. |
+| F-8 | **Turret revolutions** (rev + clicks from the scope's clicks per revolution) on Home, Solver, cards and print. | Seg 5; `cpr` is stored but unused. |
+| F-9 | **Print layouts** for dope cards: A4 / A5 / pocket card, larger type, optional date, BC + drag, MV, atmosphere. | Seg 5 W-13 / B-4. |
+| F-10 | **BENCH-05 completion** — manufacturability rules (bearing length, boat-tail, meplat, calibre and choke fit). | Seg 5; register lists BENCH-05 as partly built. |
+| F-11 | **SFP reticles** with a calibration magnification. | Seg 5 W-06. |
+| F-12 | **Course summary** at the end of a course. | Seg 5 B-5. |
+
