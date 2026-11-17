@@ -7,6 +7,56 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.16.4 — patch — trued BCs and profile values reach the dope (review release R3: P-01, W-01, P-02, D-07, P-05, P-07, W-04, D-06)
+
+**Problem (V2.16.0 reviews, reproduced).**
+- **P-01:** Velocity truing didn't update the session BC.
+- **W-01:** editing the active rifle, projectile or weather left the session on the old values while the source still said "profile".
+- **P-02:** export/import dropped `bcTrued` and `bcBands`, so a measured BC came back as a maker BC with the stability penalty on top: 11.97 → 12.09 mrad at 200 m. Confirmed on the owner's own export: its two trued projectiles lost their state on V2.16.3.
+- **D-07:** pre-V1.24.2 exports weren't converted.
+- **P-05:** typing a new BC into a trued profile kept the trued state, and its bands.
+- **P-07:** bands overrode a manual or trial BC, so impacts truing on a banded projectile said "No BC fits".
+- **W-04:** chrono, manual and MV–temp values were lost at every restart.
+- **D-06:** imported numbers and choices weren't range-checked (zero pressure 0, 900 % RH, a 1e-9 click, `type:'banana'`).
+
+**Fix.**
+- **P-01:** `tuApply` re-reads the session BC when the trued projectile is the session one, as `tdApply` already did. Like `tdApply`, it replaces a typed session BC, because a new BC was just measured.
+- **W-01:** saving the active rifle, projectile or weather re-reads only the session fields whose source is "profile" (MV and sight plus the zero distance; BC; temperature, pressure and RH). Typed, chrono and MV–temp values stay.
+- **P-02 + D-07:**
+  - The importer accepts `bcTrued`, `bcConv` and `bcBands`. Bands are rebuilt field by field (g1/g7, 1–16 bands, vHi > vLo, BC > 0); malformed bands are dropped and the projectile is kept.
+  - A trued record without `bcConv` from a file whose `app` version is below V1.24.2 gets the start-up migration's conversion (G7 × π/4, G1 → pending). Everything else is marked `native`.
+  - The conversion now lives in one function (`convertPreFixTrued`) used by the migration and the importer.
+- **P-05:** editing a trued projectile and changing its trued BC (compared at 4 dp) clears `bcTrued` and the bands and adds a note ("trued BC replaced by a typed value"). Other edits keep the trued state.
+- **P-07:** Home and Trajectory pass no bands when the BC is manual or a truing trial, which covers impacts truing. Dope cards use profile BCs and are unchanged.
+- **W-04 (owner ruling: keep):**
+  - The session block also stores MV, BC, sight, temperature, pressure and RH with their sources. The sources are cleaned at load: profile / manual / chrono / MV–temp, numbers finite.
+  - At start only profile-sourced fields are re-read, and one line says what was kept, e.g. "MV 281.4 m/s (chrono), BC 0.119 (typed) kept from last session".
+  - The Lab reader accepts the extra keys: SEN-Testing `maindatatest` passed 13 of 13.
+- **D-06:**
+  - `IMPORT_RANGE` / `IMPORT_ENUM` hold the form limits, loosened where the owner's export (T-1) holds real values outside them: BC, OAL, form factor and C may be 0; clicks per rev may be 0; sea-level pressure at altitude 0 is allowed.
+  - Floors were added where the form only says "above 0": twist ≥ 100 mm, click ≥ 0.01.
+  - Allowed values are checked for type, twist direction, rail and click units, pressure types, focal plane and renderer; reticle marks for 0–100 mrad; dope cards for MV, zero, target distance and angle.
+  - Out of range refuses the record with the reason and is never clamped. Missing or null optional fields pass.
+  - The owner's export round-trips with nothing refused. It stays local and isn't committed (public repo).
+
+**Known answers.**
+- Queen trued G7 0.119, 255 m/s, Everyday Default, 50 m zero: 11.97 mrad at 200 m. It's the same after export → import → restart; with the wrong penalty it was 12.09.
+- A V1.24.1 export with trued 0.163 imports as 0.128.
+- A manual BC of 0.200 on a banded Queen at 280 m/s gives a drop of −1874.69 mm at 200 m.
+- With bands 0.120 / 0.110 over 280→240→200 m/s the drop is −1966.64 mm, whatever the fallback BC. This is my own reproduction: the review's −1975.68 mm used band edges that weren't recorded.
+
+**Test changes.**
+- New `tests/truedstatetest.js`, PASS 26 / FAIL 0.
+- Changed on purpose because of D-06:
+  - `importtest.js` check 9 now uses MV 299 (999 is refused);
+  - `injectiontest.js` keeps payloads out of choice fields and gains a check that a payload in one refuses the record.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.16.4.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.16.4`), `SEN-Patch-Log.md`, `tests/truedstatetest.js` (new), `tests/importtest.js`, `tests/injectiontest.js`, `tests/README.md`.
+
+**Verify.** Every suite in `tests/README.md` is green; `rendertest` and `typetest` ran in real Chromium at 412 and 780 px. The Lab `maindatatest` passed 13 of 13.
+
+---
+
 ## V2.16.3 — patch — no script injection from shared data (review release R2: D-02, D-03, D-04, D-14, D-15, D-16, W-09)
 
 **Problem (V2.16.0 reviews, reproduced with the review harness: about 50 live markers in each payload mode).** An imported file, Drive restore or share code could put live markup or script into the app.

@@ -96,9 +96,9 @@ chk('take theirs applies their units',J(w,'UNITS.vel')==='fps');
 
 // 9. Cancel changes nothing.
 const n9=J(w,'DB.rifles.length');
-run(w,{rifles:[{...J(w,'DB.rifles[0]'),mv:999},{...base,id:'nr-9',name:'RIFLE NINE'}]});
+run(w,{rifles:[{...J(w,'DB.rifles[0]'),mv:299},{...base,id:'nr-9',name:'RIFLE NINE'}]});   // V2.16.4: a valid MV (999 is now refused by D-06)
 clickText(w,'Cancel');
-chk('cancel imports nothing',J(w,'DB.rifles.length')===n9&&J(w,'DB.rifles[0].mv')!==999);
+chk('cancel imports nothing',J(w,'DB.rifles.length')===n9&&J(w,'DB.rifles[0].mv')!==299);
 
 // 10. Newer schema refused; single dope-card shape accepted.
 const n10=J(w,'DB.rifles.length');

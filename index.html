@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.16.3</title>
+<title>SEN Ballistics V2.16.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.16.3 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.16.4 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -2139,8 +2139,20 @@ function migrateDopeCard(c){
 }
 let DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],designs:[]};let currentDopeId=null;
 let _idb=null,storeError=null,storeBytes=0,storePersisted=null;
-function snapshotJSON(){return JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,session:{rifleId:S.rifleId,projId:S.projId,zeroWxId:S.zeroWxId,curWxId:S.curWxId,zero_m:S.zero_m,dist_m:S.dist_m,drag:S.drag}});}
-function applySnapshot(d){DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],designs:[],...d};UNITS={...UNITS,...cleanUnits(d.units)};SUNITS={...SUNITS,...cleanUnits(d.sunits,true)};APP={...APP,...cleanApp2(d.app2)};if(d.session)Object.assign(S,d.session);}
+function snapshotJSON(){return JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,session:{rifleId:S.rifleId,projId:S.projId,zeroWxId:S.zeroWxId,curWxId:S.curWxId,zero_m:S.zero_m,dist_m:S.dist_m,drag:S.drag,
+  mv:S.mv,bc:S.bc,sight_mm:S.sight_mm,ct:S.ct,cp:S.cp,crh:S.crh,src:{...S.src}}});}   // V2.16.4 W-04: values + their sources
+function applySnapshot(d){DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],designs:[],...d};UNITS={...UNITS,...cleanUnits(d.units)};SUNITS={...SUNITS,...cleanUnits(d.sunits,true)};APP={...APP,...cleanApp2(d.app2)};if(d.session)Object.assign(S,cleanSession(d.session));}
+// V2.16.4 W-04: the stored session block — ids as text, numbers finite, a source from the known list (else 'profile')
+const SESSION_SRC=['profile','manual','chrono','mvtemp'];
+function cleanSession(o){
+  const out={},num=v=>typeof v==='number'&&isFinite(v);
+  ['rifleId','projId','zeroWxId','curWxId'].forEach(k=>{if(o[k]===null||typeof o[k]==='string')out[k]=o[k];});
+  ['zero_m','dist_m'].forEach(k=>{if(num(o[k]))out[k]=o[k];});
+  if(o.drag==='g1'||o.drag==='g7')out.drag=o.drag;
+  ['mv','bc','sight_mm','ct','cp','crh'].forEach(k=>{if(o[k]===null||num(o[k]))out[k]=o[k];});
+  if(o.src&&typeof o.src==='object')out.src=Object.fromEntries(Object.keys(S.src).map(k=>[k,SESSION_SRC.includes(o.src[k])?o.src[k]:'profile']));
+  return out;
+}
 function schemaNewerThanApp(d){return Object.keys(SCHEMA).filter(k=>d&&d.schema&&(d.schema[k]||0)>SCHEMA[k]);}
 function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
 function idbRun(mode,op){return new Promise((res,rej)=>{const tx=_idb.transaction(IDB_STORE,mode);const q=op(tx.objectStore(IDB_STORE));tx.oncomplete=()=>res(q.result);tx.onerror=tx.onabort=()=>rej(tx.error||new Error('transaction aborted'));});}
@@ -2524,16 +2536,16 @@ function migrateWeatherSeeds(){
    needs BC × π/4 — converted exactly. G1: the table itself changed, so no exact conversion
    exists — the BC is set to pending (trajectory blocked with truing guidance, the standing
    convention) and the old value is kept in the notes. Runs once per record (bcConv). */
+function convertPreFixTrued(p){   // V2.16.4: shared by the start-up migration and the import of pre-V1.24.2 exports (D-07)
+  const k=Math.PI/4,r4=x=>+(x*k).toFixed(4),g7=/·g7·/.test(p.bcTrued);
+  if(g7){if(p.bcg7>0)p.bcg7=r4(p.bcg7);if(p.bcBands&&p.bcBands.drag==='g7')p.bcBands.bands.forEach(b=>{b.bc=r4(b.bc);});}
+  else{p.notes=((p.notes||'')+' · G1 BC '+p.bcg1+' trued before V1.24.2 (wrong G1 table) — re-true needed').replace(/^ · /,'');
+    p.bcg1=0;if(p.bcBands&&p.bcBands.drag==='g1')p.bcBands=null;}
+  p.bcConv=g7?'V1.24.2 ×π/4':'V1.24.2 re-true';
+}
 function migrateTruedBC(){
-  let changed=false;const k=Math.PI/4,r4=x=>+(x*k).toFixed(4);
-  DB.projectiles.forEach(p=>{
-    if(!p.bcTrued||p.bcConv)return;
-    const g7=/·g7·/.test(p.bcTrued);
-    if(g7){if(p.bcg7>0)p.bcg7=r4(p.bcg7);if(p.bcBands&&p.bcBands.drag==='g7')p.bcBands.bands.forEach(b=>{b.bc=r4(b.bc);});}
-    else{p.notes=((p.notes||'')+' · G1 BC '+p.bcg1+' trued before V1.24.2 (wrong G1 table) — re-true needed').replace(/^ · /,'');
-      p.bcg1=0;if(p.bcBands&&p.bcBands.drag==='g1')p.bcBands=null;}
-    p.bcConv=g7?'V1.24.2 ×π/4':'V1.24.2 re-true';changed=true;
-  });
+  let changed=false;
+  DB.projectiles.forEach(p=>{if(!p.bcTrued||p.bcConv)return;convertPreFixTrued(p);changed=true;});
   if(changed)saveDB();
 }
 /* V1.30.0 — stability C values the app itself handed out before the built-in Miller rule:
@@ -2620,6 +2632,8 @@ const S={
   wind:{speed:0,dir:90,from:null,source:'manual'},
   src:{mv:'profile',bc:'profile',sight:'profile',ct:'profile',cp:'profile',crh:'profile'}
 };
+// V2.16.4 W-01: after an edit of the active profile, re-read only the session fields still taken from the profile
+const repullProfile=fields=>Bus.pullFromProfiles(fields.filter(f=>S.src[f]==='profile'));
 const subs=[];
 const Bus={
   notify(){subs.forEach(f=>f());saveDBSoon();},
@@ -2842,7 +2856,8 @@ function homeTraj(maxOver,bcOverride,mvFlight){  // V1.14.0: maxOver lets the Ho
   const bc7=drag==='g7'?bcEff:p.bcg7, bc1=drag==='g1'?bcEff:p.bcg1;
   const zEnv={rho:rhoZ,aS:sos(z.temp),bc7:drag==='g7'?bcBase*sgPZ:p.bcg7,bc1:drag==='g1'?bcBase*sgPZ:p.bcg1};
   const maxR=Math.max(maxOver||0,S.dist_m+25,z.range+25,150);
-  const pts=rk4traj(S.mv,bc7,p.mass,z.range,maxR,(S.sight_mm??r.sight??44)/1000,rhoC,aS,1,drag,bc1,projBands(p,drag),zEnv,mvFlight>0?{mv:mvFlight}:undefined);
+  const bands=S.src.bc==='manual'||bcOverride!=null?null:projBands(p,drag);   // V2.16.4 P-07: a manual or trial BC is not overridden by the profile's bands
+  const pts=rk4traj(S.mv,bc7,p.mass,z.range,maxR,(S.sight_mm??r.sight??44)/1000,rhoC,aS,1,drag,bc1,bands,zEnv,mvFlight>0?{mv:mvFlight}:undefined);
   return{pts,click:rifleScope(r)?.click||0.1,sg,sgP,zrange:z.range,cValid:cInfo.valid,cWhy:cInfo.why};
 }
 let homeRailOff=0, reticleMag=null; // reticleMag = displayed magnification (× power); null → scope min
@@ -3309,11 +3324,12 @@ function runTraj(silent){
   const bc7=S.drag==='g7'?bcEff:S.bc, bc1=S.drag==='g1'?bcEff:S.bc;
   const bcEffZ=S.bc*sgPenaltyZ;
   const zEnv={rho:rhoZ,aS:sos(z.temp),bc7:S.drag==='g7'?bcEffZ:S.bc,bc1:S.drag==='g1'?bcEffZ:S.bc};
-  const pts=rk4traj(S.mv,bc7,p.mass,S.zero_m,max_m,S.sight_mm/1000,rhoC,aS,step,S.drag,bc1,projBands(p,S.drag),zEnv);
+  const bands=S.src.bc==='manual'?null:projBands(p,S.drag);   // V2.16.4 P-07
+  const pts=rk4traj(S.mv,bc7,p.mass,S.zero_m,max_m,S.sight_mm/1000,rhoC,aS,step,S.drag,bc1,bands,zEnv);
   // H2 (V1.13.1): the display table keeps the user's step, but all firing solutions (Solver,
   // Wind card, Trajectory output card) read a 1 m-step sibling — dope must never be quantised
   // to the display grid. One extra integration per Compute press; Home pays this every render.
-  const ptsFine=step<=1?pts:rk4traj(S.mv,bc7,p.mass,S.zero_m,max_m,S.sight_mm/1000,rhoC,aS,1,S.drag,bc1,projBands(p,S.drag),zEnv);
+  const ptsFine=step<=1?pts:rk4traj(S.mv,bc7,p.mass,S.zero_m,max_m,S.sight_mm/1000,rhoC,aS,1,S.drag,bc1,bands,zEnv);
   lastTraj={pts,ptsFine,mv:S.mv,bcEff,rhoC,rhoZ,aS,mass:p.mass,proj:p.name,step,max_m};
   renderTraj();renderQuick();refreshActivePage();
   return true;
@@ -3895,7 +3911,7 @@ function dopeRfRender(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.3'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.4'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4105,6 +4121,7 @@ function saveRifle(id){
   if(!obj.scopeId){alert('Select a scope.');return;}
   if(id){const ex=DB.rifles.find(x=>x.id===id);delete ex.scope;Object.assign(ex,obj);}else{DB.rifles.push({id:uid(),...obj});}
   if(S.curWxId===ZERO_WX&&id===S.rifleId)Bus.sameAsZero(); // edited zero conditions flow into "Same as zero"
+  if(id&&id===S.rifleId){repullProfile(['mv','sight']);S.zero_m=getRifle().zero??S.zero_m;}   // V2.16.4 W-01
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 /* ── Scope entity form ── */
@@ -4324,6 +4341,7 @@ function tuApply(){
     p[key]=+tuLastResult.bands[0].bc.toFixed(4); // representative single for legacy paths
     p.bcTrued='banded·'+drag+'·'+new Date().toISOString().slice(0,10);p.bcConv='native';
   }
+  if(S.projId===p.id)Bus.pullFromProfiles(['bc']);   // V2.16.4 P-01: the session flies the trued BC (as tdApply)
   saveDB();Bus.notify();
   alert('Trued BC applied to '+p.name+'.');
 }
@@ -4461,7 +4479,13 @@ function saveProj(id){
   ]);
   if(err){alert(err);return;}
   if(!obj.name){alert('Projectile needs a name.');return;}
-  if(id){Object.assign(DB.projectiles.find(x=>x.id===id),obj);}else{DB.projectiles.push({id:uid(),...obj});}
+  if(id){
+    // V2.16.4 P-05: a typed BC replaces a trued one — the trued state (no Sg penalty, bands) ends with it
+    const ex=DB.projectiles.find(x=>x.id===id),tk=ex.bcTrued&&(String(ex.bcTrued).includes('·g1·')?'bcg1':'bcg7');
+    if(tk&&+(+obj[tk]).toFixed(4)!==+(+ex[tk]).toFixed(4)){obj.bcTrued=null;obj.bcBands=null;obj.notes=(obj.notes?obj.notes+' · ':'')+'trued BC replaced by a typed value '+new Date().toISOString().slice(0,10);}
+    Object.assign(ex,obj);
+  }else{DB.projectiles.push({id:uid(),...obj});}
+  if(id&&id===S.projId)repullProfile(['bc']);   // V2.16.4 W-01
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function openWxForm(id){
@@ -4485,10 +4509,11 @@ function saveWx(id){
   if(!err&&obj.presType==='sea'&&!(obj.alt>0)){alert('Sea-level (QNH) pressure needs the altitude of the place to convert it to station pressure.');return;}
   if(err){alert(err);return;}
   if(id){Object.assign(DB.weathers.find(x=>x.id===id),obj);}else{DB.weathers.push({id:uid(),...obj});}
+  if(id&&id===S.curWxId)repullProfile(['ct','cp','crh']);   // V2.16.4 W-01
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.3'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.4'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4512,7 +4537,7 @@ const IMPORT_FIELDS={
   rifles:{id:'s',name:'s',cal:'s',twist:'n',twistDir:'s',blen:'n',sight:'n',mv:'n',zero:'n',notes:'s',scopeId:'s',railOn:'b',railMrad:'n',railUnit:'s',downClicks:'ns',zwSpd:'n',zwDir:'n',zTemp:'n',zPres:'n',zPresType:'s',zAlt:'n',zRH:'n',reg1:'ns',reg2:'ns',ssj:'b',regDelta:'ns',dwell:'ns',fav:'b',mvt:'mvt'},
   scopes:{id:'s',name:'s',sku:'s',adjUnit:'s',click:'n',elev:'n',wind:'n',cpr:'n',magMin:'n',magMax:'n',reticleId:'s0',source:'s',notes:'s',fav:'b'},
   reticles:{id:'s',name:'s',fp:'s',renderer:'s',dotMrad:'n',hashStep:'n',hashMark:'n',hashes:'nums',windHashes:'nums',treeRows:'nums',verified:'b',confNote:'s',notes:'s',fav:'b'},
-  projectiles:{id:'s',name:'s',cal:'s',mfg:'s',type:'s',diam:'n',mass:'n',oal:'n',bcg7:'n',bcg1:'n',c:'n',ff:'n',notes:'s',fav:'b',noseL:'n',rtr:'n',meplat:'n',baseD:'n',dens:'n'},
+  projectiles:{id:'s',name:'s',cal:'s',mfg:'s',type:'s',diam:'n',mass:'n',oal:'n',bcg7:'n',bcg1:'n',c:'n',ff:'n',notes:'s',fav:'b',noseL:'n',rtr:'n',meplat:'n',baseD:'n',dens:'n',bcTrued:'s',bcConv:'s',bcBands:'bands'},   // V2.16.4 P-02: trued state
   weathers:{id:'s',name:'s',temp:'n',pres:'n',presType:'s',rh:'n',alt:'n',notes:'s',fav:'b'},
   dopeCards:{id:'s',name:'s',rifleId:'s0',projId:'s0',cwxId:'s0',mv:'n',zero:'n',notes:'s',stages:'stages',fav:'b'},
   ranges:{id:'s',name:'s',notes:'s',mode:'s',stations:'stns',fav:'b'},   // V2.2.0 CORE-17 wind-station placements
@@ -4531,8 +4556,31 @@ const IMPORT_CHECK={
   nums:v=>Array.isArray(v)&&v.length<=64&&v.every(isNum),   // V2.16.3 D-16: ≤ 64 entries
   mvt:v=>Array.isArray(v)&&v.every(o=>o&&isNum(o.t)&&isNum(o.v)),
   stages:v=>Array.isArray(v)&&v.every(st=>st&&isStr(st.id)&&isStr(st.name)&&Array.isArray(st.dists)&&st.dists.every(d=>d&&isStr(d.id)&&['range','angle','wind','wdir'].every(k=>isNum(d[k])))),
-  stns:v=>Array.isArray(v)&&v.length<=32&&v.every(t=>t&&typeof t==='object'&&isStr(t.id))
+  stns:v=>Array.isArray(v)&&v.length<=32&&v.every(t=>t&&typeof t==='object'&&isStr(t.id)),
+  bands:v=>v&&(v.drag==='g1'||v.drag==='g7')&&Array.isArray(v.bands)&&v.bands.length>=1&&v.bands.length<=16&&v.bands.every(b=>b&&isNum(b.vHi)&&isNum(b.vLo)&&isNum(b.bc)&&b.bc>0&&b.vHi>b.vLo)
 };
+/* V2.16.4 D-06: imported numbers and choices must be ones the forms (and the owner's own data, T-1) can hold.
+   [min, max, minOpen]: minOpen → the value must be above min. Floors where the form only says "above 0":
+   twist ≥ 100 mm (≈ 1:4″) and click ≥ 0.01 — the review's 0.001 mm twist / 1e-9 click gave billions of clicks. A value outside, or a choice not listed, refuses the
+   record with the reason — never clamped (a clamp would be a silent dope change). Missing / null optional fields pass. */
+const IMPORT_RANGE={
+  rifles:{twist:[100,1524],sight:[0,200,1],mv:[0,600,1],zero:[0,2000,1],zwSpd:[0,60],zwDir:[0,360],zTemp:[-60,60],zPres:[0,1100,1],zAlt:[-500,9000],zRH:[0,100],railMrad:[0,200],blen:[0,3000]},
+  projectiles:{diam:[0,25,1],mass:[0,2000,1],oal:[0,25],bcg7:[0,2],bcg1:[0,2],ff:[0,5],c:[0,10],noseL:[0,25,1],rtr:[0,1],meplat:[0,25],baseD:[0,25,1],dens:[1,25,1]},
+  weathers:{temp:[-60,60],pres:[0,1100,1],rh:[0,100],alt:[-500,9000]},
+  scopes:{click:[0.01,5],elev:[0,200,1],wind:[0,200,1],cpr:[0,1000],magMin:[0,100,1],magMax:[0,200,1]},
+  reticles:{dotMrad:[0,5,1],hashStep:[0,5,1],hashMark:[0,5,1]},
+  dopeCards:{mv:[0,600,1],zero:[0,2000,1]}
+};
+const IMPORT_ENUM={rifles:{twistDir:['right','left','smooth'],railUnit:['mil','moa'],zPresType:['sea','station']},projectiles:{type:['slug','pellet']},
+  weathers:{presType:['sea','station']},scopes:{adjUnit:['mil','moa']},reticles:{fp:['FFP','SFP'],renderer:['vct34']}};
+function importRangeFail(type,rec){
+  for(const [k,[lo,hi,open]] of Object.entries(IMPORT_RANGE[type]||{})){const v=rec[k];
+    if(v!=null&&((open?!(v>lo):!(v>=lo))||!(v<=hi)))return k+' '+v+' outside '+(open?'(':'[')+lo+', '+hi+']';}
+  for(const [k,opts] of Object.entries(IMPORT_ENUM[type]||{}))if(rec[k]!=null&&!opts.includes(rec[k]))return k+' "'+String(rec[k]).slice(0,20)+'" is not one of '+opts.join(' / ');
+  if(type==='reticles'&&['hashes','windHashes','treeRows'].some(k=>(rec[k]||[]).some(x=>x<0||x>100)))return 'reticle marks outside 0–100 mrad';
+  if(type==='dopeCards'){for(const st of rec.stages||[])for(const d of st.dists){if(!(d.range>0&&d.range<=5000))return 'target distance '+d.range+' outside (0, 5000]';if(!(Math.abs(d.angle)<=90))return 'target angle '+d.angle+' outside [-90, 90]';}}
+  return '';
+}
 function sanitiseRecord(type,raw){
   if(!raw||typeof raw!=='object')return{reject:'not a record'};
   const spec=IMPORT_FIELDS[type],rec={};
@@ -4549,6 +4597,8 @@ function sanitiseRecord(type,raw){
   if(type==='ranges'){rec.mode=rec.mode==='nearest'?'nearest':'blend';rec.stations=(rec.stations||[]).map(stnClean);}
   if(type==='designs')Object.assign(rec,designClean(rec));
   if(type==='reticles'&&!rec.hashes)return{reject:'hash marks missing or more than 64'};   // V2.16.3 D-16: every reticle screen reads them
+  if(rec.bcBands)rec.bcBands={drag:rec.bcBands.drag,bands:rec.bcBands.bands.map(b=>({vHi:b.vHi,vLo:b.vLo,bc:b.bc}))};   // V2.16.4 P-02: field by field
+  const outside=importRangeFail(type,rec);if(outside)return{reject:outside};   // V2.16.4 D-06
   const fileId=rec.id;rec.id=okId(rec.id);   // V2.16.3 D-02: fileId links records of the same file (applyImport)
   return{rec,fileId};
 }
@@ -4564,10 +4614,12 @@ function recordDiff(mine,theirs){
 function planImport(d){
   if(d.dopeCard)d={...d,dopeCards:[...(d.dopeCards||[]),d.dopeCard]};
   const plan={items:[],rejected:[],prefs:null};
+  const ver=/V(\d+)[._](\d+)[._](\d+)/.exec(String(d.app||'')),preFix=!!ver&&(+ver[1]*1e6+ +ver[2]*1e3+ +ver[3])<1024002;   // V2.16.4 D-07: exports made before the V1.24.2 drag fix
   IMPORT_ORDER.forEach(type=>{const seen=new Set();(Array.isArray(d[type])?d[type]:[]).forEach(raw=>{
     const r=sanitiseRecord(type,raw);
     if(r.reject){plan.rejected.push(IMPORT_LABEL[type]+' "'+String(raw&&raw.name||'?').slice(0,60)+'": '+r.reject);return;}
     if(seen.has(r.rec.id))r.rec.id=uid();seen.add(r.rec.id);   // V2.16.3 D-14: one id per record within a file
+    if(type==='projectiles'&&r.rec.bcTrued&&!r.rec.bcConv){if(preFix)convertPreFixTrued(r.rec);else r.rec.bcConv='native';}   // V2.16.4 D-07
     const byId=DB[type].find(x=>x.id===r.rec.id);
     const nm=r.rec.name.trim().toLowerCase();
     const byName=byId?null:DB[type].find(x=>String(x.name).trim().toLowerCase()===nm);
@@ -7186,16 +7238,16 @@ function driveSave(files){
   if(files.every(f=>driveEnqueue(...f)))driveTapSend();else driveRender();
 }
 function driveBackupNow(){
-  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.3'};
+  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.4'};
   driveSave([['backups','SEN backup '+driveStamp()+'.json','application/json',JSON.stringify(d,null,1),'backup']]);
 }
 function driveSaveProfile(t,id){
   const b=shareBundle(t,id),type=SHARE_TYPES[t],rec=b&&DB[type].find(x=>x.id===id);if(!b)return;
-  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.16.3'},null,1)]]);
+  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.16.4'},null,1)]]);
 }
 function driveSaveDope(){
   const c=getCard();if(!c)return;
-  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.3'},null,1)]];
+  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.4'},null,1)]];
   const h=dopePrintHTML(c);   // null when the card can't be computed — the JSON still goes
   if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print)','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title>'+h.replace(/<table>/g,'<table border="1" cellpadding="4" style="border-collapse:collapse">'),'',DRIVE_DOC]);   // → Google Doc
   driveSave(f);
@@ -7207,7 +7259,7 @@ function driveSaveShots(){
   const csv='shot,velocity_ms,velocity_fps,kept,running_sd_ms,time\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes',run[i].sd==null?'':run[i].sd.toFixed(2),c.times[i]?new Date(c.times[i]).toISOString():''].join(',')).join('\n')+
     '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n'+(notes?'\nnotes\n'+q(notes)+'\n':'');
   driveSave([['shots',nm,'text/csv',csv,'',DRIVE_SHEET],   // → Google Sheet
-    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.16.3',saved:new Date().toISOString()},null,1)]]);
+    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.16.4',saved:new Date().toISOString()},null,1)]]);
 }
 function driveWindRows(){
   const now=Date.now(),win=wavgWin();
@@ -7219,7 +7271,7 @@ function driveSaveWind(){
   const rows=driveWindRows();if(!rows.length||rows.every(r=>!r.readings)){alert('No wind readings to save — connect a Calypso first.');return;}
   const t=new Date().toISOString(),keys=Object.keys(rows[0]);
   driveSave([['wind','Wind '+driveStamp(),'text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n','',DRIVE_SHEET],   // → Google Sheet
-    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.16.3'},null,1)]]);
+    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.16.4'},null,1)]]);
 }
 // Restore: JSON files in Backups, Profiles and Dope cards, newest first → the normal import.
 async function driveRestoreList(){
@@ -7276,6 +7328,17 @@ async function driveInit(){
   window.addEventListener('online',()=>{if(drv.queue.length&&driveLive())driveFlush();});
   if(driveCfg().connected&&navigator.onLine)driveLoadGis().catch(()=>{});   // ready for the next tap (Google needs the gesture)
 }
+/* V2.16.4 W-04 — values set by hand, from the chrono or from the MV–temp model survive a restart with their source;
+   fields taken from a profile are re-read from it. One line says what was kept. */
+function restoreSession(){
+  const fields=['mv','sight','bc','ct','cp','crh'],key={mv:'mv',sight:'sight_mm',bc:'bc',ct:'ct',cp:'cp',crh:'crh'};
+  fields.forEach(f=>{if(S[key[f]]==null)S.src[f]='profile';});
+  if(S.rifleId||S.projId||S.curWxId)repullProfile(fields);
+  const show={mv:v=>'MV '+ut('vel',v),sight:v=>'sight '+ut('sight',v),bc:v=>'BC '+(+v.toFixed(4)),ct:v=>ut('temp',v),cp:v=>ut('pres',v)+' station',crh:v=>v+' % RH'};
+  const how={manual:'typed',chrono:'chrono',mvtemp:'MV–temp model'};
+  const kept=fields.filter(f=>S.src[f]!=='profile').map(f=>show[f](S[key[f]])+' ('+how[S.src[f]]+')');
+  if(kept.length)senToast(kept.join(', ')+' kept from last session');
+}
 async function boot(){
 await loadDB();fixStoredIds();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();migrateMillerC();migratePressureType();
 initLayouts();  // V2.16.1 U-01: layouts are valid before anything renders Home
@@ -7284,7 +7347,7 @@ DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (
    — they were left null on relaunch, so Home showed "select rifle…" despite restored chips.
    Re-pull them from the restored profiles (manual overrides were never persisted, so nothing is
    overwritten; pullFromProfiles skips any field whose profile is missing). */
-if(S.rifleId||S.projId||S.curWxId)Bus.pullFromProfiles(['mv','sight','bc','ct','cp','crh']);
+restoreSession();   // V2.16.4 W-04: profile-sourced fields re-read, hand-set ones kept (owner ruling)
 applyDisplayPrefs();if(APP.wakeLock)wlAcquire();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&APP.wakeLock&&!_wl)wlAcquire();});
 reticleMag=APP.retMag??null;document.documentElement.style.setProperty('--ret-px',RET_PX_FIXED+'px');
 turretElevMode=APP.turretMode||'match';

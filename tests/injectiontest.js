@@ -32,9 +32,9 @@ const share=obj=>{const j=Buffer.from(JSON.stringify(obj));return 'SEN1:'+crc(j)
 function payloadFile(P){
   const ids={sc:P('scope.id'),rt:P('reticle.id'),rf:P('rifle.id'),pj:P('proj.id'),wx:P('wx.id'),dc:P('card.id'),st:P('stage.id'),ds:P('dist.id'),rg:P('range.id'),de:P('design.id')};
   return {schema:{rifles:1,projectiles:1,weathers:1,scopes:1,reticles:1,dopeCards:2},
-    reticles:[{id:ids.rt,name:P('reticle.name'),fp:P('reticle.fp'),renderer:P('reticle.renderer'),dotMrad:0.1,hashes:[1,2,3],windHashes:[1,2],treeRows:[1,2],verified:false,confNote:P('reticle.confNote'),notes:P('reticle.notes')}],
-    scopes:[{id:ids.sc,name:P('scope.name'),sku:P('scope.sku'),adjUnit:P('scope.adjUnit'),click:0.1,elev:26,wind:16,cpr:100,magMin:5,magMax:30,reticleId:ids.rt,source:P('scope.source'),notes:P('scope.notes')}],
-    rifles:[{id:ids.rf,name:P('rifle.name'),cal:P('rifle.cal'),twist:508,twistDir:P('rifle.twistDir'),blen:700,sight:44,mv:255,zero:50,notes:P('rifle.notes'),scopeId:ids.sc,railOn:false,railMrad:0,railUnit:P('rifle.railUnit'),downClicks:P('rifle.downClicks'),zwSpd:0,zwDir:90,zTemp:20,zPres:1010,zPresType:'sea',zAlt:300,zRH:65,reg1:P('rifle.reg1'),reg2:P('rifle.reg2'),ssj:false,regDelta:P('rifle.regDelta'),dwell:P('rifle.dwell')}],
+    reticles:[{id:ids.rt,name:P('reticle.name'),fp:'FFP',dotMrad:0.1,hashes:[1,2,3],windHashes:[1,2],treeRows:[1,2],verified:false,confNote:P('reticle.confNote'),notes:P('reticle.notes')}],
+    scopes:[{id:ids.sc,name:P('scope.name'),sku:P('scope.sku'),adjUnit:'mil',click:0.1,elev:26,wind:16,cpr:100,magMin:5,magMax:30,reticleId:ids.rt,source:P('scope.source'),notes:P('scope.notes')}],
+    rifles:[{id:ids.rf,name:P('rifle.name'),cal:P('rifle.cal'),twist:508,twistDir:'right',blen:700,sight:44,mv:255,zero:50,notes:P('rifle.notes'),scopeId:ids.sc,railOn:false,railMrad:0,railUnit:'mil',downClicks:P('rifle.downClicks'),zwSpd:0,zwDir:90,zTemp:20,zPres:1010,zPresType:'sea',zAlt:300,zRH:65,reg1:P('rifle.reg1'),reg2:P('rifle.reg2'),ssj:false,regDelta:P('rifle.regDelta'),dwell:P('rifle.dwell')}],
     projectiles:[{id:ids.pj,name:P('proj.name'),cal:P('proj.cal'),mfg:P('proj.mfg'),type:'slug',diam:6.35,mass:60,oal:12.9,bcg7:0.128,bcg1:0.245,c:0,ff:1.07,notes:P('proj.notes')},
       {id:P('proj2.id'),name:P('proj2.name'),cal:'.25',mfg:'x',type:'slug',diam:6.35,mass:50,oal:12,bcg7:0,bcg1:0,c:0,ff:1,notes:''}],   // BC pending → Holds message
     weathers:[{id:ids.wx,name:P('wx.name'),temp:20,pres:975,presType:'station',rh:65,alt:298,notes:P('wx.notes')}],
@@ -85,6 +85,11 @@ for(const mode of ['html','attr','js']){
   const live=await sweep(w,mode);
   chk(`[${mode}] no live markup, no handler ran, nothing threw — on every screen`,live.length===0&&w.errs.length===0,live.concat(w.errs).slice(0,6).join(' ; '));
 }
+
+// 1b. V2.16.4 D-06: a payload in a choice field (twist direction, units, pressure type …) refuses the record with the reason.
+{const w=await open();const P=`x"'><i data-xss="enum"></i>`;
+ w.eval(`importData(${JSON.stringify({schema:{rifles:1},rifles:[{id:'enumrifle',name:'Enum rifle',twist:508,sight:44,mv:255,zero:50,twistDir:P}]})})`);await wait(30);
+ chk('D-06 payload in a choice field → record refused with the reason, nothing live',!J(w,"DB.rifles.some(r=>r.name==='Enum rifle')")&&/Enum rifle": twistDir .* is not one of right \/ left \/ smooth/.test(w.alerts.join('\n'))&&w.document.querySelectorAll('[data-xss]').length===0,w.alerts.join(' ').slice(-120));}
 
 // 2. D-03: a form saves typed markup as literal text.
 {const w=await open();w.eval("openProjForm(DB.projectiles[0].id);document.getElementById('pf-name').value='<b>Bold</b>';saveProj(DB.projectiles[0].id)");await wait(50);
@@ -159,7 +164,7 @@ for(const mode of ['html','attr','js']){
 {const w=await open();
  const P=k=>`${k}"'><i data-xss="${k}"></i>`;
  const file={senScopeImport:1,scope:{name:P('sf.name'),sku:P('sf.sku'),adjUnit:'moa',click:0.25,elev:60,wind:60,cpr:60,magMin:4,magMax:24,source:P('sf.source'),notes:P('sf.notes'),reticleId:P('sf.ret')},
-   reticle:{id:P('sf.rid'),name:P('sf.rname'),fp:P('sf.fp'),dotMrad:0.1,hashes:[1,2],windHashes:[1],treeRows:[],verified:false,extra:'<script>x</script>'}};
+   reticle:{id:P('sf.rid'),name:P('sf.rname'),fp:'SFP',dotMrad:0.1,hashes:[1,2],windHashes:[1],treeRows:[],verified:false,extra:'<script>x</script>'}};
  w._file=new w.File([JSON.stringify(file)],'scope.json',{type:'application/json'});
  w.eval('onScopeImport({files:[window._file],value:"x"})');await wait(200);
  const sc=J(w,"DB.scopes.find(s=>/sf\\.name/.test(s.name))"),rt=sc&&J(w,`DB.reticles.find(r=>r.id===${JSON.stringify(sc.reticleId)})`);
