@@ -7,6 +7,46 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.16.3 — patch — no script injection from shared data (review release R2: D-02, D-03, D-04, D-14, D-15, D-16, W-09)
+
+**Problem (V2.16.0 reviews, reproduced with the review harness: about 50 live markers in each payload mode).** An imported file, Drive restore or share code could put live markup or script into the app.
+- **D-02:** any string was accepted as a record id. Ids are written into attributes and inline handlers (`onclick="f('…')"`), where escaping cannot help.
+- **D-03:** profile form values, the reticle caption on Home and the Holds "no BC yet" message were not escaped.
+- **D-04:** a share link imported new items without asking.
+- **D-14:** two records with one id in a file were both kept.
+- **D-15:** prototype-named links (`__proto__`) became objects.
+- **D-16:** nothing limited the size of a share code, its decompressed data or an import file. A 64 821-char code inflated to 50 MB.
+- **W-09:** the scope-file import bypassed the sanitiser and its preview always said "mrad".
+
+**Fix.**
+- **D-02:** one id rule, `^[A-Za-z0-9_-]{1,40}$`; every id the app makes already fits it.
+  - On import, a record, stage, target or wind-station id that breaks the rule gets a fresh id. The file's own id is mapped to it, so links between records of the same file still connect.
+  - After that mapping, a link that still breaks the rule is cleared. Same-as-zero (`@zero`) stays allowed on dope cards.
+  - At every start, `fixStoredIds()` applies the same rule to stored data. Links follow a changed id across records, the session, the wind range, the Bench design and the running course. It saves only when something changed; no flag.
+  - Ids written into attribute values are escaped as well (selects, dope stage and target rows, the Profiles list). The inline handlers rely on the id rule.
+- **D-03:** escaped values in `fldHtml` and in the rifle form's down-clicks, 1st-reg and 2nd-reg fields (found by the harness), the reticle caption (`fp`) and the Holds BC-pending message.
+- **D-04 (owner ruling):** links, QR and pasted codes always open the import review, even with only new items. Import adds; Cancel adds nothing. File import and Drive restore are unchanged.
+- **D-14:** a repeated id within one file gets a fresh id.
+- **D-15:** the id map is a `Map` per type.
+- **D-16:**
+  - Share codes over 64 kB are refused before decoding, and decoding stops past 1 MB.
+  - Import files over 10 MB are refused before reading.
+  - A reticle number list is limited to 64 entries. A reticle whose hash list is missing or too long is refused with the reason; Profiles crashed on a reticle without hashes.
+- **W-09:**
+  - Scope and bundled reticle go through `sanitiseRecord`: a bad file is refused with the reason, unknown fields are dropped, the id rule applies.
+  - The preview shows click and travel in the scope's own unit and the magnification, which is now imported.
+  - The fallback to Mil-Grid is unchanged (W-03 is a later release).
+
+**Test changes.**
+- New `tests/injectiontest.js`, PASS 30 / FAIL 0 (9 or more fail on V2.16.2).
+- `tests/sharetest.js` check 9 changed on purpose: a received code with a new projectile now opens the review and imports on Import (D-04).
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.16.3.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.16.3`), `SEN-Patch-Log.md`, `tests/injectiontest.js` (new), `tests/sharetest.js`, `tests/README.md`.
+
+**Verify.** All three payload modes give zero live markers on every screen. Every suite in `tests/README.md` is green; `rendertest` and `typetest` ran in real Chromium at 412 and 780 px.
+
+---
+
 ## V2.16.2 — patch — Velocity truing writes only to the projectile it was solved for (TR-01)
 
 **Problem (owner, device test T-3, 2026-11-17).** On Truing → Velocity the owner meant to true a cloned Queen, but the BC went to the AEA CP .25 ("Trued BC applied to AEA CP .25 — 33.9 gr").

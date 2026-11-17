@@ -92,11 +92,12 @@ clickText(C,'Import');
 chk('rifle uses my chosen scope',J(C,"DB.rifles.find(r=>r.name==='SHARE RIFLE').scopeId")===myScope.id);
 chk('their scope and reticle are not added',!J(C,"DB.scopes.some(s=>s.name==='CUSTOM SCOPE')||DB.reticles.some(r=>r.name==='CUSTOM RET')"));
 
-// 9. A new projectile imports without a review
+// 9. A new projectile: V2.16.3 D-04 (owner ruling) — a received code always opens the review, even with only new items
 A.eval("DB.projectiles.push({id:'pj-x',name:'SHARED SLUG',cal:'.25',mfg:'SEN',type:'slug',diam:6.35,mass:40,oal:12,bcg7:0.1,bcg1:0.2,c:0,ff:0,notes:''})");
 const pcode=await A.eval("encodeShare(shareBundle('p','pj-x'))");
 await B.eval(`receiveShare(${JSON.stringify(pcode)})`);
-chk('new projectile imports straight away',!modalOpen(B)&&J(B,"DB.projectiles.some(p=>p.name==='SHARED SLUG')"));
+const before=J(B,"DB.projectiles.some(p=>p.name==='SHARED SLUG')");clickText(B,'Import');
+chk('new projectile: review first, imported on Import (V2.16.3 D-04)',!before&&!modalOpen(B)&&J(B,"DB.projectiles.some(p=>p.name==='SHARED SLUG')"));
 
 // 10. Opening the app from a share link
 const D=await install('https://x.test/#import='+code);
