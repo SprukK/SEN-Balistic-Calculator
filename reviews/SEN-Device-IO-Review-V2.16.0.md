@@ -170,3 +170,16 @@ The simulators are good on unlock codes, battery, overlap rejection (multicaltes
 | 5 | later | B-10, B-16, B-17 | Optional hardening and polish. |
 
 These slot into the combined release sequence after the segment-2 D-01 patch and the injection fixes; I'll merge all five segments into one order at the end.
+
+---
+
+## F. Owner rulings (2026-11-17)
+
+| Question | Ruling | Effect on the plan |
+|---|---|---|
+| B-1 Stale wind | As recommended | B-01: flag at 3 s ("wind N s old", amber pill), session switches to manual with the last value at 30 s, at once on disconnect. |
+| B-2 Typed bearings | Not needed so far; useful as a fallback, or to simulate another location | B-02: bearings stay magnetic by default; add true north + declination as an option for typed bearings. Moved to later (minor). |
+| B-3 Long screen-off | Not known (under 10 min tested) | Owner test added to the to-do list; B-06 waits for it. |
+| B-4 Station dropouts | Unknown; Calypso is Bluetooth-only (5 m is already a stretch); LoRa boards will allow distance tests | B-04 lower priority; revisit with LAB-06 (LoRa). |
+| B-5 New LabRadar series | Start a new string | B-05 confirmed. |
+| B-9 Decimal commas | Yes. All formatting should be EU by default, with an option in Settings | B-03 becomes part of a number-format setting (EU default: decimal comma for input and display; alternative: point). App-wide → minor release, Feature Register entry, touches segment 4/5 screens too. The chrono parser fix stays a patch in the meantime. |
