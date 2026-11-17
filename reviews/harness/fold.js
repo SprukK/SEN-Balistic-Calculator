@@ -1,0 +1,15 @@
+const {chromium}=require('playwright'),path=require('path');
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:780,height:900},isMobile:true,hasTouch:true,deviceScaleFactor:2.6});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await p.goto('file://'+path.resolve('/home/claude/repo/index.html'));await p.waitForTimeout(1200);
+await p.evaluate(()=>{Bus.setRifle(DB.rifles.find(r=>/\.25/.test(r.name)).id);Bus.setProj(DB.projectiles.find(p=>/^Altaros ATP Queen/.test(p.name)).id);Bus.setWx('cur',DB.weathers[0].id);Bus.setWx('zero',DB.weathers[0].id);Bus.notify();useLayout(APP.layouts.find(l=>l.tpl==='default').id);gotoPage('home');});
+await p.waitForTimeout(300);
+const st=async lbl=>console.log(lbl.padEnd(44),JSON.stringify(await p.evaluate(()=>{const a=document.activeElement,e=document.getElementById('home-elev'),r=e.getBoundingClientRect();
+  return{fold:document.documentElement.classList.contains('fold'),active:a&&(a.id||a.tagName),dist:S.dist_m,elev:e.textContent,elevOnScreen:r.top>=0&&r.bottom<=innerHeight&&r.width>0,sheet:document.getElementById('sheet').classList.contains('open'),modal:document.getElementById('modal').classList.contains('open'),sideways:document.documentElement.scrollWidth-document.documentElement.clientWidth};})));
+await st('A inner, Home');
+await p.focus('#home-dist').catch(()=>{});await p.fill('#home-dist','175').catch(e=>console.log('fill failed',e.message));await p.waitForTimeout(300);await st('B typing 175 into distance (inner)');
+await p.setViewportSize({width:412,height:915});await p.waitForTimeout(500);await st('C folded to outer while the field had focus');
+await p.evaluate(()=>pickSheet('rifle'));await p.waitForTimeout(150);await p.setViewportSize({width:780,height:900});await p.waitForTimeout(500);await st('D sheet open, unfolded');
+await p.evaluate(()=>{closeSheet();openRifleForm(DB.rifles[0].id);});await p.setViewportSize({width:412,height:915});await p.waitForTimeout(500);await st('E rifle form open, folded');
+const mb=await p.evaluate(()=>{const m=document.getElementById('mbox').getBoundingClientRect();return{top:Math.round(m.top),bottom:Math.round(m.bottom),h:innerHeight,scrollable:getComputedStyle(document.getElementById('mbox')).overflowY};});console.log('  form box',JSON.stringify(mb));
+await p.evaluate(()=>closeModal());await p.setViewportSize({width:900,height:780});await p.waitForTimeout(500);await st('F inner rotated (900×780)');
+console.log('errors',JSON.stringify(errs));await b.close();})();

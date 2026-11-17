@@ -15,6 +15,9 @@ Running list kept during the five-segment review. The final to-do list is produc
 | T-7 | Seg 3 B-15 | Titan in scan mode (hold RANGE), Lab capture | Does one notification ever carry two frames? |
 | T-8 | Seg 3 B-12 | Phone-compass target bearing with the Magic V5 unfolded, portrait and landscape, against a known bearing | Is the heading right on the inner screen? |
 | T-9 | Seg 3 B-04 | With the LoRa boards (LAB-06): station dropouts at 25 / 50 / 100 / 200 m | Decides how urgent auto-reconnect is |
+| T-11 | Seg 4 U-06 | Installed PWA on the Honor, outer and inner screen, portrait and landscape: is anything under the status bar or the camera hole? | Decides the safe-area fix |
+| T-12 | Seg 4 | Type in a profile form near the bottom of the outer screen: does the keyboard cover the field you're typing in? | Keyboard handling is only done for sheets |
+| T-13 | Seg 4 B-4 | Read Home in full sun (dark theme, then high contrast) | Decides whether a bright "sunlight" preset is worth adding |
 | T-10 | Seg 1 | Stability range test (SEN-Stability-Range-Test-Sheet-V1) — already on file | McGyro vs Miller decision |
 
 ## Feature proposals (for the Feature Register, 💭 Proposed — to be ruled)
