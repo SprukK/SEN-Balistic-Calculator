@@ -7,6 +7,30 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.16.1 — patch — the app always starts (review release R1: U-01, W-02, W-08, D-05 validator, D-01)
+
+**Problem (V2.16.0 reviews, all reproduced with a restart on a stored snapshot).**
+- **U-01 (App-Shell review):** a stored Home layout that is `null`, or whose module list is not a list, stopped the app at every start ("SEN boot failed"). `renderQuick()` drew Home before `initLayouts()` cleaned the layouts.
+- **W-02 (Feature-Screens review):** with the PRS or Big bore layout, a dope card without stages crashed Home and then every start.
+- **W-08 (Feature-Screens review):** Hit / Miss on a stage without targets threw.
+- **D-05 (Data-Security review):** "Take theirs" copied any units and settings from a file; `{units:{range:'parsec'}}` bricked the app permanently. Stored units and settings were not checked at load either.
+- **D-01 (Data-Security review):** truing never set `bcConv`, so the V1.24.2 conversion cut every newly trued BC by π/4 at the next start.
+
+**Fix.**
+- **U-01:** `initLayouts()` runs right after the migrations at boot, before anything renders Home (`applyHomeLayout()` stays where it was). A layout that is not an object is removed; one whose module list is not a list is reset from its own template, keeping its id and name (owner ruling). If nothing usable is left, the fresh-install set comes back, with Field as Default (owner ruling). When anything was removed or reset, the store is saved and a one-line note shows once (owner ruling B-1). `initLayouts()` also runs after "Take theirs".
+- **W-02 / W-08:** the course runner shows "This card has no stages — add one in the Dope tab." instead of crashing; `courseCall` returns on a stage with no targets.
+- **D-05 (validator part):** `cleanUnits` keeps a unit only if `QDEF` has the quantity and offers that unit (secondary units also `off`). `cleanApp2` keeps a setting only if the app knows it, with its type: the default's own type (null defaults: text or null), or for the settings saved later an explicit type list (owner ruling), or null. Objects and arrays pass only where their reader cleans or checks them. Both run on "Take theirs" and in `applySnapshot` at every load, so an already-bricked store starts again with the defaults. The per-group picker is CORE-28 / F-3, a later feature.
+- **D-01:** `tuApply` (single and banded) and `tdApply` set `bcConv='native'` with every `bcTrued`. Owner ruling: no BC was trued since 23 Oct 2026, so no repair migration.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.16.1.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.16.1`), `SEN-Patch-Log.md`, `tests/recoverytest.js` (new), `tests/README.md`.
+
+**Verify.**
+- New `recoverytest.js`, PASS 38 / FAIL 0 (8 fail or crash on V2.16.0). It covers both U-01 layout cases and only-junk layouts, the empty course card and empty stage, `parsec` through Take theirs and already stored, the app's own settings across restarts with a check that every APP key has a type, and drops-, single- and banded-trued BCs unchanged after two restarts.
+- Every suite in `tests/README.md` green, `bcmigtest` included; `rendertest` and `typetest` in real Chromium at 412 and 780 px.
+- Device check (owner test T-3): true a BC, restart, check it is unchanged.
+
+---
+
 ## V2.16.0 — minor — Chrono Advanced + Chrono Graph Home modules; shot-string notes to Drive
 
 **Requests (owner, 2026-11-05).**

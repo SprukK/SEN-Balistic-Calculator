@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.16.0</title>
+<title>SEN Ballistics V2.16.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -1203,7 +1203,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.16.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.16.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1882,6 +1882,26 @@ const QDEF={
 let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',tsize:'mm',alt:'m',regp:'bar'};
 let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',tsize:'off',alt:'off',regp:'off'};
 let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,solverStations:false,turretMode:'match',solverCor:false,solverSpin:false,solverAJ:false,lat:46.05,benchId:null,rfFill:true};
+/* V2.16.1 D-05: stored and imported preferences are checked before use — a unit must be one QDEF offers
+   (secondary units also 'off'); an app setting must be one the app knows, with its type: the defaults' own
+   type (null defaults: text or null), or for settings saved later the type below, or null. Objects and
+   arrays only where their reader cleans or checks them. Anything else is dropped, so the default stays. */
+const hasKey=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const APP_DEF={...APP};
+const APP_LATER={advLast:'string',calMount:'number',calMountSrc:'string',chNotes:'string',chrono:'object',chronoStr:'object',drive:'object',fdTipSeen:'boolean',fieldDefault:'boolean',help:'object',helpAll:'boolean',hmTgtBrg:'number',hmWindBrg:'number',iosHintOff:'boolean',layoutId:'string',layouts:'array',navTabs:'array',panes:'object',railW:'number',retMag:'number',run:'object',tgtBrgSrc:'string',theme:'object',truTab:'string'};
+const appType=k=>hasKey(APP_DEF,k)?(APP_DEF[k]===null?'string':typeof APP_DEF[k]):hasKey(APP_LATER,k)?APP_LATER[k]:null;
+const nullOk=k=>!hasKey(APP_DEF,k)||APP_DEF[k]===null;
+const isType=(v,t)=>t==='array'?Array.isArray(v):t==='object'?!!v&&typeof v==='object'&&!Array.isArray(v):t==='number'?Number.isFinite(v):typeof v===t;
+function cleanApp2(o){
+  const out={};if(!o||typeof o!=='object')return out;
+  Object.keys(o).forEach(k=>{const t=appType(k),v=o[k];if(t&&(isType(v,t)||(v===null&&nullOk(k))))out[k]=v;});
+  return out;
+}
+function cleanUnits(o,secondary){
+  const out={};if(!o||typeof o!=='object')return out;
+  Object.keys(o).forEach(k=>{const v=o[k];if(hasKey(QDEF,k)&&typeof v==='string'&&(hasKey(QDEF[k].opts,v)||(secondary&&v==='off')))out[k]=v;});
+  return out;
+}
 /* FIX-14b/c — apply display preferences (boot + on change) */
 function applyDisplayPrefs(){
   const h=document.documentElement;
@@ -2117,7 +2137,7 @@ function migrateDopeCard(c){
 let DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],designs:[]};let currentDopeId=null;
 let _idb=null,storeError=null,storeBytes=0,storePersisted=null;
 function snapshotJSON(){return JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,session:{rifleId:S.rifleId,projId:S.projId,zeroWxId:S.zeroWxId,curWxId:S.curWxId,zero_m:S.zero_m,dist_m:S.dist_m,drag:S.drag}});}
-function applySnapshot(d){DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],designs:[],...d};UNITS={...UNITS,...(d.units||{})};SUNITS={...SUNITS,...(d.sunits||{})};APP={...APP,...(d.app2||{})};if(d.session)Object.assign(S,d.session);}
+function applySnapshot(d){DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],designs:[],...d};UNITS={...UNITS,...cleanUnits(d.units)};SUNITS={...SUNITS,...cleanUnits(d.sunits,true)};APP={...APP,...cleanApp2(d.app2)};if(d.session)Object.assign(S,d.session);}
 function schemaNewerThanApp(d){return Object.keys(SCHEMA).filter(k=>d&&d.schema&&(d.schema[k]||0)>SCHEMA[k]);}
 function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
 function idbRun(mode,op){return new Promise((res,rej)=>{const tx=_idb.transaction(IDB_STORE,mode);const q=op(tx.objectStore(IDB_STORE));tx.oncomplete=()=>res(q.result);tx.onerror=tx.onabort=()=>rej(tx.error||new Error('transaction aborted'));});}
@@ -3872,7 +3892,7 @@ function dopeRfRender(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4278,11 +4298,11 @@ function tuApply(){
   if(tuLastResult.mode==='single'){
     p[key]=+tuLastResult.bc.toFixed(4);
     p.bcBands=null;
-    p.bcTrued='single·'+drag+'·'+new Date().toISOString().slice(0,10);
+    p.bcTrued='single·'+drag+'·'+new Date().toISOString().slice(0,10);p.bcConv='native';   // V2.16.1 D-01: never re-converted
   }else{
     p.bcBands={drag,bands:tuLastResult.bands.map(b=>({vHi:+b.vHi.toFixed(1),vLo:+b.vLo.toFixed(1),bc:+b.bc.toFixed(4)}))};
     p[key]=+tuLastResult.bands[0].bc.toFixed(4); // representative single for legacy paths
-    p.bcTrued='banded·'+drag+'·'+new Date().toISOString().slice(0,10);
+    p.bcTrued='banded·'+drag+'·'+new Date().toISOString().slice(0,10);p.bcConv='native';
   }
   saveDB();Bus.notify();
   alert('Trued BC applied to '+p.name+'.');
@@ -4375,7 +4395,7 @@ function tdApply(){
   if(!tdLast)return;const p=DB.projectiles.find(x=>x.id===tdLast.pid);if(!p)return;
   const key=tdLast.drag==='g7'?'bcg7':'bcg1';
   p[key]=+tdLast.bc.toFixed(4);p.bcBands=null;
-  p.bcTrued='drops·'+tdLast.drag+'·'+new Date().toISOString().slice(0,10)+'·'+tdLast.ds.join('+')+'m';
+  p.bcTrued='drops·'+tdLast.drag+'·'+new Date().toISOString().slice(0,10)+'·'+tdLast.ds.join('+')+'m';p.bcConv='native';   // V2.16.1 D-01
   if(S.projId===p.id)Bus.pullFromProfiles(['bc']);
   saveDB();Bus.notify();alert('Trued BC '+p[key]+' applied to '+p.name+'.');
 }
@@ -4448,7 +4468,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.0'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.1'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4554,7 +4574,7 @@ function applyImport(plan){
     if(it.choice==='overwrite'){rec.id=it.mine.id;coll[coll.indexOf(it.mine)]={...rec,fav:it.mine.fav};idMap[it.type][inId]=rec.id;n.overwritten++;return;}
     rec.id=uid();rec.name=cloneName(rec.name,coll.map(x=>x.name));coll.push(rec);idMap[it.type][inId]=rec.id;n.copied++;
   });
-  if(plan.prefs&&plan.prefs.choice==='take'){const p=plan.prefs.incoming;if(p.units)UNITS={...UNITS,...p.units};if(p.sunits)SUNITS={...SUNITS,...p.sunits};if(p.app2)APP={...APP,...p.app2};}
+  if(plan.prefs&&plan.prefs.choice==='take'){const p=plan.prefs.incoming;if(p.units)UNITS={...UNITS,...cleanUnits(p.units)};if(p.sunits)SUNITS={...SUNITS,...cleanUnits(p.sunits,true)};if(p.app2)APP={...APP,...cleanApp2(p.app2)};initLayouts();}   // V2.16.1 D-05 + U-01
   migrateMillerC();
   return n;
 }
@@ -5348,7 +5368,13 @@ function normLayout(L){
 // V2.11.0 r8: the module list in effect — the inner screen's own one when it has one and the app is two-pane
 const activeMods=L=>L?(typeof twoPane!=='undefined'&&twoPane&&Array.isArray(L.modsInner)?L.modsInner:L.mods):[];
 function initLayouts(){
-  if(!Array.isArray(APP.layouts)||!APP.layouts.length)APP.layouts=['default','br50','br100','prs','bigbore'].map(t=>layoutFromTpl(t));
+  // V2.16.1 U-01: a stored layout that is not an object is removed; one whose module list is not a list is reset
+  // from its own template (same id and name). Nothing usable left → the fresh-install set, Field as Default.
+  const stored=Array.isArray(APP.layouts)?APP.layouts:[];
+  const kept=stored.filter(l=>l&&typeof l==='object'&&!Array.isArray(l));
+  let damaged=stored.length-kept.length;
+  APP.layouts=kept.map(l=>{if(Array.isArray(l.mods))return l;damaged++;return{...layoutFromTpl(LAYOUT_TPL[l.tpl]?l.tpl:'default',l.name),id:l.id};});
+  if(!APP.layouts.length){if(APP.fieldDefault)damaged=Math.max(damaged,1);APP.fieldDefault=false;APP.layouts=['default','br50','br100','prs','bigbore'].map(t=>layoutFromTpl(t));}
   APP.layouts=APP.layouts.map(normLayout);
   // V2.11.0: the Field template is the default layout, named "Default" — first in the list and in use; the
   // pre-V2.11.0 Home is "Classic". Runs once per store (fresh installs and data from V2.10.0 or older, no flag).
@@ -5363,6 +5389,7 @@ function initLayouts(){
     if(F.tpl==='field'&&!F.mods.some(m=>m.id==='devices'&&m.on)){F.mods=F.mods.filter(m=>m.id!=='devices');const i=F.mods.findIndex(m=>m.id==='distance');F.mods.splice(i+1,0,{id:'devices',on:true});}
   }
   if(!APP.layouts.some(l=>l.id===APP.layoutId))APP.layoutId=APP.layouts[0].id;
+  if(damaged){saveDB();senToast((damaged>1?damaged+' damaged Home layouts were':'A damaged Home layout was')+' removed or reset.');}
 }
 const activeLayout=()=>Array.isArray(APP.layouts)?(APP.layouts.find(l=>l.id===APP.layoutId)||APP.layouts[0]||null):null;
 function applyHomeLayout(){
@@ -6187,7 +6214,7 @@ function courseStageGo(d){const c=courseCard(),r=courseRun();if(!c)return;const 
   r.si=si;r.ti=0;r.start=null;if(courseIv){clearInterval(courseIv);courseIv=null;}const st=courseStage();if(st&&st.dists[0])Bus.set('dist_m',+st.dists[0].range);courseSave();}
 function courseNext(){const st=courseStage(),r=courseRun();if(!st)return;if(r.ti<st.dists.length-1)courseGo(r.ti+1);else courseStageGo(1);}
 function courseCall(hit){
-  const st=courseStage(),r=courseRun();if(!st)return;const d=st.dists[Math.min(r.ti,st.dists.length-1)];
+  const st=courseStage(),r=courseRun();if(!st||!st.dists.length)return;const d=st.dists[Math.min(r.ti,st.dists.length-1)];
   const calls=r.calls[d.id]||(r.calls[d.id]=[]);const n=Math.max(1,d.shots||1);
   if(calls.length<n)calls.push(hit?'h':'m');
   if(calls.length>=n)courseNext();else courseSave();
@@ -6210,6 +6237,7 @@ function renderCourse(tr){
   if(!c){head.textContent='No course yet — build one in the Dope tab (stages, targets, bearings, sizes, stage time).';box.replaceChildren();score.textContent='';renderCourseTimer();return;}
   if(r.cardId!==c.id)r.cardId=c.id;
   const st=courseStage();
+  if(!st){head.textContent='This card has no stages — add one in the Dope tab.';box.replaceChildren();score.textContent='';renderCourseTimer();return;}   // V2.16.1 W-02
   head.textContent='Stage '+(Math.min(r.si,c.stages.length-1)+1)+' of '+c.stages.length+' · '+st.name;
   const ok=tr&&!tr.bcPending&&tr.pts,z=ok?zeroConds():null,click=rifleScope(getRifle())?.clickStepMrad||0.1;
   const ti=Math.min(r.ti,st.dists.length-1);let nSt=0;
@@ -7112,16 +7140,16 @@ function driveSave(files){
   if(files.every(f=>driveEnqueue(...f)))driveTapSend();else driveRender();
 }
 function driveBackupNow(){
-  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.0'};
+  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.1'};
   driveSave([['backups','SEN backup '+driveStamp()+'.json','application/json',JSON.stringify(d,null,1),'backup']]);
 }
 function driveSaveProfile(t,id){
   const b=shareBundle(t,id),type=SHARE_TYPES[t],rec=b&&DB[type].find(x=>x.id===id);if(!b)return;
-  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.16.0'},null,1)]]);
+  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.16.1'},null,1)]]);
 }
 function driveSaveDope(){
   const c=getCard();if(!c)return;
-  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.0'},null,1)]];
+  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.1'},null,1)]];
   const h=dopePrintHTML(c);   // null when the card can't be computed — the JSON still goes
   if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print)','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title>'+h.replace(/<table>/g,'<table border="1" cellpadding="4" style="border-collapse:collapse">'),'',DRIVE_DOC]);   // → Google Doc
   driveSave(f);
@@ -7133,7 +7161,7 @@ function driveSaveShots(){
   const csv='shot,velocity_ms,velocity_fps,kept,running_sd_ms,time\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes',run[i].sd==null?'':run[i].sd.toFixed(2),c.times[i]?new Date(c.times[i]).toISOString():''].join(',')).join('\n')+
     '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n'+(notes?'\nnotes\n'+q(notes)+'\n':'');
   driveSave([['shots',nm,'text/csv',csv,'',DRIVE_SHEET],   // → Google Sheet
-    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.16.0',saved:new Date().toISOString()},null,1)]]);
+    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.16.1',saved:new Date().toISOString()},null,1)]]);
 }
 function driveWindRows(){
   const now=Date.now(),win=wavgWin();
@@ -7145,7 +7173,7 @@ function driveSaveWind(){
   const rows=driveWindRows();if(!rows.length||rows.every(r=>!r.readings)){alert('No wind readings to save — connect a Calypso first.');return;}
   const t=new Date().toISOString(),keys=Object.keys(rows[0]);
   driveSave([['wind','Wind '+driveStamp(),'text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n','',DRIVE_SHEET],   // → Google Sheet
-    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.16.0'},null,1)]]);
+    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.16.1'},null,1)]]);
 }
 // Restore: JSON files in Backups, Profiles and Dope cards, newest first → the normal import.
 async function driveRestoreList(){
@@ -7204,6 +7232,7 @@ async function driveInit(){
 }
 async function boot(){
 await loadDB();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();migrateMillerC();migratePressureType();
+initLayouts();  // V2.16.1 U-01: layouts are valid before anything renders Home
 DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (V1.13.2): legacy free-text cleanup
 /* V1.12.5 (C3): saveDB persists profile IDs but not the derived overridables (mv/bc/sight/ct/cp/crh)
    — they were left null on relaunch, so Home showed "select rifle…" despite restored chips.
@@ -7228,7 +7257,7 @@ runTraj(true);  // V1.16.0: a restored session has a solution before the first t
 DB.dopeCards.forEach(migrateDopeCard);
 S.tgtBrg=APP.hmTgtBrg??null;syncBearingFields();renderCalMount();
 refreshUnits();startUnitObserver();
-initLayouts();applyHomeLayout();
+applyHomeLayout();
 fieldInit();  // V2.11.0 r1
 driveInit();  // V2.13.0 CORE-26
 chNotesInit();chHomeRender();   // V2.16.0
