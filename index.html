@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.16.4</title>
+<title>SEN Ballistics V2.16.5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -270,6 +270,7 @@ html[data-tt="bc"] [data-tt]:not([data-tt="bc"]),html[data-tt="mvt"] [data-tt]:n
 .fpill.live{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:var(--accent);color:var(--text)}
 .fpill.live .fpill-n::before{content:'● ';color:var(--green)}
 .fpill.live .fpill-v{color:var(--accent)}
+.fpill.old{border-color:var(--warn);color:var(--warn)}   /* V2.16.5 B-01: stale Calypso wind */
 .fpill.man{border-style:dashed;border-color:var(--gold);color:var(--text2)}
 .fpill.man .fpill-v{color:var(--gold);font-weight:600}
 .fpill::after{content:'';position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent)}
@@ -759,7 +760,7 @@ html.help-all .help-btn{display:none}
     </div>
     <div class="fgrid3" style="margin-top:10px">
       <div class="fld"><label>Cur temp °C <button class="srcbtn" id="src-ct" onclick="Bus.repull('ct')">profile</button></label><input type="number" id="tr-ct" step="0.5" oninput="Bus.manual('ct',this)"></div>
-      <div class="fld"><label>Cur pres hPa <button class="srcbtn" id="src-cp" onclick="Bus.repull('cp')">profile</button></label><input type="number" id="tr-cp" step="1" oninput="Bus.manual('cp',this)"></div>
+      <div class="fld"><label>Cur pres hPa (station) <button class="srcbtn" id="src-cp" onclick="Bus.repull('cp')">profile</button></label><input type="number" id="tr-cp" step="1" oninput="Bus.manual('cp',this)"></div>
       <div class="fld"><label>Cur RH % <button class="srcbtn" id="src-crh" onclick="Bus.repull('crh')">profile</button></label><input type="number" id="tr-crh" step="1" oninput="Bus.manual('crh',this)"></div>
     </div>
     <div class="note" id="tr-atmo-note"></div>
@@ -786,9 +787,9 @@ html.help-all .help-btn{display:none}
     </div>
     <div class="fgrid" style="margin-top:8px">
       <div class="fld"><label>Muzzle velocity V₀ (m/s)</label><input type="number" id="tu-mv" step="0.1" placeholder="e.g. 280"></div>
-      <div class="fld"><label>Air: temp °C</label><input type="number" id="tu-temp" step="0.5" value="20"></div>
-      <div class="fld"><label>Pressure hPa</label><input type="number" id="tu-pres" step="1" value="1010"></div>
-      <div class="fld"><label>RH %</label><input type="number" id="tu-rh" step="1" value="65"></div>
+      <div class="fld"><label>Air: temp °C</label><input type="number" id="tu-temp" step="0.5"></div>
+      <div class="fld"><label>Pressure hPa (station)</label><input type="number" id="tu-pres" step="0.1"></div>
+      <div class="fld"><label>RH %</label><input type="number" id="tu-rh" step="1"></div>
     </div>
     <div class="note hlp" style="margin-top:6px">Enter measured velocity at one or more downrange distances. <b>2 points</b> (V₀ + one) → single trued BC. <b>3+ points</b> → velocity-banded BC. Use averaged shot-string values, not single shots. Set the LabRadar to its real-measurement limit (~<span data-uv="range|23">23 m</span>), never the interpolated zone.</div>
     <div id="tu-points" style="margin-top:10px"></div>
@@ -880,7 +881,7 @@ html.help-all .help-btn{display:none}
       <div class="fld"><label>MV m/s</label><input type="number" id="st-mv" step="1" value="255" oninput="calcStab()"></div>
       <div class="fld"><label>C override (0 = Miller 30·d²)</label><input type="number" id="st-c" step="0.001" value="0" oninput="calcStab()"></div>
       <div class="fld"><label>Temp °C</label><input type="number" id="st-temp" step="0.5" value="-5" oninput="calcStab()"></div>
-      <div class="fld"><label>Pressure hPa</label><input type="number" id="st-pres" step="1" value="1013" oninput="calcStab()"></div>
+      <div class="fld"><label>Pressure hPa (station)</label><input type="number" id="st-pres" step="1" value="1013" oninput="calcStab()"></div>
     </div>
     <div class="note hlp">Miller twist rule — the formula behind Berger's twist-rate calculator (matches it: Queen 1.18, King 1.07/1.48/1.67). Fitted on rifle bullets; not validated for airgun hollow points or below L/D 2.0. Pellets are drag-stabilised (no Sg). Worst-case column uses <span data-uv="temp|-5">−5°C</span> · <span data-uv="pres|1013">1013 hPa</span> · <span data-uv="vel|229">229 m/s</span> (global barrel spec).</div>
   </div>
@@ -1206,7 +1207,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.16.4 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.16.5 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1237,7 +1238,8 @@ function interp(T,x){
    reading of 1013 hPa QNH is 977.6 hPa at the station — 3.5 % less air than taking 1013 as-is.
    Weather profiles say which kind they hold (presType 'sea' | anything else = station). */
 function stationPres(qnh,alt_m){return qnh*Math.pow(1-2.25577e-5*alt_m,5.25588);}
-const wxPres=w=>w?(w.presType==='sea'?stationPres(w.pres,+w.alt||0):w.pres):undefined;
+// V2.16.5 P-12: a sea-level (QNH) pressure needs the altitude to become station pressure — without one there is no pressure
+const wxPres=w=>w?(w.presType==='sea'?(typeof w.alt==='number'&&isFinite(w.alt)?stationPres(w.pres,w.alt):undefined):w.pres):undefined;
 function airDensity(tC,hPa,rh){const TK=tC+273.15,P=hPa*100,es=6.1078*Math.pow(10,7.5*tC/(237.3+tC))*100,e=(rh/100)*es;return(P-e)/(287.058*TK)+e/(461.495*TK);}
 function sos(tC){return Math.sqrt(1.4*287.058*(tC+273.15));}
 function calcSD(mass_gr,d_mm){const d_in=d_mm/25.4;return mass_gr/(7000*d_in*d_in);}
@@ -1622,9 +1624,9 @@ function bcEffSg(bc,sg){return sg>=1.5?bc:bc*Math.pow(sg/1.5,0.4);}  // §4D und
    We reuse rk4traj and read the nearest point's velocity. */
 function velAtDist(mv,bc,mass_gr,d_m,rho,aS,drag){
   // short trajectory just past d; zero/sight irrelevant to speed, use 0 sight, zero=d
-  const pts=rk4traj(mv,bc,mass_gr,Math.max(10,d_m),d_m+20,0,rho,aS,1,drag,bc);
-  let best=null,bd=1e9;for(const p of pts){const x=Math.abs(p.range-d_m);if(x<bd){bd=x;best=p;}}
-  return best?best.v:mv;
+  // V2.16.5 P-06: max = step = d, so the dense output lands exactly on d (was the nearest whole metre)
+  const pts=rk4traj(mv,bc,mass_gr,Math.max(10,d_m),d_m,0,rho,aS,d_m,drag,bc),p=pts[pts.length-1];
+  return p&&Math.abs(p.range-d_m)<1e-9?p.v:mv;
 }
 /* Solve single BC from V0 + (distance, measured velocity). Higher BC → less drag → higher v_d. */
 function trueBCsingle(mv,mass_gr,d_m,vMeas,rho,aS,drag){
@@ -1659,7 +1661,7 @@ function trueBCbanded(mv,mass_gr,pts,rho,aS,drag){
   for(let i=0;i<seq.length-1;i++){
     const a=seq[i],b=seq[i+1];
     const seg=trueBCsingle(a.v,mass_gr,b.d-a.d,b.v,rho,aS,drag);
-    bands.push({vHi:a.v,vLo:b.v,dFrom:a.d,dTo:b.d,bc:seg.bc});
+    bands.push({vHi:a.v,vLo:b.v,dFrom:a.d,dTo:b.d,bc:seg.bc,flag:seg.flag||''});   // V2.16.5 P-13: the segment's flag is shown
   }
   return bands; // ordered fast→slow
 }
@@ -1712,6 +1714,9 @@ function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,cl
   /* V1.31.0: a shot angle or a head/tailwind component re-solves the trajectory with them inside the
      integration (pts.recalc); dist_m is then the slant range and drop is from the sloped line of sight.
      Without recalc (or level, pure crosswind) the old path is used unchanged. */
+  // V2.16.5 P-10: no distance, or a NaN / Infinity angle or wind → no solution (callers show "—" / out of range), never a NaN dope
+  const nonFinite=v=>v!=null&&!isFinite(v);
+  if(!(dist_m>0)||[angle_deg,wind_ms,windDir_deg,cant_deg].some(nonFinite))return null;
   const head0=v=>Math.abs(v)<1e-6?0:v;
   const head=head0(-(wind_ms||0)*Math.cos((windDir_deg||0)*Math.PI/180)),zHead=head0(-(zeroWind||0)*Math.cos((zeroWindDir||0)*Math.PI/180));
   // V2.1.0: a wind field with a head/tail component replaces the single wind's along-the-line part.
@@ -1891,7 +1896,7 @@ let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:
    arrays only where their reader cleans or checks them. Anything else is dropped, so the default stays. */
 const hasKey=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const APP_DEF={...APP};
-const APP_LATER={advLast:'string',calMount:'number',calMountSrc:'string',chNotes:'string',chrono:'object',chronoStr:'object',drive:'object',fdTipSeen:'boolean',fieldDefault:'boolean',help:'object',helpAll:'boolean',hmTgtBrg:'number',hmWindBrg:'number',iosHintOff:'boolean',layoutId:'string',layouts:'array',navTabs:'array',panes:'object',railW:'number',retMag:'number',run:'object',tgtBrgSrc:'string',theme:'object',truTab:'string'};
+const APP_LATER={advLast:'string',calMount:'number',calMountSrc:'string',chNotes:'string',chrono:'object',chronoStr:'object',drive:'object',fdTipSeen:'boolean',retMig1:'boolean',fieldDefault:'boolean',help:'object',helpAll:'boolean',hmTgtBrg:'number',hmWindBrg:'number',iosHintOff:'boolean',layoutId:'string',layouts:'array',navTabs:'array',panes:'object',railW:'number',retMag:'number',run:'object',tgtBrgSrc:'string',theme:'object',truTab:'string'};
 const appType=k=>hasKey(APP_DEF,k)?(APP_DEF[k]===null?'string':typeof APP_DEF[k]):hasKey(APP_LATER,k)?APP_LATER[k]:null;
 const nullOk=k=>!hasKey(APP_DEF,k)||APP_DEF[k]===null;
 const isType=(v,t)=>t==='array'?Array.isArray(v):t==='object'?!!v&&typeof v==='object'&&!Array.isArray(v):t==='number'?Number.isFinite(v):typeof v===t;
@@ -2392,9 +2397,9 @@ function migrateProjectileCal(){
    reticleId:null — dial/clicks fully functional, holdover requires a verified reticle
    import (§ reticle discipline: never invent subtensions). "+" travel values seeded as
    the stated minimum; CPR unknown (capped/lock models) seeded 0. */
-function seedVectorScopes(){
+function vectorCatalog(){   // V2.16.5: shared by the catalog seed and the W-03 migration
   const vct='vct34ffp';
-  const V=[
+  return[
     {name:'Continental x6 1-6×28 FFP',sku:'SCFF-31',adjUnit:'mil',click:0.1,elev:52,wind:20,cpr:100,magMin:1,magMax:6,reticleId:null,notes:'Reticle VCT-BNW — no verified geometry yet.'},
     {name:'Continental x10 1-10×28 ED FFP VET-CTR',sku:'SCFF-47',adjUnit:'mil',click:0.1,elev:51,wind:51,cpr:100,magMin:1,magMax:10,reticleId:null,notes:'Reticle VET-CTR — no verified geometry yet.'},
     {name:'Continental x10 1-10×28 ED FFP VET-RAR',sku:'SCFF-48',adjUnit:'mil',click:0.1,elev:51,wind:51,cpr:100,magMin:1,magMax:10,reticleId:null,notes:'Reticle VET-RAR — no verified geometry yet.'},
@@ -2416,11 +2421,24 @@ function seedVectorScopes(){
     {name:'Tauron 4-32×56 ED FFP',sku:'SCFF-34',adjUnit:'mil',click:0.1,elev:28,wind:16,cpr:100,magMin:4,magMax:32,reticleId:null,notes:'Reticle VAT-5 — no verified geometry.'},
     {name:'Tauron GenII 5-30×56 FFP',sku:'SCFF-66',adjUnit:'mil',click:0.1,elev:17.5,wind:16,cpr:0,magMin:5,magMax:30,reticleId:null,notes:'Travel 17.5+ MIL (min stated) · hybrid zero stop. Reticle MPX1 — no verified geometry.'}
   ];
+}
+function seedVectorScopes(){
+  const V=vectorCatalog();
   let added=0;
   for(const s of V){
     if(!DB.scopes.some(x=>x.sku===s.sku)){DB.scopes.push({id:uid(),source:'Vector official spec (catalog seed Jul 2026)',...s});added++;}
   }
   if(added)saveDB();
+}
+/* V2.16.5 W-03 — once per store: a Vector catalog scope whose catalog reticle is "none" (no verified geometry) but which
+   carries the generic Mil-Grid without saying so in its name or notes got it silently (the old scope form had no
+   "none" option, and the scope-file import fell back to Mil-Grid). It goes back to no reticle, with a note. */
+function migrateSilentMilgrid(){
+  if(APP.retMig1)return;
+  const none=new Set(vectorCatalog().filter(c=>c.reticleId==null).map(c=>c.sku));
+  DB.scopes.forEach(sc=>{if(sc.reticleId==='milgrid'&&none.has(sc.sku)&&!/grid/i.test((sc.name||'')+' '+(sc.notes||''))){
+    sc.reticleId=null;sc.notes=((sc.notes||'')+' · reticle reset to none (V2.16.5): Mil-Grid had been set without being chosen').replace(/^ · /,'');}});
+  APP.retMig1=true;saveDB();
 }
 /* ── V1.11.0: favourites (all profile types). Stable sort — favs first, original order kept. */
 function favSort(arr){return arr.slice().sort((a,b)=>(b.fav?1:0)-(a.fav?1:0));}
@@ -2957,6 +2975,7 @@ function renderQuick(){
       }
     }
   }
+  if(windStale())statusMsg='⚠ wind '+Math.round(windAge()??0)+' s old — Calypso not sending · '+statusMsg;   // V2.16.5 B-01
   document.getElementById('home-status').textContent=statusMsg;
   fieldSync(statusMsg);  // V2.11.0 r1
   renderHomeMods(tr);
@@ -3071,7 +3090,7 @@ function renderHolds(){
   if(!tr||tr.bcPending){tb.innerHTML='';fb.innerHTML=`<div class="flag warn">${!tr?'Select rifle, projectile, and weather first.':esc(tr.projName)+' has no BC yet — enter one or true it above.'}</div>`;lastHolds=null;return;}
   const scope=rifleScope(getRifle()),ret=scope?getReticle(scope.reticleId):null;
   const clickStep=scope?.clickStepMrad||0.1,au=scope?.adjUnit||'mil',aLbl=angLabel(au);
-  const mark=h=>{ // nearest reticle hash at/below-center for a downward hold (mrad)
+  const mark=h=>{ // nearest reticle hash below center for a hold-over h > 0 (mrad) — V2.16.5 P-04: was called with the wrong sign
     if(!ret||!ret.hashes||!ret.hashes.length)return '—';
     if(h<ret.hashes[0]/2)return 'center';
     const n=ret.hashes.reduce((b,x)=>Math.abs(x-h)<Math.abs(b-h)?x:b);
@@ -3083,19 +3102,20 @@ function renderHolds(){
     const p=nearestPt(tr.pts,d);if(!p)continue;
     const hold=-p.drop/d, wmr=Math.abs(windDrift(p.tof,d,S.mv,wref))/d;
     data.push({d,hold,wmr});
-    rows+=`<tr><td>${ut('range',d)}</td><td>${hold>=0?'↑':'↓'}${angInUnit(Math.abs(hold),au).toFixed(2)} ${aLbl}</td><td>${(hold/clickStep).toFixed(1)}</td><td>${hold<=0?mark(-hold):'above center'}</td><td>±${angInUnit(wmr,au).toFixed(2)} ${aLbl}</td></tr>`;
+    rows+=`<tr><td>${ut('range',d)}</td><td>${hold>=0?'↑':'↓'}${angInUnit(Math.abs(hold),au).toFixed(2)} ${aLbl}</td><td>${(hold/clickStep).toFixed(1)}</td><td>${hold>0?mark(hold):'above center'}</td><td>±${angInUnit(wmr,au).toFixed(2)} ${aLbl}</td></tr>`;
   }
   tb.innerHTML=rows||'<tr><td colspan="5">No points in range.</td></tr>';
   document.getElementById('hd-title').textContent=`Holdover · zero ${uq('zrange',zeroConds().range)} · ${getProj()?.name||''} · wind ref ${uq('wind',wref)}`;
   fb.innerHTML=(ret?'':`<div class="flag info">No reticle on the active scope — holds in ${aLbl} only.</div>`)
+    +(ret&&!ret.verified?`<div class="flag warn">Reticle subtensions are estimated — check the marks against the manual before holding.</div>`:'')   // V2.16.5 W-05
     +(tr.sg!=null&&tr.sg<1.5?`<div class="flag warn">Sg ${tr.sg.toFixed(2)} — BC penalty active in these holds.</div>`:'');
   lastHolds={from,to,st,wref,data,aLbl,au,clickStep,ret};
 }
 function printHolds(){
   if(!lastHolds){alert('Compute the table first.');return;}
   const L=lastHolds,z=zeroConds();
-  let h=`<div class="pd"><h1>HOLDS — ${esc(getRifle()?.name||'')} · ${esc(getProj()?.name||'')}</h1><div class="pdm">Turret AT ZERO (${ut('zrange',z.range)}) · wind ref ${ut('wind',L.wref)} full value · MV ${ut('vel',S.mv)}</div><table><thead><tr><th>Range</th><th>Hold ${L.aLbl}</th><th>Reticle</th><th>Wind ±${L.aLbl}</th></tr></thead><tbody>`;
-  L.data.forEach(x=>{h+=`<tr><td>${ut('range',x.d)}</td><td>${x.hold>=0?'↑':'↓'}${angInUnit(Math.abs(x.hold),L.au).toFixed(2)}</td><td>${x.hold<=0&&L.ret?esc(String((L.ret.hashes.reduce((b,q)=>Math.abs(q+x.hold)<Math.abs(b+x.hold)?q:b)))):'—'}</td><td>${angInUnit(x.wmr,L.au).toFixed(2)}</td></tr>`;});
+  let h=`<div class="pd"><h1>HOLDS — ${esc(getRifle()?.name||'')} · ${esc(getProj()?.name||'')}</h1><div class="pdm">Turret AT ZERO (${ut('zrange',z.range)}) · wind ref ${ut('wind',L.wref)} full value · MV ${ut('vel',S.mv)}</div><table><thead><tr><th>Range</th><th>Hold ${L.aLbl}</th><th>Reticle${L.ret&&!L.ret.verified?' (estimated)':''}</th><th>Wind ±${L.aLbl}</th></tr></thead><tbody>`;
+  L.data.forEach(x=>{h+=`<tr><td>${ut('range',x.d)}</td><td>${x.hold>=0?'↑':'↓'}${angInUnit(Math.abs(x.hold),L.au).toFixed(2)}</td><td>${x.hold>0&&L.ret?esc(String((L.ret.hashes.reduce((b,q)=>Math.abs(q-x.hold)<Math.abs(b-x.hold)?q:b)))):'above'}</td><td>${angInUnit(x.wmr,L.au).toFixed(2)}</td></tr>`;});
   h+='</tbody></table></div>';
   document.getElementById('print-content').innerHTML=h;window.print();
 }
@@ -3125,7 +3145,7 @@ function setHomeWindSrc(src){
 function homeLiveState(){
   const st=document.getElementById('home-live-state');if(!st||!homeLive)return;
   const connected=bleDevice&&bleDevice.gatt&&bleDevice.gatt.connected;
-  st.textContent=connected?'Wind: LIVE from Calypso ⊙ ('+(homeWindSrc==='inst'?'instant':'avg '+wavgLabel(wavgWin()))+')':'Wind: live ON — connect Calypso (Sensors tab)';
+  st.textContent=connected?(windFresh()?'Wind: LIVE from Calypso ⊙ ('+(homeWindSrc==='inst'?'instant':'avg '+wavgLabel(wavgWin()))+')':'Wind: Calypso silent'+(windAge()!=null?' '+Math.round(windAge())+' s':'')+' — not live'):'Wind: live ON — connect Calypso (Sensors tab)';   // V2.16.5 B-01
 }
 function toggleHomeLive(){
   homeLive=!homeLive;
@@ -3470,7 +3490,9 @@ function calcStab(){
   const d=+document.getElementById('st-diam').value,m=+document.getElementById('st-mass').value,
         oal=+document.getElementById('st-oal').value,twIn=+document.getElementById('st-twist').value,
         mv=+document.getElementById('st-mv').value,tC=+document.getElementById('st-temp').value,hPa=+document.getElementById('st-pres').value;
-  if(!d||!m||!oal||!twIn||!mv)return;
+  if(!d||!m||!oal||!twIn||!mv||!(hPa>0)){   // V2.16.5 P-10: an empty field clears the result (was: old numbers kept, or Infinity)
+    document.getElementById('st-outs').innerHTML='<div class="sc"><div class="sv" style="font-size:14px;color:var(--text3)">Enter diameter, mass, OAL, twist, MV and station pressure</div></div>';
+    document.getElementById('st-flags').textContent='';return;}
   const tw=twIn*25.4;  // canonical mm for calcSg
   const cIn=+document.getElementById('st-c').value;
   let C,cValid;
@@ -3911,7 +3933,7 @@ function dopeRfRender(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.4'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.5'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4126,9 +4148,9 @@ function saveRifle(id){
 }
 /* ── Scope entity form ── */
 function openScopeForm(id){
-  const s=DB.scopes.find(x=>x.id===id)||{name:'',sku:'',adjUnit:'mil',click:0.1,elev:26,wind:16,cpr:100,magMin:5,magMax:30,reticleId:DB.reticles[0]?.id,source:'',notes:''};
+  const s=DB.scopes.find(x=>x.id===id)||{name:'',sku:'',adjUnit:'mil',click:0.1,elev:26,wind:16,cpr:100,magMin:5,magMax:30,reticleId:null,source:'',notes:''};   // V2.16.5 W-03: no reticle by default
   const au=s.adjUnit||'mil';
-  const retOpts=DB.reticles.map(r=>`<option value="${esc(r.id)}" ${r.id===s.reticleId?'selected':''}>${esc(r.name)}${!r.verified?' (estimated)':''}</option>`).join('');
+  const retOpts=`<option value="" ${s.reticleId?'':'selected'}>No reticle (dial only)</option>`+DB.reticles.map(r=>`<option value="${esc(r.id)}" ${r.id===s.reticleId?'selected':''}>${esc(r.name)}${!r.verified?' (estimated)':''}</option>`).join('');
   openModal(`<h3>${id?'Edit':'New'} scope</h3><div class="fgrid">
     ${fldHtml('sc-name','Name',s.name)}${fldHtml('sc-sku','SKU',s.sku)}
     <div class="fld"><label>Adjustment unit</label><div class="seg"><button type="button" id="sc-au-mil" class="${au==='mil'?'on':''}" onclick="setScopeUnit('mil')">MIL</button><button type="button" id="sc-au-moa" class="${au==='moa'?'on':''}" onclick="setScopeUnit('moa')">MOA</button></div></div>
@@ -4156,7 +4178,7 @@ function updateScopeUnitLabels(){
 function saveScope(id){
   const v=i=>document.getElementById(i).value;
   const au=document.getElementById('sc-au-moa').classList.contains('on')?'moa':'mil';
-  const obj={name:v('sc-name').trim(),sku:v('sc-sku'),adjUnit:au,click:+v('sc-click'),cpr:+v('sc-cpr'),elev:+v('sc-elev'),wind:+v('sc-wind'),magMin:+v('sc-magmin'),magMax:+v('sc-magmax'),reticleId:v('sc-reticle'),source:v('sc-source')};
+  const obj={name:v('sc-name').trim(),sku:v('sc-sku'),adjUnit:au,click:+v('sc-click'),cpr:+v('sc-cpr'),elev:+v('sc-elev'),wind:+v('sc-wind'),magMin:+v('sc-magmin'),magMax:+v('sc-magmax'),reticleId:v('sc-reticle')||null,source:v('sc-source')};   // V2.16.5 W-03: empty = no reticle
   const err=vchk([
     [obj.name,'Name',{req:true,str:true}],
     [obj.click,'Click value',{gt:0,max:5,req:true}],
@@ -4188,7 +4210,7 @@ function onScopeImport(input){
       if(!DB.reticles.some(r=>r.id===rtR.rec.id))DB.reticles.push(rtR.rec);
       retId=rtR.rec.id;
     }
-    if(!DB.reticles.some(r=>r.id===retId))retId='milgrid';
+    if(!DB.reticles.some(r=>r.id===retId))retId=null;   // V2.16.5 W-03: no reticle, never a silent Mil-Grid
     const u=angLabel(sc.adjUnit),mag=sc.magMin>0&&sc.magMax>0?`\nMagnification: ${sc.magMin}–${sc.magMax}×`:'';
     const preview=`Import preview:\n\nScope: ${sc.name} (${sc.sku||'no SKU'})\nClick: ${sc.click} ${u} · Elev: ${sc.elev} ${u} · Wind: ${sc.wind??16} ${u}${mag}\nReticle: ${getReticle(retId)?.name||'none'}${rtR&&!rtR.rec.verified?' (ESTIMATED subtensions)':''}\nSource: ${sc.source||'—'}\n\nAdd this scope?`;
     if(confirm(preview)){
@@ -4201,7 +4223,7 @@ function onScopeImport(input){
 }
 /* ── Reticle form (subtensions edited as comma mrad list) ── */
 function openReticleForm(id){
-  const r=DB.reticles.find(x=>x.id===id)||{id:'',name:'',fp:'FFP',dotMrad:0.05,hashes:[1,2,3,4,5],windHashes:[1,2,3],verified:true,notes:''};
+  const r=DB.reticles.find(x=>x.id===id)||{id:'',name:'',fp:'FFP',dotMrad:0.05,hashes:[1,2,3,4,5],windHashes:[1,2,3],verified:false,notes:''};   // V2.16.5 W-10: estimated until confirmed
   openModal(`<h3>${id?'Edit':'New'} reticle</h3><div class="fgrid">
     ${fldHtml('rt-name','Name',r.name)}
     <div class="fld"><label>Focal plane</label><select id="rt-fp"><option ${r.fp==='FFP'?'selected':''}>FFP</option><option ${r.fp==='SFP'?'selected':''}>SFP</option></select></div>
@@ -4268,6 +4290,9 @@ function tuInit(){
   sel.replaceChildren(...(ses?[opt(ses)]:[]),...(others.length?[grp]:[]));
   sel.value=ses?ses.id:(others[0]?others[0].id:'');
   document.getElementById('tu-proj-note').textContent=ses?'':'No session projectile — pick the one you measured.';
+  // V2.16.5 P-03: air from the session (station pressure); a value the user typed is kept on later visits
+  [['tu-temp',S.ct,1],['tu-pres',S.cp,1],['tu-rh',S.crh,0]].forEach(([id,v,dp])=>{const e=document.getElementById(id);
+    if(v!=null&&isFinite(v)&&(e.value===''||e.value===e.dataset.auto)){e.value=(+v).toFixed(dp);e.dataset.auto=e.value;}});
   if(!tuPoints.length)tuPoints=[{d:23,v:''}];
   tuLoadProj();tuRenderPoints();tdContext();if(!document.querySelector('#td-rows .td-row'))tdRender();
 }
@@ -4293,10 +4318,13 @@ function tuSolve(){
   const p=DB.projectiles.find(x=>x.id===document.getElementById('tu-proj').value);
   if(!p){alert('Select a projectile.');return;}
   const bad=finiteGuard({mv,tC,hPa,rh});
-  if(bad||mv<=0){alert('Enter a valid muzzle velocity and air conditions.');return;}
+  const airBlank=['tu-temp','tu-pres','tu-rh'].some(i=>document.getElementById(i).value.trim()==='');   // V2.16.5 P-03: empty is not 0
+  if(bad||mv<=0||airBlank||!(hPa>0)){alert('Enter a valid muzzle velocity and air conditions (station pressure).');return;}
   const pts=tuPoints.map(x=>({d:+x.d,v:+x.v})).filter(x=>isFinite(x.d)&&isFinite(x.v)&&x.d>0&&x.v>0);
   if(!pts.length){alert('Enter at least one measured (distance, velocity) point.');return;}
   for(const pt of pts){if(pt.v>=mv){alert('Measured velocity at '+ut('range',pt.d)+' ('+ut('vel',pt.v)+') is ≥ muzzle velocity — downrange velocity must be lower. Check inputs.');return;}}
+  {const by=pts.slice().sort((a,b)=>a.d-b.d);for(let i=1;i<by.length;i++)if(!(by[i].v<by[i-1].v)){   // V2.16.5 P-13: velocity must fall point to point
+    alert('Measured velocity at '+ut('range',by[i].d)+' ('+ut('vel',by[i].v)+') is not lower than at '+ut('range',by[i-1].d)+' ('+ut('vel',by[i-1].v)+') — a slug only slows down. Check the points.');return;}}
   const rho=airDensity(tC,hPa,rh), aS=sos(tC);
   let body='', sub='', result=null;
   if(pts.length===1){
@@ -4314,7 +4342,7 @@ function tuSolve(){
     result={mode:'banded',drag,bands};
     sub='velocity-banded BC · '+drag.toUpperCase()+' · '+pts.length+' points';
     body='<div class="tablebox"><table><thead><tr><th>Segment</th><th>Velocity band ('+lab('vel',UNITS.vel)+')</th><th>Distance</th><th>BC '+drag.toUpperCase()+'</th></tr></thead><tbody>'+
-      bands.map((b,i)=>`<tr><td>${i+1}</td><td>${un('vel',b.vHi)} → ${un('vel',b.vLo)}</td><td>${un('range',b.dFrom)}–${ut('range',b.dTo)}</td><td>${b.bc.toFixed(4)}</td></tr>`).join('')+
+      bands.map((b,i)=>`<tr><td>${i+1}</td><td>${un('vel',b.vHi)} → ${un('vel',b.vLo)}</td><td>${un('range',b.dFrom)}–${ut('range',b.dTo)}</td><td>${b.bc.toFixed(4)}${b.flag?' ⚠ '+esc(b.flag):''}</td></tr>`).join('')+
       '</tbody></table></div>';
     const spread=Math.max(...bands.map(b=>b.bc))-Math.min(...bands.map(b=>b.bc));
     body+=`<div class="flag ${spread>0.02?'warn':'info'}">BC ${spread>0.02?'changes':'is roughly constant'} across velocity bands (spread ${spread.toFixed(3)}). ${spread>0.02?'This is the signature of a drag curve that bends differently than the '+drag.toUpperCase()+' reference — the banded model captures it; a single BC would not.':'A single BC would model this projectile adequately over the measured range.'}</div>`;
@@ -4513,7 +4541,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.4'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.5'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4578,6 +4606,7 @@ function importRangeFail(type,rec){
     if(v!=null&&((open?!(v>lo):!(v>=lo))||!(v<=hi)))return k+' '+v+' outside '+(open?'(':'[')+lo+', '+hi+']';}
   for(const [k,opts] of Object.entries(IMPORT_ENUM[type]||{}))if(rec[k]!=null&&!opts.includes(rec[k]))return k+' "'+String(rec[k]).slice(0,20)+'" is not one of '+opts.join(' / ');
   if(type==='reticles'&&['hashes','windHashes','treeRows'].some(k=>(rec[k]||[]).some(x=>x<0||x>100)))return 'reticle marks outside 0–100 mrad';
+  if(type==='weathers'&&rec.presType==='sea'&&!isNum(rec.alt))return 'sea-level (QNH) pressure without an altitude';   // V2.16.5 P-12: refused, not taken as station
   if(type==='dopeCards'){for(const st of rec.stages||[])for(const d of st.dists){if(!(d.range>0&&d.range<=5000))return 'target distance '+d.range+' outside (0, 5000]';if(!(Math.abs(d.angle)<=90))return 'target angle '+d.angle+' outside [-90, 90]';}}
   return '';
 }
@@ -4765,7 +4794,28 @@ function windMean(pts,winS,now){
 }
 // Wind the session uses in avg mode; falls back to the instant reading until the first reading is in.
 function bleAvgNow(){const a=windAvg(wavgWin(),Date.now());return a?{s:a.spd,d:a.dir==null?bleLastDir:a.dir}:{s:bleLastSpd,d:bleLastDir};}
-function calypsoLive(src){const w=src==='inst'?{s:bleLastSpd,d:bleLastDir}:bleAvgNow();calypsoToSession(w.s,w.d);}
+function calypsoLive(src){if(!windFresh())return;const w=src==='inst'?{s:bleLastSpd,d:bleLastDir}:bleAvgNow();calypsoToSession(w.s,w.d);}   // V2.16.5 B-01: never from a silent unit
+/* V2.16.5 B-01 — wind freshness (owner ruling: as recommended). The session Calypso's wind is live only while the unit is
+   connected, unlocked and its last valid :WU is under 3 s old. Older: Home, the Weather pill and the Sensors rows say
+   "wind N s old"; at 30 s — or at once when the unit disconnects — the session wind becomes manual with the same value
+   and a one-line note says so. A 1 s ticker runs only while a Calypso is connected, so the texts follow time, not packets. */
+const WIND_STALE_S=3,WIND_MANUAL_S=30;
+const windAge=()=>{const d=calPrimary();return d&&d.lastWu?(Date.now()-d.lastWu)/1000:null;};
+const windFresh=()=>{const d=calPrimary();return!!(d&&d.link.connected()&&!d.locked&&d.lastWu&&Date.now()-d.lastWu<WIND_STALE_S*1000);};
+const windStale=()=>S.wind.source==='calypso'&&!windFresh();
+function windStaleCheck(){
+  if(!windStale())return;
+  const d=calPrimary(),gone=!d||!d.link.connected(),age=windAge();
+  if(!gone&&age!=null&&age<WIND_MANUAL_S)return;
+  Bus.setWind(S.wind.speed,S.wind.dir,'manual');
+  senToast('Calypso '+(gone?'disconnected':'silent for '+Math.round(age)+' s')+' — wind kept as manual '+ut('wind',S.wind.speed)+' @ '+Math.round(S.wind.dir)+'°');
+  homeLiveState();
+}
+let windTick=null;
+function windTickSync(){
+  if(CALS.length&&!windTick)windTick=setInterval(()=>{windStaleCheck();bleCtrRender();homeLiveState();calRender();if(homeVisible())renderQuick();},1000);
+  else if(!CALS.length&&windTick){clearInterval(windTick);windTick=null;}
+}
 function setWavgWin(sec){APP.windAvgS=Math.min(WAVG_MAX_S,Math.max(10,Math.round(+sec)||60));saveDB();wavgRender();homeLiveState();if(bleLastWu)updateBleDisplay();}
 function wavgReset(){wavgBuf=[];const d=calPrimary();if(d)d.buf=wavgBuf;wavgRender();}
 function wavgRender(){
@@ -4794,6 +4844,7 @@ function updateBleStatus(state,txt){
    (0x180F/0x2A19), disconnect callback. Device drivers (Calypso today; FX chrono, rangefinders and the
    LoRa bridge later) sit on top and never touch navigator.bluetooth themselves. A native wrapper would
    replace this object only. */
+const bleWired=new WeakMap();   // V2.16.5 B-08: device → newest {link,onDisconnect}; the listener is added once per device
 const SenBle={
   supported(){return!!(typeof navigator!=='undefined'&&navigator.bluetooth&&navigator.bluetooth.requestDevice);},
   async connect({filters,optionalServices,onDisconnect}){
@@ -4812,7 +4863,8 @@ const SenBle={
       async battery(handler){try{const c=await(await server.getPrimaryService(0x180F)).getCharacteristic(0x2A19);
         handler((await link.op(()=>c.readValue())).getUint8(0));
         if(c.properties.notify)await link.notify(c,v=>handler(v.getUint8(0)));return true;}catch(e){return false;}}};
-    dev.addEventListener('gattserverdisconnected',()=>onDisconnect&&onDisconnect(link));
+    if(!bleWired.has(dev))dev.addEventListener('gattserverdisconnected',()=>{const w=bleWired.get(dev);if(w&&w.onDisconnect)w.onDisconnect(w.link);});
+    bleWired.set(dev,{link,onDisconnect});
     return link;
   }
 };
@@ -5084,7 +5136,7 @@ function calOnDisconnect(link){
   const p=calPrimary();
   if(p)calStatus();else{updateBleStatus('','Disconnected');const sl=document.getElementById('ble-service-list');if(sl)sl.textContent='';}
   const w=document.getElementById('ble-live-wrap');if(w)w.style.display=p?'block':'none';
-  updateBleDisplay();homeLiveState();
+  updateBleDisplay();windStaleCheck();homeLiveState();   // V2.16.5 B-01: wind from a disconnected unit becomes manual at once
 }
 // Connect button: connects a unit when none is connected, otherwise disconnects the primary one.
 async function toggleBLE(){
@@ -5093,7 +5145,8 @@ async function toggleBLE(){
   await calAdd();
 }
 function calPacket(d,value){
-  const bytes=new Uint8Array(value.buffer);
+  if(!CALS.includes(d))return;   // V2.16.5 B-08: a listener left from an earlier connection of this unit
+  const bytes=new Uint8Array(value.buffer,value.byteOffset,value.byteLength);   // V2.16.5 B-14
   // idle HDLC frame (pre-activation) — ignore, it's not wind
   if(bytes.length>=4&&bytes[0]===0x7e&&bytes[bytes.length-1]===0x7e)return;
   d.rx+=new TextDecoder().decode(bytes);
@@ -5104,11 +5157,13 @@ function calypsoParse(s,d){
   d=d||calPrimary();if(!d)return;
   if(s.startsWith(':WU')){
     const f=s.split(',');
-    if(f.length>=5){
-      const inst=parseFloat(f[2]),dir=parseFloat(f[4]); // f[3] = the unit's own average (unknown window, not used)
-      if(!isNaN(inst))d.spd=inst;if(!isNaN(dir))d.dir=Math.round(dir)%360;
+    // V2.16.5 B-07: only a whole, plausible sentence counts (and only it refreshes lastWu): 6 fields, fields 2–4 plain
+    // numbers, speed 0–60 m/s, direction 0–360°. Two sentences run together, junk or negative values are ignored.
+    const num=/^\d+(\.\d+)?$/,inst=parseFloat(f[2]),dir=parseFloat(f[4]); // f[3] = the unit's own average (unknown window, not used)
+    if(f.length===6&&num.test(f[2])&&num.test(f[3])&&num.test(f[4])&&inst<=60&&dir<=360){
+      d.spd=inst;d.dir=Math.round(dir)%360;
       d.lastWu=Date.now();if(d.status!=='live')d.status='live';
-      if(!isNaN(inst)&&!isNaN(dir))wavgPush(d.lastWu,inst,dir,d.buf);
+      wavgPush(d.lastWu,inst,dir,d.buf);
       if(calPrimary()===d){calSyncPrimary();updateBleDisplay();}else calRender();
     }
   }else if(s.startsWith(':AK')){d.reply='AK';
@@ -5134,15 +5189,17 @@ function calRender(){
   const add=document.getElementById('cal-add');if(add)add.style.display=CALS.length?'':'none';
   calStatus();stnRender();stnLive();
   devSync();   // V2.11.0 r2
+  windTickSync();   // V2.16.5 B-01
 }
 const lab2=q=>lab(q,UNITS[q]);
+function bleCtrRender(){const ctr=document.getElementById('ble-poll-ctr');
+  if(ctr){const age=(Date.now()-bleLastWu)/1000;ctr.textContent=bleLastWu?(age<WIND_STALE_S?'live':'signal lost ('+age.toFixed(0)+'s)'):'awaiting wind…';}}
 function updateBleDisplay(){
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('ble-speed',un('wind',bleLastSpd));
   set('ble-dir-val',bleLastDir+'°');
   set('ble-batt',bleLastBatt!=null?bleLastBatt+'%':'—');
-  const ctr=document.getElementById('ble-poll-ctr');
-  if(ctr){const age=(Date.now()-bleLastWu)/1000;ctr.textContent=bleLastWu?(age<3?'live':'signal lost ('+age.toFixed(0)+'s)'):'awaiting wind…';}
+  bleCtrRender();
   wavgRender();calRender();
   // Live mode → push avg wind into the session (avg is stable; instant shown above)
   if((windMode==='live'||homeLive)&&!(calPrimary()&&calPrimary().paused)){   // V2.11.0 r2: a paused session unit holds its last wind
@@ -5196,14 +5253,21 @@ function chStats(v){
 const chNum=t=>{t=String(t??'').replace(/\s/g,'');return /^\+?\d+([.,]\d+)?$/.test(t)?+t.replace(',','.'):NaN;};
 function chParseTyped(txt){
   const u=UNITS.vel,shots=[];
-  for(const t of String(txt).split(/[\s,;]+/)){
-    if(!t)continue;
-    const x=/^\+?\d+(\.\d+)?$/.test(t)?+t:NaN;
+  // V2.16.5 B-03 (EU default): with spaces or ';' between shots a comma inside a number is a decimal comma
+  // (280,5 281,2) and a comma before a space is a separator; with commas only, commas separate shots (280,281,279).
+  const t0=String(txt),spaced=/[\s;]/.test(t0.trim());
+  const toks=spaced?t0.split(/[\s;]+/).map(t=>t.replace(/,$/,'')):t0.split(/,+/);
+  for(const t of toks){
+    if(!t.trim())continue;
+    const x=spaced?chNum(t):/^\+?\d+(\.\d+)?$/.test(t.trim())?+t:NaN;
     if(!(x>0))return{err:'"'+t.slice(0,12)+'" is not a velocity'};
     shots.push(QDEF.vel.from[u](x));
   }
   if(!shots.length)return{err:'No velocities found.'};
   if(shots.length>CH_MAX)return{err:'More than '+CH_MAX+' shots.'};
+  // a shot far from the others is a typing slip (often a decimal split into two shots) — never a silent mean
+  const med=shots.slice().sort((a,b)=>a-b)[Math.floor(shots.length/2)],off=shots.find(v=>Math.abs(v-med)>0.3*med);
+  if(off!=null)return{err:'Check the string: '+un('vel',off)+' is more than 30 % from the others (a split decimal?)'};
   return{shots,src:'typed',unit:u};
 }
 /* Garmin Xero CSV (export from the Garmin app): a session-name line, a header row with "SPEED (FPS)" or
@@ -5746,6 +5810,7 @@ const lrOn=()=>LR&&!LR.gone&&LR.link.connected()?[LR]:[];
 const wxFeeding=()=>homeLive&&S.wind.source==='calypso'&&!!calPrimary()&&!calPrimary().paused;
 function devState(k){
   if(k==='wx'){const on=calOn();if(!on.length)return{st:'off'};const live=on.filter(d=>!d.paused).length;
+    if(windStale())return{st:'old',val:'wind '+Math.round(windAge()??0)+' s old',count:''};   // V2.16.5 B-01
     return{st:wxFeeding()?'live':'man',val:wxFeeding()?ut('wind',S.wind.speed):'MAN',count:on.length>1?live+'/'+on.length:''};}
   if(k==='rf'){const on=rfOn();if(!on.length)return{st:'off'};const feed=APP.rfFill!==false&&on.some(d=>!d.paused);
     const L=on.filter(d=>d.last).sort((a,b)=>b.last.t-a.last.t)[0];
@@ -5757,7 +5822,7 @@ function devSync(){
   ptrSync();   // V2.11.0 r3
   ['wx','rf','ch'].forEach(k=>{
     const b=document.getElementById('dev-'+k);if(!b)return;const s0=devState(k);
-    b.classList.toggle('live',s0.st==='live');b.classList.toggle('man',s0.st==='man');
+    b.classList.toggle('live',s0.st==='live');b.classList.toggle('man',s0.st==='man');b.classList.toggle('old',s0.st==='old');
     const v=document.getElementById('dev-'+k+'-v');if(v)v.textContent=s0.st==='off'?'connect':s0.val+(s0.count?' · '+s0.count:'');
   });
   // an open popup follows the readings, at most every 1.5 s and never right after a touch in it (a tap must not lose its button)
@@ -7238,16 +7303,16 @@ function driveSave(files){
   if(files.every(f=>driveEnqueue(...f)))driveTapSend();else driveRender();
 }
 function driveBackupNow(){
-  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.4'};
+  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.5'};
   driveSave([['backups','SEN backup '+driveStamp()+'.json','application/json',JSON.stringify(d,null,1),'backup']]);
 }
 function driveSaveProfile(t,id){
   const b=shareBundle(t,id),type=SHARE_TYPES[t],rec=b&&DB[type].find(x=>x.id===id);if(!b)return;
-  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.16.4'},null,1)]]);
+  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.16.5'},null,1)]]);
 }
 function driveSaveDope(){
   const c=getCard();if(!c)return;
-  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.4'},null,1)]];
+  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.5'},null,1)]];
   const h=dopePrintHTML(c);   // null when the card can't be computed — the JSON still goes
   if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print)','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title>'+h.replace(/<table>/g,'<table border="1" cellpadding="4" style="border-collapse:collapse">'),'',DRIVE_DOC]);   // → Google Doc
   driveSave(f);
@@ -7259,7 +7324,7 @@ function driveSaveShots(){
   const csv='shot,velocity_ms,velocity_fps,kept,running_sd_ms,time\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes',run[i].sd==null?'':run[i].sd.toFixed(2),c.times[i]?new Date(c.times[i]).toISOString():''].join(',')).join('\n')+
     '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n'+(notes?'\nnotes\n'+q(notes)+'\n':'');
   driveSave([['shots',nm,'text/csv',csv,'',DRIVE_SHEET],   // → Google Sheet
-    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.16.4',saved:new Date().toISOString()},null,1)]]);
+    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.16.5',saved:new Date().toISOString()},null,1)]]);
 }
 function driveWindRows(){
   const now=Date.now(),win=wavgWin();
@@ -7271,7 +7336,7 @@ function driveSaveWind(){
   const rows=driveWindRows();if(!rows.length||rows.every(r=>!r.readings)){alert('No wind readings to save — connect a Calypso first.');return;}
   const t=new Date().toISOString(),keys=Object.keys(rows[0]);
   driveSave([['wind','Wind '+driveStamp(),'text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n','',DRIVE_SHEET],   // → Google Sheet
-    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.16.4'},null,1)]]);
+    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.16.5'},null,1)]]);
 }
 // Restore: JSON files in Backups, Profiles and Dope cards, newest first → the normal import.
 async function driveRestoreList(){
@@ -7340,7 +7405,7 @@ function restoreSession(){
   if(kept.length)senToast(kept.join(', ')+' kept from last session');
 }
 async function boot(){
-await loadDB();fixStoredIds();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();migrateMillerC();migratePressureType();
+await loadDB();fixStoredIds();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();migrateSilentMilgrid();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();migrateMillerC();migratePressureType();
 initLayouts();  // V2.16.1 U-01: layouts are valid before anything renders Home
 DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (V1.13.2): legacy free-text cleanup
 /* V1.12.5 (C3): saveDB persists profile IDs but not the derived overridables (mv/bc/sight/ct/cp/crh)

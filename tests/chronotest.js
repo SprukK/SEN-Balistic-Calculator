@@ -89,7 +89,7 @@ chk('summary that does not match the shots (file left one out) → warning',/Xer
 $('ch-str').value='#,SPEED (KMH)\n1,300';w.eval('chReadString()');
 chk('unknown speed unit refused',/Unknown speed unit "KMH"/.test($('ch-msg').textContent));
 $('ch-str').value='a,b\n1,2';w.eval('chReadString()');
-chk('plain numbers that are not a Xero file stay typed numbers ("a" refused)',/"a" is not a velocity/.test($('ch-msg').textContent));
+chk('plain numbers that are not a Xero file stay typed numbers ("a" refused)',/"a(,b)?" is not a velocity/.test($('ch-msg').textContent));
 // ── exclusion ─────────────────────────────────────────────────────────────────────────────────────
 $('ch-str').value=xeroCsv(FPS);w.eval('chReadString()');
 $('ch-res').querySelectorAll('.chshot')[28].click();   // shot 29: 277.7 fps, the slowest

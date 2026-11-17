@@ -110,6 +110,9 @@ chk('mark at north, line 270°: wind from north = 2 m/s from the right',qn&&Math
 for(let i=0;i<9;i++){emit(A,wu(4,90));await wait(400);}
 h=lastHome();
 chk('B silent > 3 s → "signal lost", one live station → Home = single session wind exactly',/signal lost/.test(lives()[1])&&!h.f&&same(h,expect(null))&&/Needs two live stations/.test($('stn-summary').textContent),lives()[1]);
+// V2.16.5 B-01: the session unit silent too → the single session wind it left behind is marked old on Home, not shown as live.
+w.eval('calPrimary().lastWu=Date.now()-5000');await wait(1150);
+chk('V2.16.5 B-01: session unit silent too → Home says the wind is old',/wind \d+ s old/.test($('home-status').textContent)&&J('stnField(150)')===null,$('home-status').textContent);
 // Typing is not disturbed by live readings.
 const d0=dists()[0];d0.focus();await both([4,90],[2,0]);
 chk('rows are not rebuilt while a field has focus',dists()[0]===d0);d0.blur();

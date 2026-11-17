@@ -7,6 +7,65 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.16.5 — patch — what the shooter reads is current and honest (review release R4: B-01, B-07, B-08, B-14, P-03, P-06, P-13, P-12, P-04, W-05, W-03, W-10, P-10, B-03)
+
+**Problem (V2.16.0 reviews, reproduced).**
+- **B-01:** a Calypso that went silent, or disconnected, left its last wind on Home as live, with no age shown. "Use wind" could still take a stale average.
+- **B-07:** a run-together, negative, out-of-range or non-numeric `:WU` sentence was half-parsed into the wind average.
+- **B-08:** each reconnect of the same unit added another disconnect listener and notification handler. After four connects, one packet was parsed four times.
+- **B-14:** a `DataView` with a byte offset was read from the start of its buffer.
+- **P-03:** velocity truing started with fixed air (15 °C / 1013 hPa), not the session air. A blank field read as 0 hPa.
+- **P-06:** `velAtDist` read the velocity at the nearest integration step, not at the distance. LabRadar points at 18.3 / 22.86 / 27.43 m trued to BC 0.1229–0.1289 for a true 0.128.
+- **P-13:** banded truing accepted velocities that rise from one point to the next and produced a band from them.
+- **P-12:** pressure fields didn't say station. A sea-level (QNH) weather without an altitude was flown as if it were station pressure.
+- **P-04:** a Holds point inside the first mark (or above centre) showed a negative mark; the printed sheet rounded it the same way.
+- **W-05:** an estimated reticle's holds looked the same as a verified one's, on screen and in print.
+- **W-03:** the scope form defaulted to the generic Mil-Grid, so a scope saved untouched silently got holds from an unverified grid.
+- **W-10:** a new reticle defaulted to verified.
+- **P-10:** distance 0, a NaN angle or an Infinity wind reached the dope as Infinity / NaN. Stability with an emptied input showed Infinity.
+- **B-03:** decimal commas in a typed shot string (`280,5 281,2`) were split into separate shots.
+
+**Fix.**
+- **B-01:**
+  - Wind is live only while the session unit is connected, unlocked and has sent within 3 s.
+  - A 1 s ticker marks it old on Home ("⚠ wind N s old — Calypso not sending"), on the Weather pill (amber, "wind N s old"), in Sensors ("signal lost") and in the live bar ("not live"). The value stays, as it is.
+  - At 30 s silent, or at once on disconnect, the session wind becomes manual with the same value and a note says so.
+  - When the unit streams again it is live again. "Use wind" and the live push never take a stale reading. The ticker stops when no Calypso is connected.
+- **B-07:** a `:WU` is used only with exactly 6 fields; instant, average and direction plain non-negative numbers; speed ≤ 60 m/s; direction ≤ 360°. Anything else is ignored and the last good reading is untouched. Sentences split across 20-byte notifications are still joined first.
+- **B-08:** one disconnect listener per device object (a `WeakMap` holds the current link); packets from a unit no longer in the list are dropped.
+- **B-14:** the bytes are read from the view's own offset and length.
+- **P-03:**
+  - Truing air starts blank and is filled from the session (e.g. 20 °C · 974.8 hPa station · 65 %). A value typed on the page is kept on the next visit.
+  - Blank air, or pressure ≤ 0, is refused.
+  - The field says "Pressure hPa (station)".
+- **P-06:** `velAtDist` integrates to exactly `d` (RK4, last point at d). Independent reference `tests/p06ref.py` (own Python point-mass from the G7 table): velocities for BC 0.128 at 280 m/s now true to 0.12802–0.12808 at 12.5–45.72 m. The 100 m value is unchanged at 0.12818.
+- **P-13:** velocities that don't fall from point to point are refused with the pair named. A band flagged by the solver shows ⚠ in the table.
+- **P-12:**
+  - "Cur pres hPa (station)" and the Stability "Pressure hPa (station)" labels.
+  - A sea-level weather without a numeric altitude gives no pressure (trajectory blocked with the reason), not a wrong one. Altitude 0 stays valid.
+  - The importer **refuses** a sea-level weather without an altitude, with the reason ("sea-level (QNH) pressure without an altitude").
+- **P-04:** a point above the first mark shows "above center" on screen and "above" in print. Marks are counted from the hold, never negative.
+- **W-05:** an estimated reticle shows "Reticle subtensions are estimated — check the marks against the manual before holding." on Holds; the print header says "Reticle (estimated)".
+- **W-03:**
+  - The scope form starts with "No reticle (dial only)". New scopes and scope imports without a reticle get `reticleId: null`. Picking Mil-Grid on purpose still works.
+  - One-time start-up migration (`APP.retMig1`): a Vector catalog scope whose catalog reticle is none, holding Mil-Grid, and whose name or notes don't mention a grid, is reset to no reticle with a note.
+  - Owner's export: **no scopes migrated.** SCOL-TE52 (own entry, not catalog) keeps its Mil-Grid.
+- **W-10:** a new reticle starts as estimated.
+- **P-10:** `solveShot` returns nothing for distance ≤ 0 or a non-finite angle, wind, direction or cant. Stability clears its outputs and asks for the missing input.
+- **B-03:**
+  - A typed string with spaces or `;` is split on those, with decimal commas read as decimals. A string with commas only is split on commas.
+  - A shot more than 30 % from the median is refused ("a split decimal?"), which catches `280,5,281`.
+
+**Files.** `index.html`, `RTI-SEN-Ballistic-Calculator-V2.16.5.html`, `sw.js` (CACHE `sen-ballistics-v2.16.5`), `tests/readtest.js` (new, 42), `tests/p06ref.py` (new, independent P-06 reference), `tests/stationtest.js` (+1: session unit silent → old), `tests/devicetest.js` (stand-in `:WU` sentences now real 6-field form), `tests/chronotest.js` (error text regex for the new split), `tests/README.md`.
+
+**Verify.**
+- All 48 suites in `tests/README.md` green, `readtest` 42 / 0. `readtest` on V2.16.4 fails 5+.
+- Chromium at 412 and 780 px: Home, Truing, Holds, Stability, Scopes, Chrono, Sensors — no sideways scroll, 0 errors.
+- Owner's export round-trips with nothing refused; session still trued (local only, not committed).
+- Device: T-4 (Calypso silent / out of range) and Holds on the Honor.
+
+---
+
 ## V2.16.4 — patch — trued BCs and profile values reach the dope (review release R3: P-01, W-01, P-02, D-07, P-05, P-07, W-04, D-06)
 
 **Problem (V2.16.0 reviews, reproduced).**

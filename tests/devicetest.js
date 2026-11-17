@@ -49,14 +49,14 @@ w.eval('closeSheet()');
 // 2. Two Calypsos (stand-ins for connected units), readings through calypsoParse
 w.eval(`const mk=(id,name)=>({link:{id,name,connected:()=>true,disconnect(){},dev:{gatt:{connected:true}}},status:'live',spd:0,dir:0,lastWu:0,batt:80,reply:null,rx:'',buf:[],ka:null,fff1:null,locked:false});
   CALS.push(mk('idA','WDOT-AAAA01'),mk('idB','WDOT-BBBB02'));calPrimaryId='idA';calSyncPrimary();
-  calypsoParse(':WU,0,3.0,2.9,90',CALS[0]);calypsoParse(':WU,0,1.0,1.0,270',CALS[1]);`);await wait(20);
+  calypsoParse(':WU,0,3.0,2.9,90,5F',CALS[0]);calypsoParse(':WU,0,1.0,1.0,270,5F',CALS[1]);`);await wait(20);
 chk('Calypsos connected, live wind off → Weather pill dashed "MAN"',pill('wx').cls==='man'&&/^MAN/.test(pill('wx').v),JSON.stringify(pill('wx')));
 await tap($('dev-wx'));
 chk('tap → live wind on: session wind from the session unit, pill live "3.0 m/s · 2/2"',w.eval('homeLive')===true&&J('S.wind.source')==='calypso'&&Math.abs(w.eval('S.wind.speed')-3)<0.11&&pill('wx').cls==='live'&&pill('wx').v==='3.0 m/s · 2/2',JSON.stringify(pill('wx'))+' '+w.eval('S.wind.speed'));
 const spd=w.eval('S.wind.speed');
 await tap($('dev-wx'));
 chk('tap → paused: live wind off, last wind kept as manual, pill MAN',w.eval('homeLive')===false&&J('S.wind.source')==='manual'&&w.eval('S.wind.speed')===spd&&pill('wx').cls==='man');
-w.eval(`calypsoParse(':WU,0,6.0,6.0,90',CALS[0])`);await wait(20);
+w.eval(`calypsoParse(':WU,0,6.0,6.0,90,5F',CALS[0])`);await wait(20);
 chk('…new readings do not move the session wind while paused',w.eval('S.wind.speed')===spd);
 await tap($('dev-wx'));
 chk('tap → resumed: session wind follows the unit again',pill('wx').cls==='live'&&J('S.wind.source')==='calypso'&&w.eval('S.wind.speed')>spd);
@@ -73,7 +73,7 @@ const single=J(`(()=>{const tr=homeTraj(),z=zeroConds(),sc=rifleScope(getRifle()
 w.eval('renderQuick()');
 chk('…one live station left → Home = the single session wind (solveShot)',w.eval('stnField(S.dist_m)')===null&&$('fa-wind').textContent===single,single+' vs '+$('fa-wind').textContent);
 rowBtn('WDOT-AAAA01').click();await wait(20);
-const held=w.eval('S.wind.speed');w.eval(`calypsoParse(':WU,0,9.0,9.0,90',CALS[0])`);await wait(20);
+const held=w.eval('S.wind.speed');w.eval(`calypsoParse(':WU,0,9.0,9.0,90,5F',CALS[0])`);await wait(20);
 chk('pause the session unit: wind held as manual, new readings ignored',J('S.wind.source')==='manual'&&w.eval('S.wind.speed')===held&&pill('wx').cls==='man');
 rowBtn('WDOT-AAAA01').click();await wait(20);
 chk('resume it: wind follows the unit again',J('S.wind.source')==='calypso'&&w.eval('S.wind.speed')>held);
