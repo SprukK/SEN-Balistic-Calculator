@@ -12,7 +12,7 @@ const EST=['McGyro gyroscopic stability (McCoy 1986)','Spin drift (Litz)','G1 â‰
 
 (async()=>{
 console.log('=== FORMULA PANEL TEST: '+FILE+' ===');
-const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
   beforeParse(w){w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}});
 const w=dom.window,d=w.document;w.errs=[];w.addEventListener('error',e=>w.errs.push(e.message));
 await wait(800);

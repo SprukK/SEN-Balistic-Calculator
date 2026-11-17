@@ -32,7 +32,7 @@ function unit(name,accept,batt,id){
 }
 const queue=[];
 let prompts=[];
-const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
   beforeParse(w){w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});
     Object.defineProperty(w.navigator,'bluetooth',{value:{requestDevice:async()=>queue.shift()}});w.alert=()=>{};w.confirm=()=>true;w.prompt=(q,d)=>prompts.length?prompts.shift():d;}});
 const w=dom.window;w.errs=[];w.addEventListener('error',e=>w.errs.push(e.message));
@@ -62,7 +62,7 @@ w.document.querySelector('#stn-panel .btnrow:last-of-type button')||0;
 w.eval('stnAdd()');w.eval('stnAdd()');await wait(30);
 chk('+ Add station: a range is created and each new station takes a free connected unit',J('DB.ranges.length')===1&&J('stnRange().stations.map(t=>t.unit)').join()==='WDOT-B1F9A6,WDOT-E2896A'&&lives().length===2);
 chk('blend is the default; "All placed stations" is on',$('stn-m-blend').classList.contains('on')&&$('stn-use-on').classList.contains('on'));
-const dists=()=>[...w.document.querySelectorAll('#stn-list input[type=number]')].filter(e=>e.dataset.q==='range');
+const dists=()=>[...w.document.querySelectorAll('#stn-list input[type=number],#stn-list input[data-num]')].filter(e=>e.dataset.q==='range');
 chk('no distance yet → flagged, Home stays on the session unit',lives().every(t=>/no distance/.test(t)));
 setNum(dists()[0],'10');setNum(dists()[1],'120');
 const nm=w.document.querySelector('#stn-list input[type=text]');nm.value='Firing line';nm.dispatchEvent(new w.Event('change'));await wait(20);
@@ -89,7 +89,7 @@ h=lastHome();
 chk('"Session unit only" → exactly the single-wind solution (no field)',h&&!h.f&&same(h,expect(null))&&/session unit only/.test($('stn-summary').textContent));
 w.document.getElementById('stn-use-on').click();w.document.getElementById('stn-m-blend').click();
 // Head/tail: B turns to a 3 m/s tailwind (from 180° on its mark), off the line at 30° right, mark at the target.
-const angs=()=>[...w.document.querySelectorAll('#stn-list input[type=number]')].filter(e=>e.dataset.q==='-');
+const angs=()=>[...w.document.querySelectorAll('#stn-list input[type=number],#stn-list input[data-num]')].filter(e=>e.dataset.q==='-');
 setNum(angs()[1],'30');w.eval('CALS.forEach(d=>d.buf.length=0)');await both([4,90],[3,180]);
 const q=J('stnState(150).live[1]');
 const m=Math.atan2(-120*Math.sin(Math.PI/6),150-120*Math.cos(Math.PI/6))*180/Math.PI,th=(180+m+360)%360;
@@ -136,7 +136,7 @@ w.eval(`applySnapshot(JSON.parse(${JSON.stringify(snap)}));stnRender();`);
 chk('restart: ranges, stations and the active range survive',J('DB.ranges.length')===2&&J('stnRange().name')==='Ljubljana 300'&&J('stnRange().stations[1].mount')==='north');
 // Export → import into a fresh install, with a tampered station.
 const exp=JSON.parse(snap);exp.ranges[0].stations.push({id:'z',nick:'x',unit:'WDOT-1',dist:-5,ang:999,mount:'east',evil:'<b>'});exp.ranges[0].mode='weird';
-const w2=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://y.test/',beforeParse(v){v.alert=()=>{};v.confirm=()=>true;v.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}}).window;
+const w2=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://y.test/?numfmt=point',beforeParse(v){v.alert=()=>{};v.confirm=()=>true;v.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}}).window;
 await wait(700);
 w2.eval(`importData(${JSON.stringify({ranges:exp.ranges,schema:exp.schema})})`);
 const imp=JSON.parse(w2.eval('JSON.stringify(DB.ranges)'));

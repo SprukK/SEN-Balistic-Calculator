@@ -31,7 +31,7 @@ function unit(name,accept,batt){
   return u;
 }
 async function open(dev){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
     beforeParse(w){
       w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});
       Object.defineProperty(w.navigator,'bluetooth',{value:{requestDevice:async()=>dev}});

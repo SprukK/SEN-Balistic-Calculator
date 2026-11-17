@@ -12,7 +12,7 @@ const IMPERIAL={range:'yd',zrange:'yd',drop:'in',ang:'moa',sight:'in',vel:'fps',
 const PAGES=['home','traj','solver','wind','dope','stab','truing','holds','profiles','sensors','settings'];
 
 async function open(){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
     beforeParse(w){w.alert=()=>{};w.confirm=()=>true;w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}});
   const w=dom.window;w.errs=[];w.addEventListener('error',e=>w.errs.push(e.message));
   await wait(700);
@@ -46,7 +46,7 @@ chk('exact definitions: 250 m = 273.4033 yd (1 yd = 0.9144 m)',Math.abs(w.eval("
 const forms=[`openRifleForm(DB.rifles[0].id)`,`openScopeForm(DB.scopes[0].id)`,`openReticleForm(DB.reticles[0].id)`,`openProjForm(DB.projectiles[0].id)`,`openWxForm(DB.weathers[0].id)`,`pickSheet('dist')`,`pickSheet('mv')`];
 w.eval('newDope();tuRenderPoints()');await wait(30);
 let unclassified=new Set();
-const scan=()=>w.eval(`[...document.querySelectorAll('input[type=number]')].filter(e=>!fieldQ(e)).map(e=>e.id||e.outerHTML.slice(0,60))`).forEach(x=>unclassified.add(x));
+const scan=()=>w.eval(`[...document.querySelectorAll('input[type=number],input[data-num]')].filter(e=>!fieldQ(e)).map(e=>e.id||e.outerHTML.slice(0,60))`).forEach(x=>unclassified.add(x));
 scan();
 for(const f of forms){w.eval(f);await wait(30);scan();w.eval('closeModal();closeSheet()');}
 chk('every number input has a unit or an explicit exemption',unclassified.size===0,[...unclassified].join(', '));

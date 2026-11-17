@@ -7,6 +7,48 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.18.0 — minor — EU number format and import part picker (review release R6 part 2: CORE-27, CORE-28)
+
+**What's new.**
+- **CORE-27 — number format (owner: EU by default, switchable).** Settings → Display → Number format: **280,5 (EU)** (default, also on existing installs) or **280.5**.
+  - **Shown and printed values:** one formatter (`fx` / `decS`, also inside `fmtv`). It covers Home, Trajectory, Solver, Holds and its print, dope cards and their print, Wind, Stability, McGyro, BC / SD, Truing, MV–temp, chrono tables and graph, the Home wind and chrono modules, the Bench, profile lists, Settings storage info and the Formulas page.
+  - **Static text in the page** (reference notes, help, option labels) is converted once at start and again on switching; the original text is kept, so switching back is exact.
+  - **Not converted:** dotted versions (V2.18.0); user-typed names and notes ("ZAN … 25.5gr" stays as typed); anything stored or exported (snapshot, JSON exports, share codes, CSV, Drive files, CSS / SVG coordinates).
+  - **Number fields:** a browser number field can't be told which separator to show, so every number field is now a text field with the decimal keypad (`inputmode="decimal"`, marked `data-num`).
+    - The CORE-15 input layer reads and writes it: a comma or a point is accepted in either format, a typographic minus too, and code still reads and writes canonical strings ("280.5"), so nothing downstream changed. An incomplete entry ("-", "280,") reads as the browser's number field did.
+    - A field being typed in is never rewritten by a refresh.
+    - Desktop arrow-key / wheel stepping of number fields is gone (text fields).
+  - **± key (owner ruling):** several phone keyboards (Samsung's, iOS) have no minus on the decimal keypad, so every field that can be negative has a ± key that flips the sign and keeps the keyboard open:
+    - current, zero, truing, Stability and MV–temp temperatures;
+    - shot angle and cant (Home, Solver, the angle sheet);
+    - rail offset, altitude, latitude;
+    - dope-card target angles;
+    - drop-truing angle and group offset;
+    - station angle off the line.
+    In table rows the ± key is compact, and the dope-card target row still fits 412 px (checked with 1134,5 m and −13°).
+  - `?numfmt=point|eu` in the page address forces a format for that window without saving it; Settings says so when it's active.
+- **CORE-28 — import part picker (owner ruling):** when an imported file's preferences differ, the review lists the groups that differ — Units · Display (number format, dual units, text size, contrast, help) · Colours · Home layouts and pane widths · Bottom bar · Other settings — each with a checkbox, **unticked by default**.
+  - Only ticked groups are applied, each through the V2.16.1 validator.
+  - "Keep mine" / "Take theirs" untick / tick them all.
+  - Drive state and install flags (catalog seeding, one-time migrations) are never imported.
+
+**Tests.**
+- New `numfmttest.js` (33) runs in the default EU format.
+- **Every other suite now runs with `?numfmt=point`** in its page URL (their expected texts are dot-decimal); the jsdom URLs and the two Playwright suites (`rendertest`, `typetest`) were updated.
+- `unittest` / `stationtest` / `homelayouttest` select number fields as `input[type=number],input[data-num]` (a field is converted shortly after it is added).
+- `coursetest`'s "row has only ⋯" check and `truedroptest`'s "✕ removes a row" click skip the ± keys.
+- An EU scan of every page, form and sheet (jsdom, not committed) found no app-generated number left with a point; the remaining hits were profile names.
+
+**Files.** `index.html`, `RTI-SEN-Ballistic-Calculator-V2.18.0.html`, `archive/RTI-SEN-Ballistic-Calculator-V2.17.0.html` (moved), `sw.js` (CACHE `sen-ballistics-v2.18.0`), `tests/numfmttest.js` (new), `tests/README.md`, the suites' page URLs, `tests/unittest.js`, `tests/stationtest.js`, `tests/homelayouttest.js`, `tests/coursetest.js`, `tests/truedroptest.js`, `tests/rendertest.js`, `tests/typetest.js`.
+
+**Verify.**
+- All 51 suites green.
+- Lab `maindatatest` 13 / 13 (the new `numFmt` key is an ordinary app setting).
+- Owner's export round-trips with nothing refused, session still trued.
+- Chromium 412 / 780: seven pages, Settings, Trajectory with ± keys, dope-card rows — no sideways scroll, 0 errors.
+
+---
+
 ## V2.17.0 — minor — warnings where dope is read, truing sensitivity, two-window guard, course summary (review release R6, part 1: P-08, P-09, P-11, D-09, CALC-27)
 
 R6 is split, as its prompt allows: this release carries the warnings, the truing sensitivity, the two-window guard and the course summary. The app-wide EU number format (CORE-27, F-2) and the import part picker (CORE-28, F-3) follow in V2.18.0.

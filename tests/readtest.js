@@ -34,7 +34,7 @@ function unit(name,accept){
   return u;
 }
 async function open({dev,idb,quiet}={}){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',...(quiet?{virtualConsole:new VirtualConsole()}:{}),
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',...(quiet?{virtualConsole:new VirtualConsole()}:{}),
     beforeParse(w){if(idb){w.indexedDB=idb;w.IDBKeyRange=IDBKeyRange;}
       Object.defineProperty(w,'innerWidth',{configurable:true,value:412});Object.defineProperty(w,'innerHeight',{configurable:true,value:915});
       if(dev)Object.defineProperty(w.navigator,'bluetooth',{value:{requestDevice:async()=>dev}});

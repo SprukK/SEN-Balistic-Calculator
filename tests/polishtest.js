@@ -13,7 +13,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 let pass=0,fail=0;
 const chk=(n,ok,extra)=>{console.log((ok?'  PASS  ':'  FAIL  ')+n+(extra?'   '+extra:''));ok?pass++:fail++;};
 async function open(ls,W=412,H=915){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
     beforeParse(w){Object.defineProperty(w,'innerWidth',{configurable:true,value:W});Object.defineProperty(w,'innerHeight',{configurable:true,value:H});
       w.alert=()=>{};w.confirm=()=>true;w.scrollTo=()=>{};w.prompt=(q,d)=>d||'Test';if(ls)w.localStorage.setItem(SK,ls);
       w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}});

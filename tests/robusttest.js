@@ -14,7 +14,7 @@ let pass=0,fail=0;
 const chk=(n,ok,extra)=>{console.log((ok?'  PASS  ':'  FAIL  ')+n+(extra?'   '+extra:''));ok?pass++:fail++;};
 const all=[];
 async function open({idb,ls,quiet,width}={}){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',...(quiet?{virtualConsole:new VirtualConsole()}:{}),
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',...(quiet?{virtualConsole:new VirtualConsole()}:{}),
     beforeParse(w){if(idb){w.indexedDB=idb;w.IDBKeyRange=IDBKeyRange;}
       if(ls)for(const[k,v]of Object.entries(ls))w.localStorage.setItem(k,v);
       Object.defineProperty(w,'innerWidth',{configurable:true,value:width||412});Object.defineProperty(w,'innerHeight',{configurable:true,value:915});

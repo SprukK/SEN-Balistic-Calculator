@@ -11,7 +11,7 @@ let pass=0,fail=0;
 const chk=(n,ok,extra)=>{console.log((ok?'  PASS  ':'  FAIL  ')+n+(extra?'   '+extra:''));ok?pass++:fail++;};
 const all=[];
 async function open(){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
     beforeParse(w){w.alerts=[];w.alert=m=>w.alerts.push(String(m));w.confirm=()=>true;
       w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}});
   const w=dom.window;w.errs=[];w.addEventListener('error',e=>w.errs.push(e.message));await wait(700);all.push(w);return w;
@@ -72,7 +72,7 @@ setRow(w,2,'dial',(dial2(0.115,250)+0.6).toFixed(4));w.eval('tdSolve()');
 chk('one row 6 clicks off → disagreement warning, range taken from the scatter',/disagree by more than a click/.test($(w,'td-result').textContent)&&/\(scatter\)/.test($(w,'td-result').textContent)&&/from the scatter between distances/.test($(w,'td-result').textContent));
 [...$(w,'td-result').querySelectorAll('button')].find(b=>/^Apply to/.test(b.textContent)).click();await wait(20);
 chk('Apply records all distances in the source',/·150\+200\+250m$/.test(J(w,'getProj().bcTrued')),J(w,'getProj().bcTrued'));
-[...w.document.querySelectorAll('#td-rows .td-row')][2].querySelector('button').click();await wait(10);
+[...w.document.querySelectorAll('#td-rows .td-row')][2].querySelector('button:not(.numneg)').click();   // V2.18.0: skip the ± keys (CORE-27)await wait(10);
 chk('✕ removes a row',w.document.querySelectorAll('#td-rows .td-row').length===2);
 w.eval(`while(document.querySelectorAll('#td-rows .td-row').length>1)document.querySelector('#td-rows .td-row button').click()`);
 // Impossible.

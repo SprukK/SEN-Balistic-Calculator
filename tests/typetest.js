@@ -5,7 +5,7 @@
 // ≥ 44 px; inputs ≥ 16 px text; no sideways page scroll; no errors. Also with Large text.
 // Usage: node typetest.js <app.html>   (Playwright: see README.md, as rendertest.js)
 const {chromium}=require('playwright'),path=require('path');
-const FILE='file://'+path.resolve(process.argv[2]);
+const FILE='file://'+path.resolve(process.argv[2])+'?numfmt=point';   // V2.18.0: suite text is dot-decimal (EU format: numfmttest.js)
 const PAGES=['home','traj','solver','wind','dope','stab','bench','truing','holds','profiles','sensors','layouts','formulas','settings'];
 let pass=0,fail=0;
 const chk=(n,ok,extra)=>{console.log((ok?'  PASS  ':'  FAIL  ')+n+(extra?'   '+extra:''));ok?pass++:fail++;};

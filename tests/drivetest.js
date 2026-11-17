@@ -64,7 +64,7 @@ async function fakeFetch(url,opt={}){
 }
 const idb=new IDBFactory();
 async function open(ls){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://sprukk.github.io/SEN-Balistic-Calculator/',
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://sprukk.github.io/SEN-Balistic-Calculator/?numfmt=point',
     beforeParse(w){Object.defineProperty(w,'innerWidth',{configurable:true,value:412});Object.defineProperty(w,'innerHeight',{configurable:true,value:915});
       w.indexedDB=idb;w.IDBKeyRange=IDBKeyRange;w.alerts=[];w.alert=m=>w.alerts.push(String(m));w.confirm=()=>true;w.scrollTo=()=>{};w.print=()=>{};
       w.fetch=fakeFetch;Object.defineProperty(w.navigator,'onLine',{configurable:true,get:()=>G.online});gis(w);if(ls)w.localStorage.setItem('sen_platform_v1',ls);

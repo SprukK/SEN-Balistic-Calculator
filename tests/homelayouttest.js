@@ -13,7 +13,7 @@ const all=[];
 function setScreen(w,W,H){Object.defineProperty(w,'innerWidth',{configurable:true,value:W});Object.defineProperty(w,'innerHeight',{configurable:true,value:H});
   w.matchMedia=q=>({matches:/coarse/.test(q),addEventListener(){},removeEventListener(){}});}
 async function open(file,ls,screen=[390,866]){
-  const dom=new JSDOM(fs.readFileSync(file,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+  const dom=new JSDOM(fs.readFileSync(file,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
     beforeParse(w){w.alert=()=>{};w.confirm=()=>true;if(ls)w.localStorage.setItem(SK,ls);setScreen(w,...screen);
       w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}});
   const w=dom.window;w.errs=[];w.addEventListener('error',e=>w.errs.push(e.message));
@@ -91,8 +91,8 @@ chk('V2.11.1: edits inside the editor re-render without scrolling again',w._scr.
 chk('▲ moves Chrono above the wind table on Home',visibleHome(w).indexOf('home-chrono')<visibleHome(w).indexOf('home-windtable'),visibleHome(w).join());
 [...modRow('turret').querySelectorAll('button')].pop().click();await wait(20);
 chk('Off → On shows the turret panel',!$(w,'home-turret-panel').classList.contains('mod-off'));
-const ins=w.document.querySelectorAll('#lay-edit input[type=number]');
-w.eval(`(()=>{const i=document.querySelectorAll('#lay-edit input[type=number]');i[1].value=15;i[1].dispatchEvent(new Event('change'));})()`);await wait(20);
+const ins=w.document.querySelectorAll('#lay-edit input[type=number],#lay-edit input[data-num]');
+w.eval(`(()=>{const i=document.querySelectorAll('#lay-edit input[type=number],#lay-edit input[data-num]');i[1].value=15;i[1].dispatchEvent(new Event('change'));})()`);await wait(20);
 chk('timer setting → Card · 15:00',txt(w,'tm-head')==='Card · 15:00');
 chk('fixed-distance and timer fields are classified for the unit layer',ins[0].dataset.q==='range'&&ins[1].dataset.q==='-'&&ins[2].dataset.q==='-');
 [...w.document.querySelectorAll('#lay-list .lay-row')][1].querySelector('button:nth-of-type(2)').click();await wait(20);

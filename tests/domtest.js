@@ -1,6 +1,6 @@
 const {JSDOM}=require('jsdom'),fs=require('fs');
 const file=process.argv[2];
-const dom=new JSDOM(fs.readFileSync(file,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/'});
+const dom=new JSDOM(fs.readFileSync(file,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point'});
 const w=dom.window,d=w.document;
 // canvas + wakeLock aren't implemented in jsdom; stub just enough
 w.HTMLCanvasElement.prototype.getContext=()=>({clearRect(){},fillRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},fill(){},fillText(){},setLineDash(){},save(){},restore(){},arc(){},closePath(){},measureText:()=>({width:10}),translate(){},scale(){},setTransform(){},rect(){},clip(){}});

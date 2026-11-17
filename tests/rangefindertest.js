@@ -29,7 +29,7 @@ function unit(name,id,batt){
   u.tx=tx;u.range=f=>tx.emit(hex(f));return u;
 }
 let queue=[],lastOpts=null;
-const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
   beforeParse(w){Object.defineProperty(w,'innerWidth',{configurable:true,value:412});Object.defineProperty(w,'innerHeight',{configurable:true,value:915});
     w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});w.scrollTo=()=>{};
     Object.defineProperty(w.navigator,'bluetooth',{value:{requestDevice:async o=>{lastOpts=o;const d=queue.shift();if(!d){const e=new Error('User cancelled');e.name='NotFoundError';throw e;}return d;}}});w.alert=()=>{};w.confirm=()=>true;}});

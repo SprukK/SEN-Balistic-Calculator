@@ -28,7 +28,7 @@ function unit(name,accept,batt,id){
   u.fff2=fff2;u.fff1=fff1;u.batt=b2a19;return u;
 }
 const queue=[];
-const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
   beforeParse(w){w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});
     Object.defineProperty(w.navigator,'bluetooth',{value:{requestDevice:async()=>queue.shift()}});w.alert=()=>{};}});
 const w=dom.window;w.errs=[];w.addEventListener('error',e=>w.errs.push(e.message));

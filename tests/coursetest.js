@@ -11,7 +11,7 @@ let pass=0,fail=0;
 const chk=(n,ok,extra)=>{console.log((ok?'  PASS  ':'  FAIL  ')+n+(extra?'   '+extra:''));ok?pass++:fail++;};
 const all=[];
 async function open(file,{ls,setup}={}){
-  const dom=new JSDOM(fs.readFileSync(file,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+  const dom=new JSDOM(fs.readFileSync(file,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
     beforeParse(w){w.alerts=[];w.alert=m=>w.alerts.push(String(m));w.print=()=>{};if(ls)w.localStorage.setItem(SK,ls);
       w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});if(setup)setup(w);}});
   const w=dom.window;w.errs=[];w.addEventListener('error',e=>w.errs.push(e.message));
@@ -75,7 +75,7 @@ const d0=J(w,'DB.dopeCards[0].stages[0].dists[0].id');
 const det=w.document.getElementById('dd-'+d0);
 chk('target details hidden until ⋯ is tapped',det.style.display==='none');
 w.eval(`toggleDistDetail('${d0}')`);chk('⋯ opens them',det.style.display==='');
-chk('V2.14.0: the row has only ⋯ (fits 412 px); "Delete target" sits in the details',w.document.querySelectorAll('#dr-'+d0+' button').length===1&&[...det.querySelectorAll('button')].some(b=>b.textContent==='Delete target'&&/delDist/.test(b.getAttribute('onclick'))));
+chk('V2.14.0: the row has only ⋯ besides the angle field\'s ± key (fits 412 px); "Delete target" sits in the details',w.document.querySelectorAll('#dr-'+d0+' button:not(.numneg)').length===1&&[...det.querySelectorAll('button')].some(b=>b.textContent==='Delete target'&&/delDist/.test(b.getAttribute('onclick'))));
 const ins=det.querySelectorAll('input'),sel=det.querySelector('select');
 const fire=(el,v)=>{el.value=v;el.dispatchEvent(new w.Event('change',{bubbles:true}));};
 fire(ins[0],'Steel 1');fire(ins[1],'95');fire(sel,'stand');fire(ins[3],'3');

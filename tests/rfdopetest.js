@@ -27,7 +27,7 @@ function unit(name){
   u.range=(m,deg)=>tx.emit(frame(m,deg));return u;
 }
 const queue=[];
-const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
   beforeParse(w){Object.defineProperty(w,'innerWidth',{configurable:true,value:412});Object.defineProperty(w,'innerHeight',{configurable:true,value:915});
     w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});w.scrollTo=()=>{};w.print=()=>{};
     Object.defineProperty(w.navigator,'bluetooth',{value:{requestDevice:async()=>{const d=queue.shift();if(!d){const e=new Error('User cancelled');e.name='NotFoundError';throw e;}return d;}}});

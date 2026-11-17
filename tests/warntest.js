@@ -18,7 +18,7 @@ const all=[];
 const P11={V23:275.97907602283794,vd:{'-1':0.10220595882432149,'-0.3':0.11900818274551994,'0.3':0.13844174627305877,'1':0.17087090895343154},
   v0:{'-1':0.16987725449244095,'-0.3':0.1381997292264841,'0.3':0.11921659365715334,'1':0.10280380934993474}};
 async function open({idb,chan}={}){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
     beforeParse(w){if(idb){w.indexedDB=idb;w.IDBKeyRange=IDBKeyRange;}if(chan)w.BroadcastChannel=BroadcastChannel;
       Object.defineProperty(w,'innerWidth',{configurable:true,value:412});Object.defineProperty(w,'innerHeight',{configurable:true,value:915});
       w.alerts=[];w.alert=m=>w.alerts.push(String(m));w.confirm=()=>true;w.scrollTo=()=>{};w.print=()=>{};

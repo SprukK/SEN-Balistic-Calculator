@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.17.0</title>
+<title>SEN Ballistics V2.18.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -271,6 +271,10 @@ html[data-tt="bc"] [data-tt]:not([data-tt="bc"]),html[data-tt="mvt"] [data-tt]:n
 .fpill.live .fpill-n::before{content:'● ';color:var(--green)}
 .fpill.live .fpill-v{color:var(--accent)}
 .fpill.old{border-color:var(--warn);color:var(--warn)}
+.imp-pref{display:flex;align-items:center;gap:8px;min-height:40px;font-size:13px}.imp-pref input{width:20px;height:20px;flex:0 0 auto}
+.numwrap{display:flex;gap:6px;align-items:stretch;width:100%}.numwrap input{flex:1;min-width:0}
+.numneg{flex:0 0 auto;min-width:44px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font-size:16px;padding:0 8px}
+td .numwrap{gap:2px}td .numneg{min-width:24px;padding:0 2px;font-size:14px}td .numwrap input.di{width:40px;min-width:0}.dist-tbl.rf td:nth-child(2) .numwrap .di{min-width:38px;padding:5px 4px}.dist-tbl.rf td:nth-child(1) .di{min-width:70px}
 input.need{border-color:var(--warn)}   /* V2.16.5 B-01: stale Calypso wind */
 .fpill.man{border-style:dashed;border-color:var(--gold);color:var(--text2)}
 .fpill.man .fpill-v{color:var(--gold);font-weight:600}
@@ -1210,7 +1214,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.17.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.18.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1550,7 +1554,7 @@ function benchDraw(g,G){
   const xd=X(G.x1+(G.x2-G.x1)/2);
     // labels below the body on their own rows: CG (+11), Ø (+28), base Ø (+44) — they never overlap
   dim(xd,Y(G.rb),xd,ym+G.rb*s,xd,ym+G.rb*s+28,'middle','Ø '+ut('bullet',2*G.rb),'diam');
-  if(G.Lt>0)dim(X(0)-8,Y(G.rbase),X(0)-8,ym+G.rbase*s,X(0)-10,ym+G.rb*s+44,'start','base Ø '+ut('bullet',2*G.rbase)+' · '+G.btAngle.toFixed(1)+'°','base');
+  if(G.Lt>0)dim(X(0)-8,Y(G.rbase),X(0)-8,ym+G.rbase*s,X(0)-10,ym+G.rb*s+44,'start','base Ø '+ut('bullet',2*G.rbase)+' · '+fx(G.btAngle,1)+'°','base');
   const cgx=X(G.cg);svg.appendChild(mk('path',{d:`M${cgx} ${ym+G.rb*s+3}l-5 8h10z`,fill:col,'data-part':'cg'}));
   svg.appendChild(mk('text',{x:cgx+8,y:ym+G.rb*s+11,'font-size':10,fill:col},'CG'));
   return svg;
@@ -1598,18 +1602,18 @@ function benchCalc(){
   if(m.err){outs.replaceChildren();draw.replaceChildren();flags.replaceChildren(flag('warn',m.err));return;}
   draw.replaceChildren(benchDraw(d,m));
   outs.replaceChildren(
-    card('Mass',m.gr.toFixed(2)+' gr',m.gram.toFixed(3)+' g · '+(m.V/1000).toFixed(4)+' cm³ × '+m.rho.toFixed(3)+' g/cm³'),
-    card('SD (§9H)',m.sd.toFixed(4),'lb/in² · '+(m.sd*LB2KGM2).toFixed(1)+' kg/m²'),
-    card('OAL',ut('bullet',m.oal),'L/D '+(m.oal/(2*m.rb)).toFixed(2)),
-    card('CG from base',ut('bullet',m.cg),(m.cg/m.oal*100).toFixed(1)+' % of OAL'));
+    card('Mass',fx(m.gr,2)+' gr',fx(m.gram,3)+' g · '+fx((m.V/1000),4)+' cm³ × '+fx(m.rho,3)+' g/cm³'),
+    card('SD (§9H)',fx(m.sd,4),'lb/in² · '+fx((m.sd*LB2KGM2),1)+' kg/m²'),
+    card('OAL',ut('bullet',m.oal),'L/D '+fx((m.oal/(2*m.rb)),2)),
+    card('CG from base',ut('bullet',m.cg),fx((m.cg/m.oal*100),1)+' % of OAL'));
   const f=[flag('info','Design — theoretical until made and measured (§10A). Never used by the calculator, anchors or tests.')];
   if(m.oal>25)f.push(flag('warn','OAL '+ut('bullet',m.oal)+' is over the Mora\'s '+ut('bullet',25)+' single-shot limit.'));
   else if(m.oal>22)f.push(flag('warn','OAL '+ut('bullet',m.oal)+' is over the '+ut('bullet',22)+' magazine limit — single-shot only (≤ '+ut('bullet',25)+').'));
   else f.push(flag('ok','OAL '+ut('bullet',m.oal)+' fits the magazine (≤ '+ut('bullet',22)+').'));
-  if(m.Lt>0)f.push(flag(m.btAngle>10?'warn':'info','Boat-tail angle '+m.btAngle.toFixed(1)+'° — skill §12C: 7–9° (G7 standard 7.5°), above 10° the flow separates.'));
-  if(d.alloy==='sb')f.push(flag('info','Pb–Sb density by ideal mixing: '+m.rho.toFixed(3)+' g/cm³ — within about 1 % of measured alloys up to 11 % Sb (estimate).'));
-  const cal=x=>(x/(2*m.rb)).toFixed(3);
-  f.push(el('div','note','For McGyro: length '+cal(m.oal)+' cal · nose '+cal(m.Ln)+' cal · Rt/R '+(m.Ln>0?m.rtr.toFixed(2):'—')+' · meplat '+cal(2*m.rm)+' cal · base '+cal(2*m.rbase)+' cal · density '+m.rho.toFixed(2)+' g/cm³'));
+  if(m.Lt>0)f.push(flag(m.btAngle>10?'warn':'info','Boat-tail angle '+fx(m.btAngle,1)+'° — skill §12C: 7–9° (G7 standard 7.5°), above 10° the flow separates.'));
+  if(d.alloy==='sb')f.push(flag('info','Pb–Sb density by ideal mixing: '+fx(m.rho,3)+' g/cm³ — within about 1 % of measured alloys up to 11 % Sb (estimate).'));
+  const cal=x=>fx((x/(2*m.rb)),3);
+  f.push(el('div','note','For McGyro: length '+cal(m.oal)+' cal · nose '+cal(m.Ln)+' cal · Rt/R '+(m.Ln>0?fx(m.rtr,2):'—')+' · meplat '+cal(2*m.rm)+' cal · base '+cal(2*m.rbase)+' cal · density '+fx(m.rho,2)+' g/cm³'));
   flags.replaceChildren(...f);
 }
 const isHollowPoint=p=>/hollow|\bHP\b/i.test((p.name||'')+' '+(p.notes||''));
@@ -1634,7 +1638,7 @@ function machWarn(pts,type,upTo){
 }
 function dopeWarns(pts,type,sg,upTo){
   const w=[],m=machWarn(pts,type,upTo);
-  if(sg!=null&&sg<1)w.push({long:`⚠ Sg ${sg.toFixed(2)} < 1.0 — Miller predicts a tumble. The dope is kept, but its BC penalty is extrapolated below its valid range (1.0–1.5): confirm with a trued BC and groups at distance.`,short:`⚠ Sg ${sg.toFixed(2)} < 1 tumble risk`});
+  if(sg!=null&&sg<1)w.push({long:`⚠ Sg ${fx(sg,2)} < 1.0 — Miller predicts a tumble. The dope is kept, but its BC penalty is extrapolated below its valid range (1.0–1.5): confirm with a trued BC and groups at distance.`,short:`⚠ Sg ${fx(sg,2)} < 1 tumble risk`});
   if(m==='diabolo')w.push({long:'⚠ Diabolo above Mach 0.80 — no standard drag model fits a pellet there: BC uncertainty ±30–50 %.',short:'⚠ diabolo above M 0.80'});
   if(m==='transonic')w.push({long:'⚠ The flight passes through the transonic zone (Mach 0.8–1.2) — BC uncertainty ±30–50 %.',short:'⚠ transonic'});
   return w;
@@ -1912,7 +1916,7 @@ const QDEF={
 };
 let UNITS={range:'m',zrange:'m',drop:'mm',ang:'mrad',sight:'mm',vel:'ms',wind:'ms',temp:'c',pres:'hpa',energy:'j',twist:'in',bullet:'mm',tsize:'mm',alt:'m',regp:'bar'};
 let SUNITS={range:'off',zrange:'off',drop:'off',ang:'off',sight:'off',vel:'off',wind:'off',temp:'off',pres:'off',energy:'off',twist:'off',bullet:'off',tsize:'off',alt:'off',regp:'off'};
-let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,solverStations:false,turretMode:'match',solverCor:false,solverSpin:false,solverAJ:false,lat:46.05,benchId:null,rfFill:true};
+let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:'auto',wakeLock:false,contrast:'normal',fontScale:'m',homeWindSrc:'avg',windAvgS:60,windStations:true,rangeId:null,solverStations:false,turretMode:'match',solverCor:false,solverSpin:false,solverAJ:false,lat:46.05,benchId:null,rfFill:true,numFmt:'eu'};
 /* V2.16.1 D-05: stored and imported preferences are checked before use — a unit must be one QDEF offers
    (secondary units also 'off'); an app setting must be one the app knows, with its type: the defaults' own
    type (null defaults: text or null), or for settings saved later the type below, or null. Objects and
@@ -1979,7 +1983,26 @@ function cloneProfile(t,id){
   coll.push(copy);saveDB();renderProfiles();Bus.notify();
 }
 function cv(q,v,u){return QDEF[q].to[u](v);}
-function fmtv(q,v,u){return cv(q,v,u).toFixed(QDEF[q].dp[u]);}
+/* ═════ V2.18.0 CORE-27 — number format (owner: EU by default, switchable in Settings) ═════
+   One place to format and parse: every number shown or printed goes through fx() / decS() (or fmtv, which uses them);
+   every number field reads and writes through the CORE-15 input layer, which turns "280,5" into the canonical "280.5".
+   Storage, exports (JSON, CSV), share codes and computations always use the point. A field accepts either separator in
+   either format. URL ?numfmt=point|eu forces a format for that window without saving it (the regression suite runs
+   the dot-decimal suites with it). */
+const NUMFMT_URL=(()=>{try{const v=new URLSearchParams(location.search).get('numfmt');return v==='point'||v==='eu'?v:null;}catch(e){return null;}})();
+const numFmt=()=>NUMFMT_URL||(APP.numFmt==='point'?'point':'eu');
+const decS=s=>numFmt()==='eu'?String(s).replace(/\d+(?:\.\d+)+/g,m=>m.indexOf('.')===m.lastIndexOf('.')?m.replace('.',','):m):String(s);   // an already formatted number (or text holding numbers); dotted versions (2.18.0) untouched
+const fx=(x,dp)=>decS((+x).toFixed(dp));
+const decHtml=h=>numFmt()==='eu'?String(h).split(/(<[^>]*>)/).map(s=>s[0]==='<'?s:decS(s)).join(''):String(h);   // text between tags only — markup untouched
+/* Static text in the page markup (help, reference notes, option labels) is converted once at start and again when the
+   format changes; the original text is kept so switching back is exact. Built only from markup present before boot renders. */
+const STATIC_DEC=new Map();
+function staticDecInit(){
+  const w=document.createTreeWalker(document.body,4);let n;
+  while((n=w.nextNode()))if(/\d\.\d/.test(n.data)&&!(n.parentElement&&n.parentElement.closest('script,style,textarea,[data-nodec]')))STATIC_DEC.set(n,n.data);
+}
+function staticDecApply(){for(const[n,o]of STATIC_DEC)if(n.isConnected)n.data=decS(o);}
+function fmtv(q,v,u){return fx(cv(q,v,u),QDEF[q].dp[u]);}
 function lab(q,u){return QDEF[q].lab[u];}
 /* primary string */
 function up(q,v){const u=UNITS[q];return fmtv(q,v,u)+' '+lab(q,u);}
@@ -2000,12 +2023,15 @@ const U={
   drop:v=>fmtv('drop',v,UNITS.drop),
   dropU:()=>lab('drop',UNITS.drop),
   rng:v=>up('range',v),
-  velRaw:v=>cv('vel',v,UNITS.vel).toFixed(QDEF.vel.dp[UNITS.vel])
+  velRaw:v=>fx(cv('vel',v,UNITS.vel),QDEF.vel.dp[UNITS.vel])
 };
 function renderSettings(){
   const box=document.getElementById('settings-body');
   // display block
   let html=`<div class="panel"><h2>Display</h2>
+    <div class="fld"><label>Number format</label>
+      <div class="seg"><button class="${numFmt()==='eu'?'on':''}" onclick="setApp('numFmt','eu')">280,5 (EU)</button><button class="${numFmt()==='point'?'on':''}" onclick="setApp('numFmt','point')">280.5</button></div>
+      <div class="note">Every number shown or printed, and every number field. Fields accept a comma or a point either way; files and exports always use the point.${NUMFMT_URL?' (Forced to '+NUMFMT_URL+' by the page address for this window.)':''}</div></div>
     <div class="fld"><label>Dual-unit display (cards &amp; widget)</label>
       <div class="seg"><button class="${APP.dual?'on':''}" onclick="setApp('dual',true)">On</button><button class="${!APP.dual?'on':''}" onclick="setApp('dual',false)">Off</button></div></div>
     <div class="fld" style="margin-top:10px"><label>High-contrast mode (bright sun)</label>
@@ -2070,7 +2096,7 @@ async function renderStoreQuota(){
   try{
     if(!(navigator.storage&&navigator.storage.estimate))return;
     const q=await navigator.storage.estimate();const el=document.getElementById('store-quota');
-    if(el&&q.quota)el.textContent=`Site total (Main + Lab + offline cache): ${(q.usage/1048576).toFixed(1)} MB of ${(q.quota/1073741824).toFixed(1)} GB available`;
+    if(el&&q.quota)el.textContent=`Site total (Main + Lab + offline cache): ${fx((q.usage/1048576),1)} MB of ${fx((q.quota/1073741824),1)} GB available`;
   }catch(e){}
 }
 function setUnit(k,v){if(QDEF[k].locked)return;UNITS[k]=v;if(SUNITS[k]===v)SUNITS[k]='off';saveDB();renderSettings();rerenderAll();}
@@ -2120,7 +2146,7 @@ function setUnitPreset(n){
   Object.entries(P).forEach(([k,v])=>{if(QDEF[k].locked||!QDEF[k].opts[v])return;UNITS[k]=v;if(SUNITS[k]===v)SUNITS[k]='off';});
   saveDB();renderSettings();rerenderAll();
 }
-function setApp(k,v){APP[k]=v;saveDB();if(k==='contrast'||k==='fontScale')applyDisplayPrefs();if(k==='contrast'&&typeof themeApply==='function')themeApply(false);renderSettings();rerenderAll();}
+function setApp(k,v){APP[k]=v;saveDB();if(k==='numFmt')staticDecApply();if(k==='contrast'||k==='fontScale')applyDisplayPrefs();if(k==='contrast'&&typeof themeApply==='function')themeApply(false);renderSettings();rerenderAll();}
 function rerenderAll(){refreshUnits();if(lastTraj){renderTraj();renderQuick();}renderActBar();syncTrajInputs();}
 function downloadScopePrompt(){
   const schema=JSON.stringify({senScopeImport:1,scope:{name:"",sku:"",adjUnit:"mil",click:0.1,cpr:100,elev:0,wind:0,source:"",notes:""},reticle:{id:"",name:"",fp:"FFP",dotMrad:0,hashes:[],windHashes:[],verified:false,notes:""}},null,2);
@@ -2921,7 +2947,7 @@ function sessionJump(crossNow,crossZero){
   if(p&&p.type==='pellet')return{why:'pellet (drag-stabilised, no Sg)'};
   if(r&&r.twistDir==='smooth')return{why:'smooth bore'};
   const now=sessionSg();if(!now)return{why:'no Sg for this projectile'};
-  if(now.sg<1)return{why:'Sg '+now.sg.toFixed(2)+' below 1.0 — not gyroscopically stable'};
+  if(now.sg<1)return{why:'Sg '+fx(now.sg,2)+' below 1.0 — not gyroscopically stable'};
   const z=zeroConds(),L=p.oal/p.diam,sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,projC(p).c,z.temp,z.pres);
   const jNow=aeroJumpMoa(now.sg,L,crossNow,now.twistDir),jZero=crossZero?aeroJumpMoa(sgZ,L,crossZero,now.twistDir):0;
   if(jNow==null||jZero==null)return{why:'Sg below 1.0 in the zero air'};
@@ -3050,15 +3076,15 @@ function renderQuick(){
       elev={cl:sol.clElev,mr:sol.mrElev,rem:remElevMrad};wind={cl:sol.clWind,mr:sol.mrWind,rem:remWindMrad};
       updateTurretUI(dialE,remElevMrad,remWindMrad,au,aLbl);
       document.getElementById('home-elev').textContent=(sol.clElev>=0?'↑':'↓')+Math.abs(sol.clElev).toFixed(0);
-      document.getElementById('home-elev-u').textContent=angInUnit(Math.abs(sol.mrElev),au).toFixed(2)+' '+aLbl;
+      document.getElementById('home-elev-u').textContent=fx(angInUnit(Math.abs(sol.mrElev),au),2)+' '+aLbl;
       document.getElementById('home-wind').textContent=(sol.clWind>=0?'→':'←')+Math.abs(sol.clWind).toFixed(0);
-      document.getElementById('home-wind-u').textContent=angInUnit(Math.abs(sol.mrWind),au).toFixed(2)+' '+aLbl;
-      statusMsg=`${getProj().name} · ${U.velRaw(sol.tp.v)} ${lab('vel',UNITS.vel)} @ ${uq('range',S.dist_m)} · M ${sol.tp.mach.toFixed(2)}`+(!tr.cValid?(tr.cWhy==='pellet'?'':` · ⚠ Sg not computed (${tr.cWhy==='ld'?'L/D < 2.0':'no length'})`):(tr.sgP<1?` · Sg ${tr.sg.toFixed(2)} BC×${tr.sgP.toFixed(3)}`:''))
+      document.getElementById('home-wind-u').textContent=fx(angInUnit(Math.abs(sol.mrWind),au),2)+' '+aLbl;
+      statusMsg=`${getProj().name} · ${U.velRaw(sol.tp.v)} ${lab('vel',UNITS.vel)} @ ${uq('range',S.dist_m)} · M ${fx(sol.tp.mach,2)}`+(!tr.cValid?(tr.cWhy==='pellet'?'':` · ⚠ Sg not computed (${tr.cWhy==='ld'?'L/D < 2.0':'no length'})`):(tr.sgP<1?` · Sg ${fx(tr.sg,2)} BC×${fx(tr.sgP,3)}`:''))
         +dopeWarns(tr.pts,getProj().type,tr.cValid?tr.sg:null,S.dist_m).map(x=>' · '+x.short).join('')   // V2.17.0 P-08 / P-09
         +(cant&&sol.cantX!=null?` · ⚠ cant ${Math.abs(cant)}° ${cant>0?'R':'L'} → impact ${uq('drop',Math.abs(sol.cantX))} ${sol.cantX>=0?'right':'left'}, ${uq('drop',Math.abs(sol.cantY))} low — level the rifle`:'');
       if(scope&&scope.railOn){
         const dialingUp=sol.clElev>=0, avail=dialingUp?scope.upClicks:scope.downClicks;
-        document.getElementById('home-rail-note').innerHTML=`Solution needs ${Math.abs(sol.clElev).toFixed(0)} clicks ${dialingUp?'UP':'DOWN'} (avail ${avail}). Rail offset ${homeRailOff} ${angLabel(scope.railUnit)} pre-dialed → reticle shows remaining ${angInUnit(remElevMrad,au).toFixed(2)} ${aLbl} hold.`;
+        document.getElementById('home-rail-note').innerHTML=`Solution needs ${Math.abs(sol.clElev).toFixed(0)} clicks ${dialingUp?'UP':'DOWN'} (avail ${avail}). Rail offset ${homeRailOff} ${angLabel(scope.railUnit)} pre-dialed → reticle shows remaining ${fx(angInUnit(remElevMrad,au),2)} ${aLbl} hold.`;
       }
     }
   }
@@ -3120,7 +3146,7 @@ function drawGenericReticle(ret,elev,wind,scope){
   ret.windHashes.forEach(h=>{if(!vis(h))return;const len=(Math.round(h*2)%2===0)?12:7;s+=`<line x1="${X(h)}" y1="${cy-len}" x2="${X(h)}" y2="${cy+len}" stroke="${tc('retHash2')}" stroke-width="1.4"/><line x1="${X(-h)}" y1="${cy-len}" x2="${X(-h)}" y2="${cy+len}" stroke="${tc('retHash2')}" stroke-width="1.4"/>`;});
   s+=`<circle cx="${cx}" cy="${cy}" r="${Math.max(2,(ret.dotMrad||0.05)*sc)}" fill="${tc('retDot2')}"/>`;
   if(elev&&wind){const holdE=(elev.rem!=null?elev.rem:elev.mr),holdW=(wind.rem!=null?wind.rem:wind.mr);const off=Math.abs(holdW)>span||Math.abs(holdE)>span;const px=Math.max(12,Math.min(S2-12,X(holdW))),py=Math.max(12,Math.min(S2-12,Y(holdE)));s+=`<circle cx="${px}" cy="${py}" r="8" fill="${off?tc('retOff'):tc('retHold')}" stroke="${tc('retBg')}" stroke-width="2"/>`;if(off)s+=`<text x="${px}" y="${py-13}" fill="${tc('retOffTxt')}" font-size="11" font-family="monospace" text-anchor="middle">off-glass · lower ×</text>`;}
-  s+=`<text x="${S2-10}" y="${S2-10}" fill="${tc('retCap')}" font-size="10" font-family="monospace" text-anchor="end">${mag}× · ±${span.toFixed(1)} mil</text>`;
+  s+=`<text x="${S2-10}" y="${S2-10}" fill="${tc('retCap')}" font-size="10" font-family="monospace" text-anchor="end">${mag}× · ±${fx(span,1)} mil</text>`;
   return s+`</svg>`;
 }
 /* V1.17.0: collapsed Home panels must still report their state, and the first-run card must
@@ -3182,20 +3208,20 @@ function renderHolds(){
     if(h<ret.hashes[0]/2)return 'center';
     const n=ret.hashes.reduce((b,x)=>Math.abs(x-h)<Math.abs(b-h)?x:b);
     const d=h-n;
-    return `${n} ${aLbl==='MOA'?'mrad':aLbl} line ${Math.abs(d)<0.02?'':(d>0?'+':'−')+Math.abs(d).toFixed(2)}`.trim();
+    return `${n} ${aLbl==='MOA'?'mrad':aLbl} line ${Math.abs(d)<0.02?'':(d>0?'+':'−')+fx(Math.abs(d),2)}`.trim();
   };
   let rows='',data=[];
   for(let d=from;d<=to+1e-9;d+=st){
     const p=nearestPt(tr.pts,d);if(!p)continue;
     const hold=-p.drop/d, wmr=Math.abs(windDrift(p.tof,d,S.mv,wref))/d;
     data.push({d,hold,wmr});
-    rows+=`<tr><td>${ut('range',d)}</td><td>${hold>=0?'↑':'↓'}${angInUnit(Math.abs(hold),au).toFixed(2)} ${aLbl}</td><td>${(hold/clickStep).toFixed(1)}</td><td>${hold>0?mark(hold):'above center'}</td><td>±${angInUnit(wmr,au).toFixed(2)} ${aLbl}</td></tr>`;
+    rows+=`<tr><td>${ut('range',d)}</td><td>${hold>=0?'↑':'↓'}${fx(angInUnit(Math.abs(hold),au),2)} ${aLbl}</td><td>${fx((hold/clickStep),1)}</td><td>${hold>0?mark(hold):'above center'}</td><td>±${fx(angInUnit(wmr,au),2)} ${aLbl}</td></tr>`;
   }
   tb.innerHTML=rows||'<tr><td colspan="5">No points in range.</td></tr>';
   document.getElementById('hd-title').textContent=`Holdover · zero ${uq('zrange',zeroConds().range)} · ${getProj()?.name||''} · wind ref ${uq('wind',wref)}`;
   fb.innerHTML=(ret?'':`<div class="flag info">No reticle on the active scope — holds in ${aLbl} only.</div>`)
     +(ret&&!ret.verified?`<div class="flag warn">Reticle subtensions are estimated — check the marks against the manual before holding.</div>`:'')   // V2.16.5 W-05
-    +(tr.sg!=null&&tr.sg<1.5?`<div class="flag warn">Sg ${tr.sg.toFixed(2)} — BC penalty active in these holds.</div>`:'')
+    +(tr.sg!=null&&tr.sg<1.5?`<div class="flag warn">Sg ${fx(tr.sg,2)} — BC penalty active in these holds.</div>`:'')
     +warnFlags(dopeWarns(tr.pts,getProj()?.type,tr.cValid?tr.sg:null,to));   // V2.17.0 P-08 / P-09
   lastHolds={from,to,st,wref,data,aLbl,au,clickStep,ret};
 }
@@ -3203,7 +3229,7 @@ function printHolds(){
   if(!lastHolds){alert('Compute the table first.');return;}
   const L=lastHolds,z=zeroConds();
   let h=`<div class="pd"><h1>HOLDS — ${esc(getRifle()?.name||'')} · ${esc(getProj()?.name||'')}</h1><div class="pdm">Turret AT ZERO (${ut('zrange',z.range)}) · wind ref ${ut('wind',L.wref)} full value · MV ${ut('vel',S.mv)}</div><table><thead><tr><th>Range</th><th>Hold ${L.aLbl}</th><th>Reticle${L.ret&&!L.ret.verified?' (estimated)':''}</th><th>Wind ±${L.aLbl}</th></tr></thead><tbody>`;
-  L.data.forEach(x=>{h+=`<tr><td>${ut('range',x.d)}</td><td>${x.hold>=0?'↑':'↓'}${angInUnit(Math.abs(x.hold),L.au).toFixed(2)}</td><td>${x.hold>0&&L.ret?esc(String((L.ret.hashes.reduce((b,q)=>Math.abs(q-x.hold)<Math.abs(b-x.hold)?q:b)))):'above'}</td><td>${angInUnit(x.wmr,L.au).toFixed(2)}</td></tr>`;});
+  L.data.forEach(x=>{h+=`<tr><td>${ut('range',x.d)}</td><td>${x.hold>=0?'↑':'↓'}${fx(angInUnit(Math.abs(x.hold),L.au),2)}</td><td>${x.hold>0&&L.ret?esc(String((L.ret.hashes.reduce((b,q)=>Math.abs(q-x.hold)<Math.abs(b-x.hold)?q:b)))):'above'}</td><td>${fx(angInUnit(x.wmr,L.au),2)}</td></tr>`;});
   h+='</tbody></table></div>';
   document.getElementById('print-content').innerHTML=h;window.print();
 }
@@ -3220,7 +3246,7 @@ function updateTurretUI(dialE,remE,remW,au,aLbl){
     return;
   }
   if(ev)ev.textContent=fmtE(dialE)+' clk'+(turretElevMode==='match'?' · auto':'');
-  if(note)note.textContent=`Reticle dot = remaining hold: elev ${remE>=0?'↑':'↓'}${angInUnit(Math.abs(remE),au).toFixed(2)} ${aLbl} · wind ${remW>=0?'→':'←'}${angInUnit(Math.abs(remW),au).toFixed(2)} ${aLbl}. Solution cells show the FULL dial from turret zero.`;
+  if(note)note.textContent=`Reticle dot = remaining hold: elev ${remE>=0?'↑':'↓'}${fx(angInUnit(Math.abs(remE),au),2)} ${aLbl} · wind ${remW>=0?'→':'←'}${fx(angInUnit(Math.abs(remW),au),2)} ${aLbl}. Solution cells show the FULL dial from turret zero.`;
 }
 function setHomeWindSrc(src){
   homeWindSrc=src;APP.homeWindSrc=src;saveDB();
@@ -3267,7 +3293,7 @@ function homeManWind(){
   const rel=((wb-tb)%360+360)%360;
   dbnc('hm-wind',()=>Bus.setWind(sp,rel,'manual'));  // debounced like Wind-tab onWindInput — no select-rebuild churn per keystroke
   const xfS=Math.sin(rel*Math.PI/180);
-  nt.textContent='→ relative '+rel.toFixed(0)+'° · crosswind factor '+Math.abs(xfS).toFixed(2)+(Math.abs(xfS)<0.05?' · head/tail':xfS>0?' · from the RIGHT':' · from the LEFT')+' · session wind set.';
+  nt.textContent='→ relative '+rel.toFixed(0)+'° · crosswind factor '+fx(Math.abs(xfS),2)+(Math.abs(xfS)<0.05?' · head/tail':xfS>0?' · from the RIGHT':' · from the LEFT')+' · session wind set.';
 }
 function homeManWindLock(){
   const lock=homeLive||windMode==='live';
@@ -3309,7 +3335,7 @@ function syncTrajInputs(){
   if(zdisp)zdisp.innerHTML=getRifle()?`${uq('zrange',z.range)} · ${uq('temp',z.temp)} · ${uq('pres',z.pres)} station · ${z.rh}% RH · wind ${uq('wind',z.wSpd)} @ ${z.wDir}°`:'— select a rifle —';
   if(S.ct!=null){
     const rz=airDensity(z.temp,z.pres,z.rh),rc=airDensity(S.ct,S.cp,S.crh);
-    document.getElementById('tr-atmo-note').textContent=`ρ zero ${rz.toFixed(4)} · ρ current ${rc.toFixed(4)} kg/m³ · zero shift computed by two-pass solve (BC unscaled — §11I)`;
+    document.getElementById('tr-atmo-note').textContent=`ρ zero ${fx(rz,4)} · ρ current ${fx(rc,4)} kg/m³ · zero shift computed by two-pass solve (BC unscaled — §11I)`;
   }
 }
 let _selSig='';
@@ -3417,7 +3443,7 @@ function runTraj(silent){
     const cInfo=projC(p);
     if(cInfo.valid){
       const sg=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,cInfo.c,S.ct,S.cp);
-      if(sg<1.5){sgPenalty=bcEffSg(1,sg);sgNote=` · Sg ${sg.toFixed(2)}<1.5 → BC ×${sgPenalty.toFixed(3)}${cInfo.why==='profile'?' (profile C)':' (Miller)'}`;}
+      if(sg<1.5){sgPenalty=bcEffSg(1,sg);sgNote=decS(` · Sg ${fx(sg,2)}<1.5 → BC ×${fx(sgPenalty,3)}${cInfo.why==='profile'?' (profile C)':' (Miller)'}`);}
       const sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,cInfo.c,z.temp,z.pres);
       if(sgZ<1.5)sgPenaltyZ=bcEffSg(1,sgZ);
     }else{
@@ -3470,11 +3496,11 @@ function renderTraj(){
   let outs='';
   if(tp&&zp){
     const dd=-tp.drop, mr=toMrad(dd,S.dist_m), cl=mr/click;
-    outs=`<div class="sc accent"><div class="sl">Clicks</div><div class="sv">${cl>=0?'↑':'↓'}${Math.abs(cl).toFixed(0)}</div><div class="su">${mr.toFixed(2)} mrad from zero</div></div>`+
+    outs=`<div class="sc accent"><div class="sl">Clicks</div><div class="sv">${cl>=0?'↑':'↓'}${Math.abs(cl).toFixed(0)}</div><div class="su">${fx(mr,2)} mrad from zero</div></div>`+
          `<div class="sc"><div class="sl">Drop vs LOS</div><div class="sv">${U.drop(tp.drop)}</div><div class="su">${U.dropU()}</div></div>`+
-         `<div class="sc"><div class="sl">Velocity</div><div class="sv">${U.velRaw(tp.v)}</div><div class="su">${lab('vel',UNITS.vel)} · M ${tp.mach.toFixed(2)}</div></div>`+
+         `<div class="sc"><div class="sl">Velocity</div><div class="sv">${U.velRaw(tp.v)}</div><div class="su">${lab('vel',UNITS.vel)} · M ${fx(tp.mach,2)}</div></div>`+
          `<div class="sc gold"><div class="sl">Energy</div><div class="sv">${fmtv('energy',tp.E,UNITS.energy)}</div><div class="su">${lab('energy',UNITS.energy)}</div></div>`+
-         `<div class="sc"><div class="sl">TOF</div><div class="sv" style="font-size:18px">${tp.tof.toFixed(3)}</div><div class="su">s</div></div>`;
+         `<div class="sc"><div class="sl">TOF</div><div class="sv" style="font-size:18px">${fx(tp.tof,3)}</div><div class="su">s</div></div>`;
   }else{outs='<div class="sc"><div class="sv" style="font-size:13px;color:var(--warn)">Target distance outside computed range — adjust max range or step.</div></div>';}
   document.getElementById('tr-outs').innerHTML=outs;
   // flags
@@ -3483,16 +3509,16 @@ function renderTraj(){
   // the physical zero shift. Dope stays relative to zero-range impact; surface the shift explicitly.
   if(zp&&Math.abs(zp.drop)>2)flags+=`<div class="flag warn">Zero shift ${zp.drop>0?'+':''}${uq('drop',zp.drop)} at ${uq('zrange',S.zero_m)} (zero vs current atmosphere delta) — impacts print ${zp.drop>0?'HIGH':'LOW'} at your zero range; dial from your turret zero already INCLUDES this shift (absolute convention).</div>`;
   flags+=warnFlags(dopeWarns(pts,getProj()?.type,sessionSg()?.sg??null));   // V2.17.0 P-08 / P-09 (whole table)
-  flags+=`<div class="flag info">BC_eff ${bcEff.toFixed(4)} lb/in² (${(bcEff*LB2KGM2).toFixed(1)} kg/m²) · ρ ${rhoC.toFixed(4)} kg/m³ · Vs ${uq('vel',aS)}${lastTraj_sgNote}</div>`;
+  flags+=`<div class="flag info">BC_eff ${fx(bcEff,4)} lb/in² (${fx((bcEff*LB2KGM2),1)} kg/m²) · ρ ${fx(rhoC,4)} kg/m³ · Vs ${uq('vel',aS)}${lastTraj_sgNote}</div>`;
   document.getElementById('tr-flags').innerHTML=flags;
   // table
   document.getElementById('tr-tbody').innerHTML=pts.map(q=>{
     const dd=-q.drop, mr=toMrad(dd,q.range), moa=toMOA(dd,q.range), cl=mr/click;
     const isZ=Math.abs(q.range-S.zero_m)<lastTraj.step/2, isT=Math.abs(q.range-S.dist_m)<lastTraj.step/2&&!isZ;
     const clTxt=isZ?'— zero —':(cl>=0?'↑':'↓')+Math.abs(cl).toFixed(0);
-    return`<tr class="${isT?'hl':isZ?'zr':''}"><td>${ut('range',q.range)}</td><td>${U.drop(q.drop)}</td><td>${mr.toFixed(2)}</td><td>${moa.toFixed(2)}</td><td>${clTxt}</td><td>${U.velRaw(q.v)}</td><td>${q.mach.toFixed(2)}</td><td>${fmtv('energy',q.E,UNITS.energy)}</td><td>${q.tof.toFixed(3)}</td></tr>`;
+    return`<tr class="${isT?'hl':isZ?'zr':''}"><td>${ut('range',q.range)}</td><td>${U.drop(q.drop)}</td><td>${fx(mr,2)}</td><td>${fx(moa,2)}</td><td>${clTxt}</td><td>${U.velRaw(q.v)}</td><td>${fx(q.mach,2)}</td><td>${fmtv('energy',q.E,UNITS.energy)}</td><td>${fx(q.tof,3)}</td></tr>`;
   }).join('');
-  document.getElementById('tr-tnote').textContent=`${lastTraj.proj} · MV ${uq('vel',mv)} · drag ${S.drag.toUpperCase()} · clicks at ${click} mrad/click from turret zero (set at ${uq('zrange',S.zero_m)})`;
+  document.getElementById('tr-tnote').textContent=`${lastTraj.proj} · MV ${uq('vel',mv)} · drag ${S.drag.toUpperCase()} · clicks at ${decS(click)} mrad/click from turret zero (set at ${uq('zrange',S.zero_m)})`;
   drawChart();
 }
 function drawChart(){
@@ -3538,23 +3564,23 @@ function calcBC(){
   const hasFF=ff>0,bcg7=hasFF?sd/ff:0,bcg7k=bcg7*LB2KGM2,bcg1=g1ov||(hasFF?bcg7/0.509:0),bcg1k=bcg1*LB2KGM2;
   document.getElementById('bc-type-lbl').textContent=type==='pellet'?'pellet · G1':'slug · G7';
   document.getElementById('bc-outs').innerHTML=
-    `<div class="sc ${sd>=0.13?'green':'warn'}"><div class="sl">SD</div><div class="sv">${sd.toFixed(4)}</div><div class="su">lb/in²</div></div>`+
-    `<div class="sc accent"><div class="sl">BC G7</div><div class="sv">${hasFF?bcg7.toFixed(4):'—'}</div><div class="su">${hasFF?bcg7.toFixed(4)+' lb/in² · '+bcg7k.toFixed(1)+' kg/m²':'enter form factor'}</div></div>`+
-    `<div class="sc"><div class="sl">BC G1</div><div class="sv">${bcg1?bcg1.toFixed(4):'—'}</div><div class="su">${bcg1?'lb/in²'+(g1ov?' (set)':' (est)'):'pending'}</div></div>`+
-    `<div class="sc gold"><div class="sl">L/D</div><div class="sv">${oal>0?ld.toFixed(3):'—'}</div><div class="su">mass ${mg.toFixed(2)} g</div></div>`;
+    `<div class="sc ${sd>=0.13?'green':'warn'}"><div class="sl">SD</div><div class="sv">${fx(sd,4)}</div><div class="su">lb/in²</div></div>`+
+    `<div class="sc accent"><div class="sl">BC G7</div><div class="sv">${hasFF?fx(bcg7,4):'—'}</div><div class="su">${hasFF?fx(bcg7,4)+' lb/in² · '+fx(bcg7k,1)+' kg/m²':'enter form factor'}</div></div>`+
+    `<div class="sc"><div class="sl">BC G1</div><div class="sv">${bcg1?fx(bcg1,4):'—'}</div><div class="su">${bcg1?'lb/in²'+(g1ov?' (set)':' (est)'):'pending'}</div></div>`+
+    `<div class="sc gold"><div class="sl">L/D</div><div class="sv">${oal>0?fx(ld,3):'—'}</div><div class="su">mass ${fx(mg,2)} g</div></div>`;
   let fl='';
   if(!hasFF)fl+=`<div class="flag info">Form factor not set for this projectile — SD shown; enter a form factor or true the BC in the Truing tab to compute BC.</div>`;
-  if(hasFF&&(bcg7<0.05||bcg7>0.4))fl+=`<div class="flag warn">BC G7 ${bcg7.toFixed(3)} lb/in² outside expected airgun range.</div>`;
-  if(sd<0.1)fl+=`<div class="flag warn">SD ${sd.toFixed(4)} below 0.100 minimum.</div>`;
+  if(hasFF&&(bcg7<0.05||bcg7>0.4))fl+=`<div class="flag warn">BC G7 ${fx(bcg7,3)} lb/in² outside expected airgun range.</div>`;
+  if(sd<0.1)fl+=`<div class="flag warn">SD ${fx(sd,4)} below 0.100 minimum.</div>`;
   if(oal>25)fl+=`<div class="flag warn">OAL ${uq('bullet',oal)} exceeds ${uq('bullet',25)} single-shot limit.</div>`;
   else if(oal>22)fl+=`<div class="flag warn">OAL ${uq('bullet',oal)} > ${uq('bullet',22)} — single-shot only (over magazine limit).</div>`;
   if(type==='pellet')fl+=`<div class="flag info">Diabolo: use G1/GA, invalid above Mach 0.80. GA drag model planned.</div>`;
   document.getElementById('bc-flags').innerHTML=fl;
-  const row=(lbl,thisV,q,pct)=>`<tr><td>${lbl}</td><td>${thisV}</td><td>${q}</td><td style="color:${pct>=0?'var(--green)':'var(--warn)'}">${pct>=0?'+':''}${pct.toFixed(1)}%</td></tr>`;
+  const row=(lbl,thisV,q,pct)=>`<tr><td>${lbl}</td><td>${thisV}</td><td>${q}</td><td style="color:${pct>=0?'var(--green)':'var(--warn)'}">${pct>=0?'+':''}${fx(pct,1)}%</td></tr>`;
   document.getElementById('bc-bench').innerHTML=
-    row('SD lb/in²',sd.toFixed(4),'0.137',(sd-0.137)/0.137*100)+
-    (hasFF?row('BC G7 lb/in²',bcg7.toFixed(4),'0.128',(bcg7-0.128)/0.128*100)+
-    row('BC G7 kg/m²',bcg7k.toFixed(1),'90.0',(bcg7k-90)/90*100):'');
+    row('SD lb/in²',fx(sd,4),decS('0.137'),(sd-0.137)/0.137*100)+
+    (hasFF?row('BC G7 lb/in²',fx(bcg7,4),decS('0.128'),(bcg7-0.128)/0.128*100)+
+    row('BC G7 kg/m²',fx(bcg7k,1),decS('90.0'),(bcg7k-90)/90*100):'');
 }
 
 /* ═════════ A2 — STABILITY (Berger built-in) ═════════ */
@@ -3587,14 +3613,14 @@ function calcStab(){
   if(!cValid){
     // C cannot be verified for this calibre/geometry — do NOT show an Sg number (§11E, §20A).
     document.getElementById('st-cmode').textContent=stabKind.pellet?'pellet':'outside Miller range';
-    const ld=(oal/d).toFixed(2);
+    const ld=fx((oal/d),2);
     document.getElementById('st-outs').innerHTML=
       `<div class="sc" style="--c:var(--warn)"><div class="sl">Sg muzzle</div><div class="sv" style="color:var(--warn);font-size:15px">not computed</div><div class="su">${stabKind.pellet?'drag-stabilised':'L/D < 2.0'}</div></div>`+
       `<div class="sc"><div class="sl">Sg @ M0.80</div><div class="sv" style="font-size:15px">—</div><div class="su">subsonic floor</div></div>`+
       `<div class="sc"><div class="sl">Sg worst-case</div><div class="sv" style="font-size:15px">—</div><div class="su">${ut('temp',-5)} SL ${ut('vel',229)}</div></div>`+
-      `<div class="sc gold"><div class="sl">Twist</div><div class="sv">1:${twIn.toFixed(1)}″</div><div class="su">L/D ${ld}</div></div>`;
+      `<div class="sc gold"><div class="sl">Twist</div><div class="sv">1:${fx(twIn,1)}″</div><div class="su">L/D ${ld}</div></div>`;
     document.getElementById('st-sgbar').style.width='0%';
-    document.getElementById('st-flags').innerHTML=stabKind.pellet?'<div class="flag info">Diabolo pellets are drag-stabilised (heavy head, hollow skirt). The Miller/Berger formula assumes a solid bullet of even density, so it gives no meaningful Sg for a pellet. Judge pellets by measured BC holding steady over distance, groups and yaw cards.</div>':`<div class="flag warn">⚠ L/D ${(oal/d).toFixed(2)} is below 2.0 — outside the range the Miller formula was fitted on, so Sg is not computed. Enter a measured or otherwise verified C to override.</div>`;
+    document.getElementById('st-flags').innerHTML=stabKind.pellet?'<div class="flag info">Diabolo pellets are drag-stabilised (heavy head, hollow skirt). The Miller/Berger formula assumes a solid bullet of even density, so it gives no meaningful Sg for a pellet. Judge pellets by measured BC holding steady over distance, groups and yaw cards.</div>':`<div class="flag warn">⚠ L/D ${fx((oal/d),2)} is below 2.0 — outside the range the Miller formula was fitted on, so Sg is not computed. Enter a measured or otherwise verified C to override.</div>`;
     document.getElementById('st-twist-tbl').innerHTML='<tr><td colspan="4" style="color:var(--warn)">No twist recommendation without an Sg.</td></tr>';
     renderMcGyro(d,m,oal,twIn,mv,tC,null);
     return;
@@ -3602,23 +3628,23 @@ function calcStab(){
   const sg=calcSg(m,d,oal,tw,mv,C,tC,hPa),
         sgWC=calcSg(m,d,oal,tw,229,C,-5,1013),
         sgM08=calcSg(m,d,oal,tw,sos(tC)*0.8,C,tC,hPa);
-  document.getElementById('st-cmode').textContent=(cIn&&cIn>=0.5?'C override = ':'Miller C = ')+C.toFixed(3);
+  document.getElementById('st-cmode').textContent=(cIn&&cIn>=0.5?'C override = ':'Miller C = ')+fx(C,3);
   document.getElementById('st-outs').innerHTML=
-    `<div class="sc" style="--c:${sgCol(sg)}"><div class="sl">Sg muzzle</div><div class="sv" style="color:${sgCol(sg)}">${sg.toFixed(2)}</div><div class="su">${sg>=1.5?'stable ✓':sg>=1.0?'marginal':'tumbles ✗'}</div></div>`+
-    `<div class="sc"><div class="sl">Sg @ M0.80</div><div class="sv" style="color:${sgCol(sgM08)}">${sgM08.toFixed(2)}</div><div class="su">subsonic floor</div></div>`+
-    `<div class="sc"><div class="sl">Sg worst-case</div><div class="sv" style="color:${sgCol(sgWC)}">${sgWC.toFixed(2)}</div><div class="su">${ut('temp',-5)} SL ${ut('vel',229)}</div></div>`+
-    `<div class="sc gold"><div class="sl">Twist</div><div class="sv">1:${twIn.toFixed(1)}″</div><div class="su">L/D ${(oal/d).toFixed(2)}</div></div>`;
+    `<div class="sc" style="--c:${sgCol(sg)}"><div class="sl">Sg muzzle</div><div class="sv" style="color:${sgCol(sg)}">${fx(sg,2)}</div><div class="su">${sg>=1.5?'stable ✓':sg>=1.0?'marginal':'tumbles ✗'}</div></div>`+
+    `<div class="sc"><div class="sl">Sg @ M0.80</div><div class="sv" style="color:${sgCol(sgM08)}">${fx(sgM08,2)}</div><div class="su">subsonic floor</div></div>`+
+    `<div class="sc"><div class="sl">Sg worst-case</div><div class="sv" style="color:${sgCol(sgWC)}">${fx(sgWC,2)}</div><div class="su">${ut('temp',-5)} SL ${ut('vel',229)}</div></div>`+
+    `<div class="sc gold"><div class="sl">Twist</div><div class="sv">1:${fx(twIn,1)}″</div><div class="su">L/D ${fx((oal/d),2)}</div></div>`;
   const bar=document.getElementById('st-sgbar');bar.style.width=Math.min(100,sg/3*100)+'%';bar.style.background=sgCol(sg);
   let fl='';
   if(stabKind.hp)fl+=`<div class="flag info">Hollow point: Miller assumes even density through the whole length; an air cavity breaks that (Courtney &amp; Miller). Treat this Sg as approximate and confirm with measured BC.</div>`;
-  if(sgWC<1.0)fl+=`<div class="flag warn">✗ Tumbles at global worst-case with 1:${twIn.toFixed(1)}″. Faster twist required.</div>`;
-  else if(sgWC<1.5)fl+=`<div class="flag warn">▲ Sg ${sgWC.toFixed(2)} at worst-case — below 1.5 accuracy threshold.</div>`;
-  if(sg<1.5&&sg>=1.0)fl+=`<div class="flag info">Under-stabilised: BC penalty factor ${bcEffSg(1,sg).toFixed(3)} (×${(sg/1.5).toFixed(2)}^0.4 per §4D).</div>`;
-  document.getElementById('st-flags').innerHTML=fl;
-  const tgts=[[1.0,'1.0 tumble floor'],[1.3,'1.3 marginal'],[1.5,'1.5 minimum ✓'],[1.7,'1.7 design'],[2.0,'2.0 ideal']];
+  if(sgWC<1.0)fl+=`<div class="flag warn">✗ Tumbles at global worst-case with 1:${fx(twIn,1)}″. Faster twist required.</div>`;
+  else if(sgWC<1.5)fl+=`<div class="flag warn">▲ Sg ${fx(sgWC,2)} at worst-case — below 1.5 accuracy threshold.</div>`;
+  if(sg<1.5&&sg>=1.0)fl+=`<div class="flag info">Under-stabilised: BC penalty factor ${fx(bcEffSg(1,sg),3)} (×${fx((sg/1.5),2)}^0.4 per §4D).</div>`;
+  document.getElementById('st-flags').innerHTML=decHtml(fl);   // CORE-27: thresholds in the text too
+  const tgts=[[1.0,'1.0 tumble floor'],[1.3,'1.3 marginal'],[1.5,'1.5 minimum ✓'],[1.7,'1.7 design'],[2.0,'2.0 ideal']].map(([v,l])=>[v,decS(l)]);
   document.getElementById('st-twist-tbl').innerHTML=tgts.map(([t,lbl])=>{
     const mTw=twistForSg(t,m,d,oal,229,C,-5,1013),ok=tw<=mTw;
-    return`<tr><td>${lbl}</td><td>1:${(mTw/25.4).toFixed(1)}″</td><td>${mTw.toFixed(0)} mm</td><td style="color:${ok?'var(--green)':'var(--warn)'}">${ok?'✓ sufficient':'faster needed'}</td></tr>`;
+    return`<tr><td>${lbl}</td><td>1:${fx((mTw/25.4),1)}″</td><td>${mTw.toFixed(0)} mm</td><td style="color:${ok?'var(--green)':'var(--warn)'}">${ok?'✓ sufficient':'faster needed'}</td></tr>`;
   }).join('');
   renderMcGyro(d,m,oal,twIn,mv,tC,C);
 }
@@ -3636,20 +3662,20 @@ function renderMcGyro(d,m,oal,twIn,mv,tC,C){
   const M=mv/sos(tC),hPa=+document.getElementById('st-pres').value;
   if(stabKind.pellet){outs.replaceChildren();flags.replaceChildren(flag('info','Pellets are drag-stabilised — no McGyro Sg.'));return;}
   if(!sh){outs.replaceChildren();flags.replaceChildren(flag('info','Enter nose length, Rt/R, meplat and base diameter (or fill them in the projectile profile) to get McGyro.'));return;}
-  if(M>MCG_MAX_MACH){outs.replaceChildren();flags.replaceChildren(flag('warn','Launch Mach '+M.toFixed(2)+' is above 0.95 — only McGyro\'s subsonic fit is used here.'));return;}
+  if(M>MCG_MAX_MACH){outs.replaceChildren();flags.replaceChildren(flag('warn','Launch Mach '+fx(M,2)+' is above 0.95 — only McGyro\'s subsonic fit is used here.'));return;}
   const tw=twIn/(d/25.4),r=mcgyroAir(sh,tw,mv,15,1013.25,0),ra=mcgyroAir(sh,tw,mv,tC,hPa,0);
   if(!r||!ra){outs.replaceChildren();flags.replaceChildren(flag('warn','McGyro gives no result for this shape (outside its fit).'));return;}
   const dIn=d/25.4,tw15=ra.n15*dIn,tw17=ra.n15*Math.sqrt(1.5/1.7)*dIn;
   const mil=C?calcSg(m,d,oal,twIn*25.4,mv,C,15,1013.25):null;
-  outs.replaceChildren(card('McGyro, standard air',r.sg.toFixed(2),'15 °C · 1013 hPa · M '+r.M.toFixed(2),sgCol(r.sg)),
-    card('Miller, standard air',mil==null?'—':mil.toFixed(2),'15 °C · 1013 hPa',mil==null?null:sgCol(mil)),
-    card('McGyro, your air',ra.sg.toFixed(2),ut('temp',tC)+' · M '+M.toFixed(2),sgCol(ra.sg)),
-    card('Twist for Sg 1.5','1:'+tw15.toFixed(1)+'″','McGyro, your air'),card('Twist for Sg 1.7','1:'+tw17.toFixed(1)+'″','McGyro, your air'));
+  outs.replaceChildren(card('McGyro, standard air',fx(r.sg,2),'15 °C · 1013 hPa · M '+fx(r.M,2),sgCol(r.sg)),
+    card('Miller, standard air',mil==null?'—':fx(mil,2),'15 °C · 1013 hPa',mil==null?null:sgCol(mil)),
+    card('McGyro, your air',fx(ra.sg,2),ut('temp',tC)+' · M '+fx(M,2),sgCol(ra.sg)),
+    card('Twist for Sg 1.5','1:'+fx(tw15,1)+'″','McGyro, your air'),card('Twist for Sg 1.7','1:'+fx(tw17,1)+'″','McGyro, your air'));
   const fl=[flag('info','Estimate (McCoy ±5 %). Standard air = 15 °C, 1013 hPa, dry; your air scales Sg by air density (confirmed against Geoffrey Kolbe\'s McGyro). Compare like for like: McGyro with Miller at standard air, and McGyro at your air with the Sg card above.')];
   if(stabKind.hp)fl.push(flag('info','Hollow point: McGyro also assumes a solid, evenly dense slug — treat as approximate.'));
   if(mil!=null){
     const diff=Math.abs(r.sg-mil)/mil,lo=Math.min(r.sg,mil);  // like for like: both at standard air
-    fl.push(diff>MCG_DISAGREE&&lo<1.5?flag('warn','Range-test candidate: McGyro '+r.sg.toFixed(2)+' vs Miller '+mil.toFixed(2)+' ('+(r.sg>mil?'+':'−')+Math.round(diff*100)+' %). The models disagree on whether this slug is fully stable in this barrel — see the range test sheet.')
+    fl.push(diff>MCG_DISAGREE&&lo<1.5?flag('warn','Range-test candidate: McGyro '+fx(r.sg,2)+' vs Miller '+fx(mil,2)+' ('+(r.sg>mil?'+':'−')+Math.round(diff*100)+' %). The models disagree on whether this slug is fully stable in this barrel — see the range test sheet.')
       :flag('ok','McGyro and Miller '+(diff<=MCG_DISAGREE?'agree within '+Math.round(MCG_DISAGREE*100)+' %':'both say ≥ 1.5')+' — not a deciding test for this slug.'));
   }
   flags.replaceChildren(...fl);
@@ -3706,15 +3732,15 @@ function renderWind(){
     const wd=windDrift(tp.tof,S.dist_m,mv,cross),mr=toMrad(wd,S.dist_m),cl=mr/click;
     document.getElementById('wd-outs').innerHTML=
       `<div class="sc gold"><div class="sl">Drift</div><div class="sv">${U.drop(wd)}</div><div class="su">${U.dropU()} @ ${uq('wind',spd)}</div></div>`+
-      `<div class="sc accent"><div class="sl">Hold / clicks</div><div class="sv">${sideArrow}${Math.abs(cl).toFixed(0)}</div><div class="su">${angInUnit(mr,au).toFixed(2)} ${aLbl}${sideTxt?' · '+sideTxt:''}</div></div>`+
+      `<div class="sc accent"><div class="sl">Hold / clicks</div><div class="sv">${sideArrow}${Math.abs(cl).toFixed(0)}</div><div class="su">${fx(angInUnit(mr,au),2)} ${aLbl}${sideTxt?' · '+sideTxt:''}</div></div>`+
       `<div class="sc"><div class="sl">Crosswind</div><div class="sv">${un('wind',cross)}</div><div class="su">${lab('wind',UNITS.wind)} component</div></div>`;
   }
   document.getElementById('wd-tbody').innerHTML=pts.map(q=>{
     const wd=windDrift(q.tof,q.range,mv,cross),mr=toMrad(wd,q.range),cl=mr/click;
     const isT=Math.abs(q.range-S.dist_m)<lastTraj.step/2;
-    return`<tr class="${isT?'hl':''}"><td>${ut('range',q.range)}</td><td>${q.tof.toFixed(3)}</td><td>${q.lag.toFixed(3)}</td><td>${U.drop(wd)}</td><td>${mr.toFixed(2)}</td><td>${angInUnit(mr,'moa').toFixed(2)}</td><td>${q.range>0?Math.abs(cl).toFixed(0):'—'}</td></tr>`;
+    return`<tr class="${isT?'hl':''}"><td>${ut('range',q.range)}</td><td>${fx(q.tof,3)}</td><td>${fx(q.lag,3)}</td><td>${U.drop(wd)}</td><td>${fx(mr,2)}</td><td>${fx(angInUnit(mr,'moa'),2)}</td><td>${q.range>0?Math.abs(cl).toFixed(0):'—'}</td></tr>`;
   }).join('');
-  document.getElementById('wd-tnote').textContent=`${lastTraj.proj} · MV ${uq('vel',mv)} · crosswind ${uq('wind',cross)} (${un('wind',spd)}×${xf.toFixed(2)}) · clicks at ${_sc?_sc.click:0.1} ${aLbl}`;
+  document.getElementById('wd-tnote').textContent=`${lastTraj.proj} · MV ${uq('vel',mv)} · crosswind ${uq('wind',cross)} (${un('wind',spd)}×${fx(xf,2)}) · clicks at ${decS(_sc?_sc.click:0.1)} ${aLbl}`;
 }
 
 /* ═════════ A5 — BALLISTIC SOLVER ═════════ */
@@ -3764,13 +3790,13 @@ function solve(){
   const mrElev=sol.mrElev-(APP.solverCor?coV/tdist:0)-ajMm/tdist;
   const mrWind=sol.mrWind-((APP.solverCor?coH:0)+(sdMm??0))/tdist;
   const clElev=mrElev/clickStep, clWind=mrWind/clickStep;
-  const elevDisp=angInUnit(mrElev,au).toFixed(2), windDisp=angInUnit(mrWind,au).toFixed(2);
+  const elevDisp=fx(angInUnit(mrElev,au),2), windDisp=fx(angInUnit(mrWind,au),2);
   document.getElementById('sv-outs').innerHTML=
     `<div class="sc accent"><div class="sl">Elevation</div><div class="sv">${clElev>=0?'↑':'↓'}${Math.abs(clElev).toFixed(0)}</div><div class="su">clicks · ${elevDisp} ${aLbl}</div></div>`+
     `<div class="sc gold"><div class="sl">Windage</div><div class="sv">${clWind>=0?'→':'←'}${Math.abs(clWind).toFixed(0)}</div><div class="su">clicks · ${windDisp} ${aLbl}</div></div>`+
-    `<div class="sc"><div class="sl">Velocity</div><div class="sv">${U.velRaw(tp.v)}</div><div class="su">${lab('vel',UNITS.vel)} · M ${tp.mach.toFixed(2)}</div></div>`+
+    `<div class="sc"><div class="sl">Velocity</div><div class="sv">${U.velRaw(tp.v)}</div><div class="su">${lab('vel',UNITS.vel)} · M ${fx(tp.mach,2)}</div></div>`+
     `<div class="sc"><div class="sl">Energy</div><div class="sv" style="font-size:18px">${fmtv('energy',tp.E,UNITS.energy)}</div><div class="su">${lab('energy',UNITS.energy)}</div></div>`+
-    `<div class="sc"><div class="sl">TOF</div><div class="sv" style="font-size:18px">${tp.tof.toFixed(3)}</div><div class="su">s</div></div>`;
+    `<div class="sc"><div class="sl">TOF</div><div class="sv" style="font-size:18px">${fx(tp.tof,3)}</div><div class="su">s</div></div>`;
   // ── asymmetric travel budget: dialing UP (clElev>0) checks up budget; DOWN checks down budget ──
   let fl='';
   if(scope&&scope.totalElevMrad){
@@ -3779,22 +3805,22 @@ function solve(){
     const pct=avail>0?Math.min(100,sideClicks/avail*100):100;
     const bar=document.getElementById('sv-travelbar');bar.style.width=pct+'%';
     bar.style.background=pct>=100?'var(--red)':pct>=80?'var(--warn)':'var(--green)';
-    document.getElementById('sv-travel-note').innerHTML=`${sideClicks.toFixed(0)} of ${avail} clicks ${dialingUp?'UP':'DOWN'} available · ${pct.toFixed(0)}% used<br>Total ${scope.totalClicks} clicks (${angInUnit(scope.totalElevMrad,au).toFixed(1)} ${aLbl}) = turret ${scope.elev} ${aLbl}${scope.railOn?' + rail '+scope.railVal+' '+angLabel(scope.railUnit):''} · split ↑${scope.upClicks}/↓${scope.downClicks}`;
+    document.getElementById('sv-travel-note').innerHTML=`${sideClicks.toFixed(0)} of ${avail} clicks ${dialingUp?'UP':'DOWN'} available · ${pct.toFixed(0)}% used<br>Total ${scope.totalClicks} clicks (${fx(angInUnit(scope.totalElevMrad,au),1)} ${aLbl}) = turret ${scope.elev} ${aLbl}${scope.railOn?' + rail '+scope.railVal+' '+angLabel(scope.railUnit):''} · split ↑${scope.upClicks}/↓${scope.downClicks}`;
     if(pct>=100)fl+=`<div class="flag warn">✗ Exceeds available ${dialingUp?'UP':'DOWN'} travel (${avail} clicks)${!scope.railOn&&dialingUp?' — enable the adjustable rail for more up-elevation':''}.</div>`;
     else if(pct>=80)fl+=`<div class="flag warn">▲ ${pct.toFixed(0)}% of ${dialingUp?'up':'down'} travel used — near limit.</div>`;
   }else{document.getElementById('sv-travel-note').textContent='No scope on active rifle — assign one in its profile.';}
-  if(au==='moa')fl+=`<div class="flag info">MOA scope: solution shown in MOA &amp; clicks (1 click = ${scope.click} MOA = ${(scope.clickStepMrad).toFixed(4)} mrad).</div>`;
+  if(au==='moa')fl+=`<div class="flag info">MOA scope: solution shown in MOA &amp; clicks (1 click = ${decS(scope.click)} MOA = ${fx((scope.clickStepMrad),4)} mrad).</div>`;
   if(angle!==0)fl+=`<div class="flag info">Angle ${angle}° · trajectory solved along the slope (gravity and wind in the line-of-sight frame); distance is the slant range.</div>`;
   if(sol.cantPerDeg!=null)fl+=`<div class="flag ${cant?'warn':'info'}">Cant: each 1° moves the impact ${uq('drop',Math.abs(sol.cantPerDeg))} sideways at ${uq('range',tdist)}${cant?` · now ${Math.abs(cant)}° ${cant>0?'right':'left'} → ${uq('drop',Math.abs(sol.cantX))} ${sol.cantX>=0?'right':'left'}, ${uq('drop',Math.abs(sol.cantY))} low (dial unchanged — level the rifle)`:''}.</div>`;
-  if(APP.solverCor)fl+=`<div class="flag info">Coriolis @ lat ${lat}° az ${az}°: impact ${coH>=0?'R':'L'} ${uq('drop',Math.abs(coH))} · ${coV>=0?'HIGH':'LOW'} ${uq('drop',Math.abs(coV))} → dial ${(-coH/tdist).toFixed(3)} / ${(-coV/tdist).toFixed(3)} mrad (included above).</div>`;
+  if(APP.solverCor)fl+=`<div class="flag info">Coriolis @ lat ${decS(lat)}° az ${decS(az)}°: impact ${coH>=0?'R':'L'} ${uq('drop',Math.abs(coH))} · ${coV>=0?'HIGH':'LOW'} ${uq('drop',Math.abs(coV))} → dial ${fx((-coH/tdist),3)} / ${fx((-coV/tdist),3)} mrad (included above).</div>`;
   if(APP.solverSpin)fl+=sdMm!=null
-    ?`<div class="flag warn">Spin drift from the zero (Litz EST ⚠ unvalidated subsonic): Sg ${sgI.sg.toFixed(2)}${sgI.est?' (C EST)':''} → impact ${sdMm>=0?'R':'L'} ${uq('drop',Math.abs(sdMm))} → dial ${(-sdMm/tdist).toFixed(2)} mrad (included above).</div>`
+    ?`<div class="flag warn">Spin drift from the zero (Litz EST ⚠ unvalidated subsonic): Sg ${fx(sgI.sg,2)}${sgI.est?' (C EST)':''} → impact ${sdMm>=0?'R':'L'} ${uq('drop',Math.abs(sdMm))} → dial ${fx((-sdMm/tdist),2)} mrad (included above).</div>`
     :`<div class="flag info">Spin drift n/a — pellet, smooth bore, or no verified C for this projectile.</div>`;
   if(APP.solverAJ){
     if(aj.moa==null)fl+=`<div class="flag info">Aerodynamic jump n/a — ${esc(aj.why)}.</div>`;
     else if(Math.abs(xNow)<1e-9&&Math.abs(xZero)<1e-9)fl+=`<div class="flag info">Aerodynamic jump: no crosswind at the muzzle (and none in the zero) → no jump.</div>`;
     else{const side=x=>Math.abs(x)<1e-9?'no crosswind':uq('wind',Math.abs(x))+' from the '+(x>0?'right':'left');
-      fl+=`<div class="flag warn">Aerodynamic jump (Litz EST ⚠ fitted on rifle bullets near Sg 1.75; unvalidated for airgun slugs): Sg ${aj.sg.toFixed(2)}${aj.est?' (C EST)':''}, L ${aj.L.toFixed(2)} cal → ${aj.perMph.toFixed(4)} MOA per mph · muzzle crosswind ${side(xNow)}${xZero?` minus the zero's ${side(xZero)}`:''} → impact ${ajMm>=0?'HIGH':'LOW'} ${uq('drop',Math.abs(ajMm))} (${Math.abs(aj.moa).toFixed(3)} MOA) → dial ${(-ajMm/tdist).toFixed(3)} mrad (included above).${aj.sg<1.3?' Sg is far below the fitted range — treat as rough.':''}</div>`;}
+      fl+=`<div class="flag warn">Aerodynamic jump (Litz EST ⚠ fitted on rifle bullets near Sg 1.75; unvalidated for airgun slugs): Sg ${fx(aj.sg,2)}${aj.est?' (C EST)':''}, L ${fx(aj.L,2)} cal → ${fx(aj.perMph,4)} MOA per mph · muzzle crosswind ${side(xNow)}${xZero?` minus the zero's ${side(xZero)}`:''} → impact ${ajMm>=0?'HIGH':'LOW'} ${uq('drop',Math.abs(ajMm))} (${fx(Math.abs(aj.moa),3)} MOA) → dial ${fx((-ajMm/tdist),3)} mrad (included above).${aj.sg<1.3?' Sg is far below the fitted range — treat as rough.':''}</div>`;}
   }
   fl=warnFlags(dopeWarns(pts,getProj()?.type,sessionSg()?.sg??null,tdist))+fl;   // V2.17.0 P-08 / P-09
   if((APP.solverCor||APP.solverSpin)&&tdist<300&&APP.solverCor)fl+=`<div class="flag info">Coriolis below 300 m is sub-click — shown for completeness.</div>`;
@@ -3889,7 +3915,7 @@ async function captureDistBearing(sid,did){
 function distRow(sid,d,rf){   // V2.12.0: rf = ranged stage (no wind inputs)
   return`<tr id="dr-${esc(d.id)}">
     <td><span class="tl">${esc(d.label||'')}</span><input class="di" type="number" data-q="range" value="${d.range}" onchange="updDist('${sid}','${d.id}','range',+this.value)"></td>
-    <td><input class="di" type="number" data-q="-" value="${d.angle||0}" onchange="updDist('${sid}','${d.id}','angle',+this.value)"></td>
+    <td><input class="di" type="number" data-q="-" data-neg="1" value="${d.angle||0}" onchange="updDist('${sid}','${d.id}','angle',+this.value)"></td>
     ${rf?'':`<td><input class="di" type="number" data-q="wind" value="${d.wind||0}" onchange="updDist('${sid}','${d.id}','wind',+this.value)"></td>
     <td><input class="di" type="number" data-q="-" value="${d.wdir??90}" onchange="updDist('${sid}','${d.id}','wdir',+this.value)"></td>`}
     <td class="res" id="dc-rc-${esc(d.id)}">—</td><td class="res" id="dc-re-${esc(d.id)}">—</td><td class="res" id="dc-rw-${esc(d.id)}">—</td>
@@ -3951,8 +3977,8 @@ function calcDope(){
       set('dc-rw-'+d.id,spinClk(cardSpinWind(tr,sol,d),tr.click,'→','←'));   // V2.14.0: every stage — spin drift from the zero only
     }else{set('dc-rc-'+d.id,'OOR');set('dc-re-'+d.id,'—');set('dc-rw-'+d.id,'—');}
   }));
-  document.getElementById('dc-note').textContent=`${tr.p.name} · ${tr.r?tr.r.name:'no rifle'} · MV ${uq('vel',c.mv)} · zero ${uq('zrange',z.range)}${z.wSpd>0?' (zeroed in '+uq('wind',z.wSpd)+')':''} · ρ ${tr.rhoC.toFixed(4)} · ${tr.sgP<1?'Sg penalty ×'+tr.sgP.toFixed(3):'Sg ≥1.5'}`;
-  if(c.stages.length)document.getElementById('dc-note').textContent+=tr.sg==null?' · No wind on dope cards (solved live when shooting); spin drift not computed ('+(tr.p.type==='pellet'?'pellet':tr.r&&tr.r.twistDir==='smooth'?'smooth bore':'Sg not computed')+') — windage —.':' · No wind on dope cards (solved live when shooting) — windage = spin drift only, measured from the zero (Litz, EST: fitted on rifle bullets, not validated for subsonic slugs) at Sg '+tr.sg.toFixed(2)+'.';   // V2.12.0
+  document.getElementById('dc-note').textContent=`${tr.p.name} · ${tr.r?tr.r.name:'no rifle'} · MV ${uq('vel',c.mv)} · zero ${uq('zrange',z.range)}${z.wSpd>0?' (zeroed in '+uq('wind',z.wSpd)+')':''} · ρ ${fx(tr.rhoC,4)} · ${tr.sgP<1?'Sg penalty ×'+fx(tr.sgP,3):'Sg ≥1.5'}`;
+  if(c.stages.length)document.getElementById('dc-note').textContent+=tr.sg==null?' · No wind on dope cards (solved live when shooting); spin drift not computed ('+(tr.p.type==='pellet'?'pellet':tr.r&&tr.r.twistDir==='smooth'?'smooth bore':'Sg not computed')+') — windage —.':' · No wind on dope cards (solved live when shooting) — windage = spin drift only, measured from the zero (Litz, EST: fitted on rifle bullets, not validated for subsonic slugs) at Sg '+fx(tr.sg,2)+'.';   // V2.12.0
   {const ws=cardWarns(c,tr);if(ws.length)document.getElementById('dc-note').textContent+=' · '+ws.map(x=>x.long).join(' · ');}   // V2.17.0 P-08 / P-09
 }
 function printDope(){
@@ -3969,7 +3995,7 @@ const cardWarns=(c,tr)=>dopeWarns(tr.pts,tr.p.type,tr.sg,Math.max(0,...c.stages.
 function dopePrintHTML(c,tr=computeCardTraj(c)){
   if(!tr||tr.bcPending)return null;
   const z=tr.z;
-  let h=`<div class="pd"><h1>DOPE — ${esc(c.name||'Unnamed')}</h1><div class="pdm">Rifle: ${tr.r?esc(tr.r.name):'—'} · ${tr.sc?esc(tr.sc.name):""} · Proj: ${esc(tr.p.name)}<br>MV ${ut('vel',c.mv)} · Zero ${ut('zrange',z.range)}${z.wSpd>0?' · zeroed in '+ut('wind',z.wSpd)+' @ '+z.wDir+'°':''} · ${tr.click} mrad/click<br>Zero atmos: ${ut('temp',z.temp)} ${ut('pres',z.pres)} station ${z.rh}% · Current: ${esc(tr.cw.name)} · Printed ${new Date().toLocaleString('sv').slice(0,16)}${c.notes?'<br>'+esc(c.notes):''}${cardWarns(c,tr).map(x=>'<br><b>'+esc(x.long)+'</b>').join('')}</div>`;   // V2.16.6 W-13
+  let h=`<div class="pd"><h1>DOPE — ${esc(c.name||'Unnamed')}</h1><div class="pdm">Rifle: ${tr.r?esc(tr.r.name):'—'} · ${tr.sc?esc(tr.sc.name):""} · Proj: ${esc(tr.p.name)}<br>MV ${ut('vel',c.mv)} · Zero ${ut('zrange',z.range)}${z.wSpd>0?' · zeroed in '+ut('wind',z.wSpd)+' @ '+z.wDir+'°':''} · ${decS(tr.click)} mrad/click<br>Zero atmos: ${ut('temp',z.temp)} ${ut('pres',z.pres)} station ${z.rh}% · Current: ${esc(tr.cw.name)} · Printed ${new Date().toLocaleString('sv').slice(0,16)}${c.notes?'<br>'+esc(c.notes):''}${cardWarns(c,tr).map(x=>'<br><b>'+esc(x.long)+'</b>').join('')}</div>`;   // V2.16.6 W-13
   c.stages.forEach((s,si)=>{
     h+=`<div class="sh">STAGE ${si+1}: ${esc(s.name||'')}${s.time?' · ⏱ '+s.time+' s':''}${s.notes?' — '+esc(s.notes):''}</div><table><thead><tr><th>Target</th><th>Range</th><th>Angle</th><th>Drop ${U.dropU()}</th><th>Elev clk</th><th>Wind clk (spin only, EST)</th><th>Info</th></tr></thead><tbody>`;
     s.dists.forEach(d=>{
@@ -4026,7 +4052,7 @@ function dopeRfRender(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.17.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.18.0'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4062,9 +4088,9 @@ function renderProfiles(){
   }).join('')||'<div class="note">No rifles.</div>';
   document.getElementById('pl-wx').innerHTML=favSort(DB.weathers).map(w=>item(w,`${ut('temp',w.temp)} · ${ut('pres',w.pres)}${w.presType==='sea'?' QNH':''} · ${w.rh}% · ${ut('alt',w.alt)}`,'w',false)).join('');
   const scl=document.getElementById('pl-scopes');
-  if(scl)scl.innerHTML=favSort(DB.scopes).map(s=>{const ret=getReticle(s.reticleId);return item(s,`${s.sku||'—'} · ${s.click} ${s.adjUnit==='moa'?'MOA':'mrad'}/clk · elev ${s.elev} · ${ret?ret.name:'no reticle'}${ret&&!ret.verified?' ⚠':''}`,'s',false);}).join('')||'<div class="note">No scopes.</div>';
+  if(scl)scl.innerHTML=favSort(DB.scopes).map(s=>{const ret=getReticle(s.reticleId);return item(s,`${s.sku||'—'} · ${decS(s.click)} ${s.adjUnit==='moa'?'MOA':'mrad'}/clk · elev ${decS(s.elev)} · ${ret?ret.name:'no reticle'}${ret&&!ret.verified?' ⚠':''}`,'s',false);}).join('')||'<div class="note">No scopes.</div>';
   const rtl=document.getElementById('pl-reticles');
-  if(rtl)rtl.innerHTML=favSort(DB.reticles).map(r=>item(r,`${r.fp} · dot ${r.dotMrad} mrad · ${r.hashes.length} hashes · ${r.verified?'verified':'ESTIMATED ⚠'}`,'rt',false)).join('')||'<div class="note">No reticles.</div>';
+  if(rtl)rtl.innerHTML=favSort(DB.reticles).map(r=>item(r,`${r.fp} · dot ${decS(r.dotMrad)} mrad · ${r.hashes.length} hashes · ${r.verified?'verified':'ESTIMATED ⚠'}`,'rt',false)).join('')||'<div class="note">No reticles.</div>';
   renderProjList();
   bindProfActs();
 }
@@ -4107,8 +4133,8 @@ function renderProjList(){
   });
   el.innerHTML=list.map(p=>{
     const offCal=rifleCal&&p.cal&&p.cal!==rifleCal;
-    const bc=(p.bcg7>0||p.bcg1>0)?`G7 ${p.bcg7} · G1 ${p.bcg1}`:'BC pending';
-    const meta=`${p.mfg?p.mfg+' · ':''}${p.cal||'?'} · ${p.type} · ${p.mass} gr · ${p.oal>0?ut('bullet',p.oal)+' · ':''}${bc}${offCal?' · ⚠ off-calibre':''}`;
+    const bc=(p.bcg7>0||p.bcg1>0)?`G7 ${decS(p.bcg7)} · G1 ${decS(p.bcg1)}`:'BC pending';
+    const meta=`${p.mfg?p.mfg+' · ':''}${p.cal||'?'} · ${p.type} · ${decS(p.mass)} gr · ${p.oal>0?ut('bullet',p.oal)+' · ':''}${bc}${offCal?' · ⚠ off-calibre':''}`;
     return pitem(p,meta,'p',p.id===S.projId,offCal?'<span style="color:var(--warn)">⚑ </span>':'');
   }).join('')||'<div class="note">No projectiles match the current filter.</div>';
   document.getElementById('pj-count').textContent=`${list.length} of ${DB.projectiles.length} shown`;
@@ -4237,7 +4263,7 @@ function setRailUnit(u){_railUnit=u;document.getElementById('rf-railu-mil').clas
 function renderRifleBudgetNote(){
   const sc=getScope(document.getElementById('rf-scope')?.value);if(!sc)return;
   const au=sc.adjUnit||'mil';
-  document.getElementById('rf-budget-note').innerHTML=`Scope <b>${esc(sc.name)}</b> · ${sc.adjUnit==='moa'?'MOA':'MIL'} turret · 1 click = ${sc.click} ${angLabel(au)} = ${clickMrad(sc.click,au).toFixed(4)} mrad · turret elev ${sc.elev} ${angLabel(au)} (${travelMrad(sc.elev,au).toFixed(1)} mrad)`;
+  document.getElementById('rf-budget-note').innerHTML=`Scope <b>${esc(sc.name)}</b> · ${sc.adjUnit==='moa'?'MOA':'MIL'} turret · 1 click = ${decS(sc.click)} ${angLabel(au)} = ${fx(clickMrad(sc.click,au),4)} mrad · turret elev ${sc.elev} ${angLabel(au)} (${fx(travelMrad(sc.elev,au),1)} mrad)`;
 }
 let _railOn=false;
 function setRailUI(on){_railOn=on;document.getElementById('rf-rail-on').classList.toggle('on',on);document.getElementById('rf-rail-off').classList.toggle('on',!on);document.getElementById('rf-rail-wrap').style.display=on?'block':'none';}
@@ -4295,7 +4321,7 @@ function openScopeForm(id){
     <div class="note" id="sc-click-note"></div>
     <div class="btnrow"><button class="btn primary" onclick="saveScope('${id||''}')">Save</button><button class="btn" onclick="importScopeFile()">Import file</button><button class="btn" onclick="closeModal()">Cancel</button></div>
     <input type="file" id="sc-imp" accept=".json" style="display:none" onchange="onScopeImport(this)">
-    <div class="note">Click value &amp; travel are in the chosen adjustment unit. MOA scopes use ½/¼/⅛ MOA clicks (0.5/0.25/0.125). Magnification range drives the home reticle's zoom (FFP scale). All math converts to mrad internally.</div>`);
+    <div class="note">Click value &amp; travel are in the chosen adjustment unit. MOA scopes use ½/¼/⅛ MOA clicks (${decS('0.5/0.25/0.125')}). Magnification range drives the home reticle's zoom (FFP scale). All math converts to mrad internally.</div>`);
   updateScopeUnitLabels();
 }
 let _scopeUnit='mil';
@@ -4304,7 +4330,7 @@ function updateScopeUnitLabels(){
   const u=document.getElementById('sc-au-moa')?.classList.contains('on')?'moa':'mil';_scopeUnit=u;
   ['sc-unit-lbl','sc-unit-lbl2','sc-unit-lbl3'].forEach(i=>{const e=document.getElementById(i);if(e)e.textContent=angLabel(u);});
   const cv=+document.getElementById('sc-click').value;
-  document.getElementById('sc-click-note').innerHTML=`1 click = ${cv} ${angLabel(u)} = <b>${clickMrad(cv,u).toFixed(4)} mrad</b>${u==='moa'?' (Vector MOA: ½=0.5, ¼=0.25, ⅛=0.125)':''}`;
+  document.getElementById('sc-click-note').innerHTML=`1 click = ${decS(cv)} ${angLabel(u)} = <b>${fx(clickMrad(cv,u),4)} mrad</b>${u==='moa'?' (Vector MOA: ½=0.5, ¼=0.25, ⅛=0.125)':''}`;
 }
 function saveScope(id){
   const v=i=>document.getElementById(i).value;
@@ -4395,7 +4421,7 @@ function mvtRender(){
   if(!fit){fitEl.textContent=arr.length?'Need ≥2 observations at different temperatures for a model.':'';btn.disabled=true;return;}
   const pred=ct!=null?fit.at(ct):null;
   const slope=(cv('vel',fit.b,UNITS.vel)-cv('vel',0,UNITS.vel))/(cv('temp',1,UNITS.temp)-cv('temp',0,UNITS.temp));
-  fitEl.innerHTML=`Model: <b>${slope>=0?'+':''}${slope.toFixed(2)} ${lab('vel',UNITS.vel)} per ${lab('temp',UNITS.temp)}</b> · ${fit.n} pts over ${un('temp',fit.tmin)}–${ut('temp',fit.tmax)}`
+  fitEl.innerHTML=`Model: <b>${slope>=0?'+':''}${fx(slope,2)} ${lab('vel',UNITS.vel)} per ${lab('temp',UNITS.temp)}</b> · ${fit.n} pts over ${un('temp',fit.tmin)}–${ut('temp',fit.tmax)}`
     +(pred!=null?`<br>Predicted MV at current ${ut('temp',ct)}: <b>${uq('vel',pred)}</b>${(ct<fit.tmin||ct>fit.tmax)?' <span style="color:var(--warn)">⚠ extrapolated outside observed range</span>':''}`
     :'<br>No current temperature in session — select weather.');
   btn.disabled=pred==null;
@@ -4464,26 +4490,26 @@ function tuSolve(){
     const bcK=sol.bc*LB2KGM2;
     result={mode:'single',drag,bc:sol.bc};
     sub='single trued BC · '+drag.toUpperCase()+' · '+ut('range',pts[0].d)+' baseline';
-    body=`<div class="scs"><div class="sc accent"><div class="sl">Trued BC ${drag.toUpperCase()}</div><div class="sv">${sol.bc.toFixed(4)}</div><div class="su">lb/in² · ${bcK.toFixed(1)} kg/m²</div></div>`+
+    body=`<div class="scs"><div class="sc accent"><div class="sl">Trued BC ${drag.toUpperCase()}</div><div class="sv">${fx(sol.bc,4)}</div><div class="su">lb/in² · ${fx(bcK,1)} kg/m²</div></div>`+
       `<div class="sc"><div class="sl">V₀ → V @ ${ut('range',pts[0].d)}</div><div class="sv" style="font-size:15px">${un('vel',mv)}→${un('vel',pts[0].v)}</div><div class="su">${lab('vel',UNITS.vel)} (Δ ${un('vel',mv-pts[0].v)})</div></div></div>`;
     if(sol.flag)body+=`<div class="flag warn">${sol.flag}</div>`;
     /* V2.17.0 P-11 (§9T): how much the BC moves for 1 m/s on either velocity. A sensitivity, not an uncertainty band —
        there is no verified accuracy figure for the LabRadar's downrange velocity yet. */
     const bcAt=(v0,vd)=>vd<v0?trueBCsingle(v0,p.mass,pts[0].d,vd,rho,aS,drag).bc:null;
     const sens={vd:[bcAt(mv,pts[0].v-1),bcAt(mv,pts[0].v+1)],v0:[bcAt(mv+1,pts[0].v),bcAt(mv-1,pts[0].v)]};result.sens=sens;
-    const rng=([a,b])=>a==null||b==null?'—':Math.min(a,b).toFixed(4)+' … '+Math.max(a,b).toFixed(4);
+    const rng=([a,b])=>a==null||b==null?'—':fx(Math.min(a,b),4)+' … '+fx(Math.max(a,b),4);
     body+=`<div class="flag warn">Sensitivity: V @ ${ut('range',pts[0].d)} ±${ut('vel',1)} → BC ${rng(sens.vd)} · V₀ ±${ut('vel',1)} → BC ${rng(sens.v0)}. This is a sensitivity per ${ut('vel',1)}, not an uncertainty band (no verified LabRadar downrange accuracy yet); a longer baseline narrows it.</div>`;
-    body+=`<div class="flag info">Near-field BC from a ${ut('range',pts[0].d)} baseline (≈Mach ${(mv/aS).toFixed(2)} regime). Valid where the projectile is fast; not yet validated deep subsonic. Add a far point (canopy chrono at ${ut('range',100)}–${ut('range',150)}) to capture the slow-velocity drag and get a banded BC.</div>`;
+    body+=`<div class="flag info">Near-field BC from a ${ut('range',pts[0].d)} baseline (≈Mach ${fx((mv/aS),2)} regime). Valid where the projectile is fast; not yet validated deep subsonic. Add a far point (canopy chrono at ${ut('range',100)}–${ut('range',150)}) to capture the slow-velocity drag and get a banded BC.</div>`;
   }else{
     const sorted=pts.slice().sort((a,b)=>a.d-b.d);
     const bands=trueBCbanded(mv,p.mass,sorted,rho,aS,drag);
     result={mode:'banded',drag,bands};
     sub='velocity-banded BC · '+drag.toUpperCase()+' · '+pts.length+' points';
     body='<div class="tablebox"><table><thead><tr><th>Segment</th><th>Velocity band ('+lab('vel',UNITS.vel)+')</th><th>Distance</th><th>BC '+drag.toUpperCase()+'</th></tr></thead><tbody>'+
-      bands.map((b,i)=>`<tr><td>${i+1}</td><td>${un('vel',b.vHi)} → ${un('vel',b.vLo)}</td><td>${un('range',b.dFrom)}–${ut('range',b.dTo)}</td><td>${b.bc.toFixed(4)}${b.flag?' ⚠ '+esc(b.flag):''}</td></tr>`).join('')+
+      bands.map((b,i)=>`<tr><td>${i+1}</td><td>${un('vel',b.vHi)} → ${un('vel',b.vLo)}</td><td>${un('range',b.dFrom)}–${ut('range',b.dTo)}</td><td>${fx(b.bc,4)}${b.flag?' ⚠ '+esc(b.flag):''}</td></tr>`).join('')+
       '</tbody></table></div>';
     const spread=Math.max(...bands.map(b=>b.bc))-Math.min(...bands.map(b=>b.bc));
-    body+=`<div class="flag ${spread>0.02?'warn':'info'}">BC ${spread>0.02?'changes':'is roughly constant'} across velocity bands (spread ${spread.toFixed(3)}). ${spread>0.02?'This is the signature of a drag curve that bends differently than the '+drag.toUpperCase()+' reference — the banded model captures it; a single BC would not.':'A single BC would model this projectile adequately over the measured range.'}</div>`;
+    body+=`<div class="flag ${spread>0.02?'warn':'info'}">BC ${spread>0.02?'changes':'is roughly constant'} across velocity bands (spread ${fx(spread,3)}). ${spread>0.02?'This is the signature of a drag curve that bends differently than the '+drag.toUpperCase()+' reference — the banded model captures it; a single BC would not.':'A single BC would model this projectile adequately over the measured range.'}</div>`;
   }
   result.pid=p.id;tuLastResult=result;   // V2.16.2 TR-01: Apply writes to this projectile only
   document.getElementById('tu-proj-note').textContent='';
@@ -4532,7 +4558,7 @@ function tdRender(rows){
   const box=document.getElementById('td-rows');if(!box)return;
   rows=rows||tdReadRows();if(!rows.length)rows=[{d:'150',a:'0',dial:'',off:'0'}];
   const mk=(lbl,k,v,step,q)=>{const f=document.createElement('div');f.className='fld';const l=document.createElement('label');l.textContent=lbl;
-    const inp=document.createElement('input');inp.type='number';inp.step=step;inp.dataset.k=k;if(q)inp.dataset.q=q;inp.value=v;f.append(l,inp);return f;};
+    const inp=document.createElement('input');inp.type='number';inp.step=step;inp.dataset.k=k;if(q)inp.dataset.q=q;if(k==='a'||k==='off')inp.dataset.neg='1';inp.value=v;f.append(l,inp);return f;};
   box.replaceChildren(...rows.map((r,i)=>{const g=document.createElement('div');g.className='fgrid3 td-row';g.style.marginBottom='6px';
     g.append(mk('Distance '+(i+1),'d',r.d,1,'range'),mk('Shot angle °','a',r.a,1,'-'),mk('Dial','dial',r.dial,0.1,'-'),mk('Group centre +above / −below','off',r.off,1,'drop'));
     if(rows.length>1){const f=document.createElement('div');f.className='fld';const b=document.createElement('button');b.className='btn-xs';b.textContent='✕ Remove';
@@ -4580,17 +4606,17 @@ function tdSolve(){
   tdLast={pid:p.id,drag,bc:fit.bc,ds:rows.map(r=>r.d)};
   const scs=el('div','scs');
   const card=(lbl,val,sub,cls)=>{const c=el('div','sc'+(cls?' '+cls:''));c.append(el('div','sl',lbl),el('div','sv',val),el('div','su',sub));return c;};
-  scs.append(card('Trued BC '+drag.toUpperCase(),fit.bc.toFixed(4),'± '+(isFinite(band)?band.toFixed(4):'—')+(rows.length>1&&fit.rms>half?' (scatter)':' (½ click)')+' · '+(fit.bc*LB2KGM2).toFixed(1)+' kg/m²','accent'),
-    card('Profile BC',maker>0?maker.toFixed(4):'—',pct!=null?(pct>=0?'+':'')+pct.toFixed(1)+' % trued vs profile':''),
-    card('Distances',String(rows.length),rows.length>1?'fit RMS '+fit.rms.toFixed(3)+' mrad ('+(fit.rms/click).toFixed(1)+' clicks)':'single distance'));
+  scs.append(card('Trued BC '+drag.toUpperCase(),fx(fit.bc,4),'± '+(isFinite(band)?fx(band,4):'—')+(rows.length>1&&fit.rms>half?' (scatter)':' (½ click)')+' · '+fx((fit.bc*LB2KGM2),1)+' kg/m²','accent'),
+    card('Profile BC',maker>0?fx(maker,4):'—',pct!=null?(pct>=0?'+':'')+fx(pct,1)+' % trued vs profile':''),
+    card('Distances',String(rows.length),rows.length>1?'fit RMS '+fx(fit.rms,3)+' mrad ('+fx((fit.rms/click),1)+' clicks)':'single distance'));
   out.appendChild(scs);
   if(rows.length>1){
     const tb=el('table');const hd=el('tr');['Distance','Needed dial','This row alone','Fit leaves'].forEach(h=>hd.append(el('th',null,h)));tb.append(hd);
-    rows.forEach((r,i)=>{const t=el('tr');t.append(el('td',null,ut('range',r.d)+(r.a?' · '+r.a+'°':'')),el('td',null,r.need.toFixed(2)+' mrad'),el('td',null,'BC '+fit.per[i].toFixed(4)),el('td',null,(fit.res[i]>=0?'+':'')+(fit.res[i]/click).toFixed(1)+' clicks'));tb.append(t);});
+    rows.forEach((r,i)=>{const t=el('tr');t.append(el('td',null,ut('range',r.d)+(r.a?' · '+r.a+'°':'')),el('td',null,fx(r.need,2)+' mrad'),el('td',null,'BC '+fx(fit.per[i],4)),el('td',null,(fit.res[i]>=0?'+':'')+fx((fit.res[i]/click),1)+' clicks'));tb.append(t);});
     const box=el('div','tablebox');box.append(tb);out.appendChild(box);
     if(fit.rms>click)msg('The distances disagree by more than a click on average. Either some dials or offsets are off, or the slug\'s drag curve bends differently from '+drag.toUpperCase()+' (BC falling or rising with distance in the column "This row alone") — then a velocity-banded BC from LabRadar data fits better.');
   }
-  msg(`Range (${rows.length>1&&fit.rms>half?'from the scatter between distances':'for ±½ click on every row'}): ${isFinite(band)?(fit.bc-band).toFixed(4)+'–'+(fit.bc+band).toFixed(4):'—'} (± ${isFinite(band)?(band/fit.bc*100).toFixed(1):'—'} %). MV +1 m/s → BC ${bMv!=null?bMv.toFixed(4):'—'}. Farther distances, more groups and a well-measured MV make this tight.`,isFinite(band)&&band/fit.bc>0.05?'warn':'info');
+  msg(`Range (${rows.length>1&&fit.rms>half?'from the scatter between distances':'for ±½ click on every row'}): ${isFinite(band)?fx((fit.bc-band),4)+'–'+fx((fit.bc+band),4):'—'} (± ${isFinite(band)?fx((band/fit.bc*100),1):'—'} %). MV +1 m/s → BC ${bMv!=null?fx(bMv,4):'—'}. Farther distances, more groups and a well-measured MV make this tight.`,isFinite(band)&&band/fit.bc>0.05?'warn':'info');
   msg('Applying stores this as a measured BC: the stability penalty is no longer applied to it (it already contains any stability loss).','info');
   const b=el('button','btn primary','Apply to '+p.name);b.onclick=tdApply;const row=el('div','btnrow');row.append(b);out.appendChild(row);
 }
@@ -4618,7 +4644,7 @@ function openProjForm(id){
     <div class="projdia" data-dia="diam,oal,nose,rtr,mep,base"></div>
     <div class="fgrid">${fldHtml('pf-nose','Nose length mm',p.noseL??'',0.01)}${fldHtml('pf-rtr','Nose Rt/R (1 round/tangent, 0 cone)',p.rtr??'',0.05)}
     ${fldHtml('pf-mep','Meplat diameter mm',p.meplat??'',0.01)}${fldHtml('pf-base','Base diameter mm',p.baseD??'',0.01)}
-    ${fldHtml('pf-dens','Density g/cc (empty = lead 11.34)',p.dens??'',0.01)}</div>
+    ${fldHtml('pf-dens',decS('Density g/cc (empty = lead 11.34)'),p.dens??'',0.01)}</div>
     <div class="note">BC convention §9H: SD = gr/(7000·d_in²), no π/4. Mass always grains, BC always lb/in². Calibre is the nominal bore tag (for filtering), not measured diameter.</div>
     <div class="btnrow"><button class="btn primary" onclick="saveProj('${id||''}')">Save</button><button class="btn" onclick="closeModal()">Cancel</button></div>`);
   mountProjDiagrams(document.getElementById('mbox'));
@@ -4682,7 +4708,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.17.0'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.18.0'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4799,7 +4825,7 @@ function planImport(d){
   });});
   const incoming={units:d.units,sunits:d.sunits,app2:d.app2&&typeof d.app2==='object'?(({drive,...a})=>a)(d.app2):d.app2};   // V2.13.0: Drive state is per phone
   const differs=[['units',UNITS],['sunits',SUNITS],['app2',APP]].some(([k,cur])=>incoming[k]&&typeof incoming[k]==='object'&&Object.keys(incoming[k]).some(x=>JSON.stringify(incoming[k][x])!==JSON.stringify(cur[x])));
-  if(differs)plan.prefs={incoming,choice:'keep'};
+  if(differs){const avail=prefGroupsDiffering(incoming);if(avail.length)plan.prefs={incoming,avail,take:{}};}
   const rifleItems=plan.items.filter(it=>it.type==='rifles');
   if(d.share==='rifle'&&rifleItems.length===1&&DB.scopes.length)plan.scopePick={item:rifleItems[0],choice:'theirs'};
   return plan;
@@ -4840,7 +4866,13 @@ function applyImport(plan){
     if(it.choice==='overwrite'){rec.id=it.mine.id;coll[coll.indexOf(it.mine)]={...rec,fav:it.mine.fav};link(rec.id);n.overwritten++;return;}
     rec.id=uid();rec.name=cloneName(rec.name,coll.map(x=>x.name));coll.push(rec);link(rec.id);n.copied++;
   });
-  if(plan.prefs&&plan.prefs.choice==='take'){const p=plan.prefs.incoming;if(p.units)UNITS={...UNITS,...cleanUnits(p.units)};if(p.sunits)SUNITS={...SUNITS,...cleanUnits(p.sunits,true)};if(p.app2)APP={...APP,...cleanApp2(p.app2)};initLayouts();}   // V2.16.1 D-05 + U-01
+  if(plan.prefs&&plan.prefs.avail.some(g=>plan.prefs.take[g])){   // V2.18.0 CORE-28: only the ticked groups, each through the D-05 validator
+    const p=plan.prefs.incoming,tk=plan.prefs.take;
+    if(tk.units){if(p.units)UNITS={...UNITS,...cleanUnits(p.units)};if(p.sunits)SUNITS={...SUNITS,...cleanUnits(p.sunits,true)};}
+    if(p.app2&&typeof p.app2==='object'){const pick={};Object.keys(p.app2).forEach(k=>{if(!PREF_NEVER.includes(k)&&tk[prefGroupOf(k)])pick[k]=p.app2[k];});APP={...APP,...cleanApp2(pick)};}
+    initLayouts();   // V2.16.1 U-01
+    if(tk.colours&&typeof themeApply==='function')themeApply(false);if(tk.display)applyDisplayPrefs();
+  }
   migrateMillerC();
   return n;
 }
@@ -4869,9 +4901,11 @@ function renderImportReview(){
     <div class="note" style="margin:4px 0 8px">${esc(it.diff)}</div>
     <div class="seg">${seg(it.choice,i)}</div></div>`).join('');
   const newCount=IMP.items.filter(it=>it.kind==='new').length;
-  const prefs=IMP.prefs?`<div class="panel" style="padding:10px;margin-bottom:8px"><div style="font-size:13px"><b>Units &amp; display preferences</b></div>
-    <div class="note" style="margin:4px 0 8px">The file carries different unit and display settings.</div>
-    <div class="seg"><button class="${IMP.prefs.choice==='keep'?'on':''}" onclick="impPrefs('keep')">Keep mine</button><button class="${IMP.prefs.choice==='take'?'on':''}" onclick="impPrefs('take')">Take theirs</button></div></div>`:'';
+  const pr=IMP.prefs,anyT=pr&&pr.avail.some(g=>pr.take[g]),allT=pr&&pr.avail.every(g=>pr.take[g]);
+  const prefs=pr?`<div class="panel" style="padding:10px;margin-bottom:8px"><div style="font-size:13px"><b>Preferences in the file</b></div>
+    <div class="note" style="margin:4px 0 8px">These differ from yours. Tick the parts to take; nothing is taken unless ticked.</div>
+    <div class="seg" style="margin-bottom:6px"><button class="${!anyT?'on':''}" onclick="impPrefs('keep')">Keep mine</button><button class="${allT?'on':''}" onclick="impPrefs('take')">Take theirs</button></div>
+    ${pr.avail.map(g=>`<label class="imp-pref"><input type="checkbox" data-g="${g}" ${pr.take[g]?'checked':''} onchange="impPref('${g}',this.checked)"> ${esc(PREF_GROUPS.find(x=>x[0]===g)[1])}</label>`).join('')}</div>`:'';
   const sp=IMP.scopePick;
   const scopeRow=sp?`<div class="panel" style="padding:10px;margin-bottom:8px"><div style="font-size:13px"><b>Scope for ${esc(sp.item.rec.name)}</b></div>
     <div class="note" style="margin:4px 0 8px">The share includes the sender's scope. Keep it, or put this rifle on one of your own scopes.</div>
@@ -4885,7 +4919,23 @@ function renderImportReview(){
 }
 function impChoose(i,ch){IMP.items[i].choice=ch;renderImportReview();}
 function impChooseAll(ch){IMP.items.forEach(it=>{if(it.kind==='clash')it.choice=ch;});renderImportReview();}
-function impPrefs(ch){IMP.prefs.choice=ch;renderImportReview();}
+function impPrefs(ch){IMP.prefs.avail.forEach(g=>{IMP.prefs.take[g]=ch==='take';});renderImportReview();}   // shortcuts: tick none / all
+function impPref(g,on){IMP.prefs.take[g]=!!on;renderImportReview();}
+/* ═════ V2.18.0 CORE-28 — import part picker (owner ruling) ═════
+   A file's preferences are offered per group, each unticked by default: units, display, colours, Home layouts, bottom
+   bar, other settings. Only the groups that differ from this phone are listed. Drive state and install flags (catalog
+   seeding, one-time migrations) belong to the phone and are never imported. */
+const PREF_GROUPS=[['units','Units'],['display','Display — number format, dual units, text size, contrast, help'],['colours','Colours'],['layouts','Home layouts and pane widths'],['nav','Bottom bar'],['other','Other settings — wind average, solver options, latitude, stations …']];
+const PREF_KEYS={display:['dual','precision','contrast','fontScale','bright','numFmt','help','helpAll','transonicWarn','wakeLock','retMag','iosHintOff'],colours:['theme'],layouts:['layouts','layoutId','panes','railW','fieldDefault'],nav:['navTabs']};
+const PREF_NEVER=['drive','seeded','retMig1'];
+function prefGroupOf(k){for(const g in PREF_KEYS)if(PREF_KEYS[g].includes(k))return g;return 'other';}
+function prefGroupsDiffering(inc){
+  const diff=(o,cur)=>o&&typeof o==='object'?Object.keys(o).filter(x=>JSON.stringify(o[x])!==JSON.stringify(cur[x])):[];
+  const g=new Set();
+  if(diff(inc.units,UNITS).length||diff(inc.sunits,SUNITS).length)g.add('units');
+  diff(inc.app2,APP).forEach(k=>{if(!PREF_NEVER.includes(k))g.add(prefGroupOf(k));});
+  return PREF_GROUPS.map(([k])=>k).filter(k=>g.has(k));
+}
 function impScope(v){IMP.scopePick.choice=v;}
 
 /* ═════════ D5 — SENSOR SERVICE · Calypso Mini AB (proven ASCII handshake, Handoff V3) ═════════
@@ -4916,7 +4966,7 @@ let bleDevice=null, bleLastWu=0, bleLastSpd=0, bleLastDir=0, bleLastBatt=null;
 const WAVG_WINS=[10,60,300,900,1800,3600], WAVG_MAX_S=7200, WAVG_GAP_S=5;
 let wavgBuf=[]; // the PRIMARY unit's buffer (each Calypso keeps its own, V2.0.0)
 const wavgWin=()=>Math.min(WAVG_MAX_S,Math.max(10,Math.round(+APP.windAvgS||60)));
-const wavgLabel=w=>w<60?w+' s':(w%60?(w/60).toFixed(1):w/60)+' min';
+const wavgLabel=w=>w<60?w+' s':(w%60?fx((w/60),1):w/60)+' min';
 const fmtMS=sec=>Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');
 function wavgPush(t,s,d,buf=wavgBuf){
   buf.push({t,s,d});
@@ -5067,7 +5117,7 @@ function rfOnDisconnect(link){const d=RFS.find(x=>x.link===link);if(d){d.gone=tr
 function rfStatus(cls,txt){const dot=document.getElementById('rf-dot'),st=document.getElementById('rf-status');if(dot)dot.className='ble-dot'+(cls?' '+cls:'');if(st)st.textContent=txt;}
 const rfAge=t=>{const s=Math.round((Date.now()-t)/1000);return s<60?s+' s ago':Math.round(s/60)+' min ago';};
 const rfTime=t=>new Date(t).toTimeString().slice(0,8);
-const rfDist=m=>cv('range',m,UNITS.range).toFixed(1)+' '+lab('range',UNITS.range); // the unit's 0.1 m resolution, in the display unit
+const rfDist=m=>fx(cv('range',m,UNITS.range),1)+' '+lab('range',UNITS.range); // the unit's 0.1 m resolution, in the display unit
 function rfRender(){
   const box=document.getElementById('rf-units');if(!box)return;
   const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
@@ -5561,12 +5611,12 @@ function chAdvRender(){
   const c=chClean(APP.chronoStr);
   if(!c){sum.textContent='No shot string yet — LabRadar shots appear here live (or type a string on Sensors).';box.replaceChildren();return;}
   const st=chStats(chKept(c)),run=chRunning(c),el=(t,txt,cls)=>{const e=document.createElement(t);if(txt!=null)e.textContent=txt;if(cls)e.className=cls;return e;};
-  sum.textContent=st.n+' kept of '+c.shots.length+' · mean '+st.mean.toFixed(1)+' m/s ('+(st.mean/0.3048).toFixed(1)+' fps) · ES '+st.es.toFixed(2)+' · SD '+(st.sd!=null?st.sd.toFixed(2):'—')+' m/s';
+  sum.textContent=st.n+' kept of '+c.shots.length+' · mean '+fx(st.mean,1)+' m/s ('+fx((st.mean/0.3048),1)+' fps) · ES '+fx(st.es,2)+' · SD '+(st.sd!=null?fx(st.sd,2):'—')+' m/s';
   const rows=[];
   for(let i=c.shots.length-1;i>=0;i--){
     const v=c.shots[i],r=run[i],tr=el('tr',null,r.off?'cha-off':i===c.shots.length-1?'cha-new':'');
-    const sd=r.off?'excluded':r.sd==null?'—':r.sd.toFixed(2)+(r.d==null?'':' '+(r.d>0?'↑':r.d<0?'↓':'=')+(r.d?Math.abs(r.d).toFixed(2):''));
-    tr.append(el('td',String(i+1)),el('td',v.toFixed(2)),el('td',(v/0.3048).toFixed(1)),el('td',sd),el('td',chFmtT(c.times[i])));
+    const sd=r.off?'excluded':r.sd==null?'—':fx(r.sd,2)+(r.d==null?'':' '+(r.d>0?'↑':r.d<0?'↓':'=')+(r.d?fx(Math.abs(r.d),2):''));
+    tr.append(el('td',String(i+1)),el('td',fx(v,2)),el('td',fx((v/0.3048),1)),el('td',sd),el('td',chFmtT(c.times[i])));
     rows.push(tr);
   }
   box.replaceChildren(...rows);
@@ -5577,7 +5627,7 @@ function chGraphRender(){
   const c=chClean(APP.chronoStr);
   if(!c){lab.textContent='No shots yet.';CHG.h=[];CHG.n=0;chGraphDraw(null);return;}
   const st=chStats(chKept(c));
-  lab.textContent=c.shots.length+' shots · mean '+st.mean.toFixed(1)+' m/s · ES '+st.es.toFixed(2)+' · SD '+(st.sd!=null?st.sd.toFixed(2):'—');
+  lab.textContent=c.shots.length+' shots · mean '+fx(st.mean,1)+' m/s · ES '+fx(st.es,2)+' · SD '+(st.sd!=null?fx(st.sd,2):'—');
   if(c.shots.length<CHG.h.length)CHG.h=CHG.h.slice(0,c.shots.length);
   while(CHG.h.length<c.shots.length)CHG.h.push(0);   // a new shot grows from the mean line
   CHG.n=c.shots.length;
@@ -5612,7 +5662,7 @@ function chGraphDraw(c,st){
     g.fillRect(x,y>=0?mid-y:mid,bw,Math.max(1.5,Math.abs(y)));
   });
   g.globalAlpha=1;g.fillStyle=dim;g.font='11px sans-serif';g.textBaseline='top';
-  g.fillText('+'+CHG.scale.toFixed(1)+' m/s',4,2);g.textBaseline='bottom';g.fillText('−'+CHG.scale.toFixed(1)+' m/s',4,H-2);
+  g.fillText('+'+fx(CHG.scale,1)+' m/s',4,2);g.textBaseline='bottom';g.fillText('−'+fx(CHG.scale,1)+' m/s',4,H-2);
 }
 function chHomeRender(){chAdvRender();chGraphRender();}
 // notes for the shot string (Sensors → Chronograph); saved with the settings, uploaded to the shot string's Sheet
@@ -6244,7 +6294,7 @@ function themeChecks(v){
   const out=[],d=themeDerive(v,false);
   [['text','Text'],['accent','Accent'],['gold','Windage'],['warn','Warning'],['red','Danger'],['green','OK']].forEach(([k,n])=>{
     // body text needs 4.5 : 1; the signal colours (large numbers, icons, borders) 3 : 1 — the built-in red is 3.5
-    const need=k==='text'?4.5:3,r=Math.min(contrast(v[k],v.panel),contrast(v[k],v.bg));if(r<need)out.push({k,msg:n+' reads at '+r.toFixed(1)+' : 1 on the background — under '+need+' : 1, hard to read in sun'});});
+    const need=k==='text'?4.5:3,r=Math.min(contrast(v[k],v.panel),contrast(v[k],v.bg));if(r<need)out.push({k,msg:n+' reads at '+fx(r,1)+' : 1 on the background — under '+need+' : 1, hard to read in sun'});});
   [['warn','red','Warning and Danger'],['warn','accent','Warning and Accent'],['red','accent','Danger and Accent'],['red','green','Danger and OK'],['warn','green','Warning and OK'],['warn','gold','Warning and Windage']]
     .forEach(([a,b,n])=>{if(colorDist(v[a],v[b])<60)out.push({k:a,msg:n+' look almost the same — warnings must stand out'});});
   return{list:out,quiet:contrast(d['--text3'],v.panel)};
@@ -6320,7 +6370,7 @@ function renderHomeMods(tr){
   const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
   if(on('windoff')){
     const s=solve(S.wind.speed,S.wind.dir);
-    set('wo-clk',s?(s.clWind>=0?'→':'←')+Math.abs(s.clWind).toFixed(1):'—');
+    set('wo-clk',s?(s.clWind>=0?'→':'←')+fx(Math.abs(s.clWind),1):'—');
     set('wo-mm',s?uq('drop',Math.abs(s.windNetMm))+' '+(s.clWind>=0?'right':'left')+' · '+uq('wind',S.wind.speed)+' from '+Math.round(S.wind.dir)+'° rel'+(S.wind.source==='calypso'?' · Calypso':''):'needs a solution');
     set('wo-dist',uq('range',S.dist_m));
   }
@@ -6329,7 +6379,7 @@ function renderHomeMods(tr){
     if(tb){tb.textContent='';const head=document.createElement('tr'),mm=document.createElement('tr'),ck=document.createElement('tr');
       const cell=(r,t,h)=>{const c=document.createElement(h?'th':'td');c.textContent=t;r.appendChild(c);};
       cell(head,'',true);cell(mm,lab('drop',UNITS.drop),false);cell(ck,'clicks',false);
-      [1,2,3,4,5].map(k=>QDEF.wind.from[UNITS.wind](k)).forEach(w=>{const s=solve(w,90);cell(head,ut('wind',w),true);cell(mm,s?un('drop',Math.abs(s.windNetMm)):'—');cell(ck,s?Math.abs(s.clWind).toFixed(1):'—');});
+      [1,2,3,4,5].map(k=>QDEF.wind.from[UNITS.wind](k)).forEach(w=>{const s=solve(w,90);cell(head,ut('wind',w),true);cell(mm,s?un('drop',Math.abs(s.windNetMm)):'—');cell(ck,s?fx(Math.abs(s.clWind),1):'—');});
       tb.append(head,mm,ck);}
     set('wt-dist',uq('range',S.dist_m));
   }
@@ -6758,18 +6808,18 @@ function renderFormulas(){
   fxCheck(true);
   const box=document.getElementById('fx-list');if(!box)return;
   const el=(t,cls,txt)=>{const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
-  const fmt=v=>!Number.isFinite(v)?'error':Math.abs(v)>=100?v.toFixed(2):(+v.toPrecision(5)).toString();
+  const fmt=v=>!Number.isFinite(v)?'error':Math.abs(v)>=100?fx(v,2):decS((+v.toPrecision(5)).toString());   // CORE-27
   const n=fxLast.reduce((s,r)=>s+r.res.length,0),okN=fxLast.reduce((s,r)=>s+r.res.filter(x=>x.ok).length,0);
   document.getElementById('fx-sum').textContent=`${okN} of ${n} anchors pass · ${FORMULAS.filter(f=>f.status==='ok').length} verified · ${FORMULAS.filter(f=>f.status==='est').length} estimates · computed live by this build`;
   box.replaceChildren(...fxLast.map(({f,res})=>{
     const card=el('div','fx-card'+(res.some(x=>!x.ok)?' fx-bad':''));
-    const head=el('div','fx-head');head.append(el('span','fx-name',f.name),el('span','fx-st fx-'+f.status,f.status==='ok'?'✓ Verified':'EST'));
+    const head=el('div','fx-head');head.append(el('span','fx-name',decS(f.name)),el('span','fx-st fx-'+f.status,f.status==='ok'?'✓ Verified':'EST'));
     const rows=el('table','fx-tab');
-    res.forEach(({a,got,ok})=>{const tr=el('tr');tr.append(el('td',null,a.l),el('td',null,fmt(got)+(a.u?' '+a.u:'')),el('td',null,'want '+fmt(a.want)),el('td',ok?'fx-ok':'fx-no',ok?'✓':'✗'));rows.append(tr);});
-    card.append(head,el('div','fx-eq',f.eq),el('div','note',f.src+' · used in: '+f.used),rows);
+    res.forEach(({a,got,ok})=>{const tr=el('tr');tr.append(el('td',null,decS(a.l)),el('td',null,fmt(got)+(a.u?' '+a.u:'')),el('td',null,'want '+fmt(a.want)),el('td',ok?'fx-ok':'fx-no',ok?'✓':'✗'));rows.append(tr);});
+    card.append(head,el('div','fx-eq',decS(f.eq)),el('div','note',decS(f.src+' · used in: '+f.used)),rows);   // CORE-27
     return card;
   }),(()=>{const c=el('div','fx-card');c.append(el('div','fx-head',null));c.firstChild.append(el('span','fx-name','Not modelled'),el('span','fx-st fx-none','—'));
-    const ul=el('ul','fx-nm');FX_NOT_MODELLED.forEach(t=>ul.append(el('li',null,t)));c.append(ul);return c;})());
+    const ul=el('ul','fx-nm');FX_NOT_MODELLED.forEach(t=>ul.append(el('li',null,decS(t))));c.append(ul);return c;})());
 }
 
 /* ═════════ CORE-04 (V1.24.0) — FOLD-AWARE LAYOUT ═════════
@@ -6882,29 +6932,56 @@ const UNIT_FIELDS={
 const FIELD_Q=Object.fromEntries(Object.entries(UNIT_FIELDS).flatMap(([q,ids])=>ids.map(id=>[id,q])));
 const NATIVE_VALUE=typeof HTMLInputElement!=='undefined'?Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value'):null;
 const fieldQ=el=>el.dataset.q||FIELD_Q[el.id]||null;
-const isCanonUnit=q=>UNITS[q]===QDEF[q].canon;
+const isCanonUnit=q=>!q||UNITS[q]===QDEF[q].canon;   // q null: a unitless number field (CORE-27)
 function shownValue(q,canon){
   const x=parseFloat(canon);
-  if(canon===''||isNaN(x)||isCanonUnit(q))return canon;
-  const u=UNITS[q];return String(+QDEF[q].to[u](x).toFixed(QDEF[q].dp[u]+1));
+  if(canon===''||isNaN(x)||isCanonUnit(q))return decS(canon);
+  const u=UNITS[q];return decS(String(+QDEF[q].to[u](x).toFixed(QDEF[q].dp[u]+1)));
 }
+/* CORE-27: what the user typed, as a canonical number string — comma or point, a typographic minus; '' while it is not
+   (yet) a number ("-", "abc"), as the browser's number field did. */
+const NUM_RE=/^-?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i;
+function normNum(n){const t=String(n).trim().replace(',','.').replace(/[−–]/g,'-');return NUM_RE.test(t)?t:'';}
 function readUnitInput(el){
   const n=NATIVE_VALUE.get.call(el);
   if(el._canon!=null&&n===el._shown)return el._canon;
-  const x=parseFloat(n);
-  return n===''||isNaN(x)||isCanonUnit(el._uq)?n:String(+QDEF[el._uq].from[UNITS[el._uq]](x).toPrecision(10));
+  const t=normNum(n),x=parseFloat(t);
+  return t===''||isNaN(x)||isCanonUnit(el._uq)?t:String(+QDEF[el._uq].from[UNITS[el._uq]](x).toPrecision(10));
 }
 function writeUnitInput(el,v){
   const canon=v==null?'':String(v),shown=shownValue(el._uq,canon);
   NATIVE_VALUE.set.call(el,shown);el._canon=canon===''?null:canon;el._shown=shown;
 }
+/* CORE-27: a browser number field can't be told which decimal separator to show, so every number field becomes a text
+   field with the decimal keypad (data-num marks it). Fields that can be negative get a ± key: several phone keyboards
+   (Samsung's, iOS) have no minus on the decimal keypad (owner ruling: keypad + ± key). */
+const NEG_IDS=new Set(['home-railoff','home-angle','home-cant','tr-ct','tu-temp','mvt-t','st-temp','sv-angle','sv-cant','sv-lat','rf-ztemp','rf-zalt','rf-railmrad','wf-temp','wf-alt','sh-angle','sh-cant']);
+const canBeNeg=el=>NEG_IDS.has(el.id)||el.dataset.neg==='1'||(el.getAttribute('min')!=null&&+el.getAttribute('min')<0);
+function numSign(el){
+  const n=NATIVE_VALUE.get.call(el);NATIVE_VALUE.set.call(el,n.startsWith('-')||n.startsWith('−')?n.slice(1):'-'+n);
+  el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));
+}
+function numInit(el){
+  if(el.dataset.num||!NATIVE_VALUE)return;
+  const canon=NATIVE_VALUE.get.call(el);   // the number field's own (canonical) value, before it becomes text
+  el.type='text';el.inputMode='decimal';el.autocomplete='off';el.dataset.num='1';
+  NATIVE_VALUE.set.call(el,canon);
+  if(canBeNeg(el)&&el.parentNode){
+    const w=document.createElement('span');w.className='numwrap';el.replaceWith(w);
+    const b=document.createElement('button');b.type='button';b.className='numneg';b.textContent='±';b.title='Change sign';b.setAttribute('aria-label','Change sign');
+    b.addEventListener('pointerdown',e=>e.preventDefault());b.addEventListener('mousedown',e=>e.preventDefault());b.onclick=()=>numSign(el);
+    w.append(el,b);
+  }
+}
 function unitizeInput(el){
-  const q=fieldQ(el);
-  if(el._uq||!NATIVE_VALUE||!q||q==='-'||!QDEF[q])return;
-  el._uq=q;el._attrs={step:el.getAttribute('step'),min:el.getAttribute('min'),max:el.getAttribute('max')};
+  if(el._uq||el._num||!NATIVE_VALUE)return;
+  numInit(el);
+  const q=fieldQ(el),unit=q&&q!=='-'&&QDEF[q];
+  if(unit){el._uq=q;el._attrs={step:el.getAttribute('step'),min:el.getAttribute('min'),max:el.getAttribute('max')};}
+  else el._num=true;   // CORE-27: a unitless number field still reads and shows the separator
   const canon=NATIVE_VALUE.get.call(el);
   Object.defineProperty(el,'value',{configurable:true,get(){return readUnitInput(this);},set(v){writeUnitInput(this,v);}});
-  el.addEventListener('input',()=>{el._canon=readUnitInput(el);el._shown=NATIVE_VALUE.get.call(el);if(el._canon==='')el._canon=null;unitSecNote(el);});
+  el.addEventListener('input',()=>{el._canon=readUnitInput(el);el._shown=NATIVE_VALUE.get.call(el);if(el._canon==='')el._canon=null;if(el._uq)unitSecNote(el);});
   writeUnitInput(el,canon);
 }
 function unitAttrs(el){
@@ -6923,14 +7000,15 @@ function unitLabel(el){
 }
 function unitSecNote(el){
   if(el.closest('table'))return;
-  let d=el.nextElementSibling;
-  if(!d||!d.classList.contains('u2')){d=document.createElement('div');d.className='subnote u2';el.insertAdjacentElement('afterend',d);}
+  const at=el.closest('.numwrap')||el;let d=at.nextElementSibling;
+  if(!d||!d.classList.contains('u2')){d=document.createElement('div');d.className='subnote u2';at.insertAdjacentElement('afterend',d);}
   const v=el.value;d.textContent=v===''?'':secOnly(el._uq,+v);
 }
 function refreshUnits(){
-  document.querySelectorAll('input[type=number]').forEach(el=>{
-    if(!el._uq){unitizeInput(el);if(!el._uq)return;}
-    else el.value=el.value;
+  document.querySelectorAll('input[type=number],input[data-num]').forEach(el=>{
+    if(!el._uq&&!el._num)unitizeInput(el);
+    else if(el!==document.activeElement)el.value=el.value;   // re-shows in the current unit and number format; never the field being typed in ("280," or "−" would be rewritten)
+    if(!el._uq)return;
     unitAttrs(el);unitLabel(el);unitSecNote(el);
   });
   document.querySelectorAll('[data-ul]').forEach(sp=>{sp.textContent=lab(sp.dataset.ul,UNITS[sp.dataset.ul]);});
@@ -7200,7 +7278,7 @@ function renderWindMod(tr){
   }
   const zb=sol?sol.windDriftMm-sol.windNetMm:0;
   if(sol){const r=document.createElement('tr');
-    r.append(td('Windage'),td(''),td(''),td((sol.clWind>=0?'→':'←')+Math.abs(sol.clWind).toFixed(1)+' clk'));r.style.fontWeight='600';rows.push(r);}
+    r.append(td('Windage'),td(''),td(''),td((sol.clWind>=0?'→':'←')+fx(Math.abs(sol.clWind),1)+' clk'));r.style.fontWeight='600';rows.push(r);}
   body.replaceChildren(...rows);
   set('wm-note',(!ok?'Needs a solution (rifle, projectile, weather).':(fld?'The station shares add up to the drift at '+ut('range',D)+'. ':'')+
     (Math.abs(zb)>0.05?'Windage = drift − '+dr(zb)+' '+lab('drop',UNITS.drop)+' baked into the zero. ':''))+(fld?'':stnSummary(st)));
@@ -7489,16 +7567,16 @@ function driveSave(files){
   if(files.every(f=>driveEnqueue(...f)))driveTapSend();else driveRender();
 }
 function driveBackupNow(){
-  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.17.0'};
+  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.18.0'};
   driveSave([['backups','SEN backup '+driveStamp()+'.json','application/json',JSON.stringify(d,null,1),'backup']]);
 }
 function driveSaveProfile(t,id){
   const b=shareBundle(t,id),type=SHARE_TYPES[t],rec=b&&DB[type].find(x=>x.id===id);if(!b)return;
-  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.17.0'},null,1)]]);
+  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.18.0'},null,1)]]);
 }
 function driveSaveDope(){
   const c=getCard();if(!c)return;
-  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.17.0'},null,1)]];
+  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.18.0'},null,1)]];
   const h=dopePrintHTML(c);   // null when the card can't be computed — the JSON still goes
   if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print)','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title>'+h.replace(/<table>/g,'<table border="1" cellpadding="4" style="border-collapse:collapse">'),'',DRIVE_DOC]);   // → Google Doc
   driveSave(f);
@@ -7510,7 +7588,7 @@ function driveSaveShots(){
   const csv='shot,velocity_ms,velocity_fps,kept,running_sd_ms,time\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes',run[i].sd==null?'':run[i].sd.toFixed(2),c.times[i]?new Date(c.times[i]).toISOString():''].join(',')).join('\n')+
     '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n'+(notes?'\nnotes\n'+q(notes)+'\n':'');
   driveSave([['shots',nm,'text/csv',csv,'',DRIVE_SHEET],   // → Google Sheet
-    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.17.0',saved:new Date().toISOString()},null,1)]]);
+    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.18.0',saved:new Date().toISOString()},null,1)]]);
 }
 function driveWindRows(){
   const now=Date.now(),win=wavgWin();
@@ -7522,7 +7600,7 @@ function driveSaveWind(){
   const rows=driveWindRows();if(!rows.length||rows.every(r=>!r.readings)){alert('No wind readings to save — connect a Calypso first.');return;}
   const t=new Date().toISOString(),keys=Object.keys(rows[0]);
   driveSave([['wind','Wind '+driveStamp(),'text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n','',DRIVE_SHEET],   // → Google Sheet
-    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.17.0'},null,1)]]);
+    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.18.0'},null,1)]]);
 }
 // Restore: JSON files in Backups, Profiles and Dope cards, newest first → the normal import.
 async function driveRestoreList(){
@@ -7585,14 +7663,16 @@ function restoreSession(){
   const fields=['mv','sight','bc','ct','cp','crh'],key={mv:'mv',sight:'sight_mm',bc:'bc',ct:'ct',cp:'cp',crh:'crh'};
   fields.forEach(f=>{if(S[key[f]]==null)S.src[f]='profile';});
   if(S.rifleId||S.projId||S.curWxId)repullProfile(fields);
-  const show={mv:v=>'MV '+ut('vel',v),sight:v=>'sight '+ut('sight',v),bc:v=>'BC '+(+v.toFixed(4)),ct:v=>ut('temp',v),cp:v=>ut('pres',v)+' station',crh:v=>v+' % RH'};
+  const show={mv:v=>'MV '+ut('vel',v),sight:v=>'sight '+ut('sight',v),bc:v=>'BC '+decS(String(+v.toFixed(4))),ct:v=>ut('temp',v),cp:v=>ut('pres',v)+' station',crh:v=>v+' % RH'};
   const how={manual:'typed',chrono:'chrono',mvtemp:'MV–temp model'};
   const kept=fields.filter(f=>S.src[f]!=='profile').map(f=>show[f](S[key[f]])+' ('+how[S.src[f]]+')');
   if(kept.length)senToast(kept.join(', ')+' kept from last session');
 }
 async function boot(){
+staticDecInit();   // V2.18.0 CORE-27: the markup's own text, before anything renders
 await loadDB();fixStoredIds();seedReticles();migrateScopes();seedDefaults();migrateZeroFields();migrateReticlesAndMag();migrateWeatherSeeds();seedVectorScopes();migrateSilentMilgrid();seedProjectileCatalog();migrateProjectileCal();migrateTruedBC();migrateMillerC();migratePressureType();
 initLayouts();  // V2.16.1 U-01: layouts are valid before anything renders Home
+staticDecApply();   // V2.18.0 CORE-27 (APP.numFmt is known now)
 DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (V1.13.2): legacy free-text cleanup
 /* V1.12.5 (C3): saveDB persists profile IDs but not the derived overridables (mv/bc/sight/ct/cp/crh)
    — they were left null on relaunch, so Home showed "select rifle…" despite restored chips.

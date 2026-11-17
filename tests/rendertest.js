@@ -5,7 +5,7 @@
 // is on screen, high-contrast lifts main text to white, the Settings screen line follows a fold.
 // Usage: node rendertest.js <app.html>   (needs playwright + Chromium; see README.md)
 const {chromium}=require('playwright'),path=require('path');
-const FILE='file://'+path.resolve(process.argv[2]);
+const FILE='file://'+path.resolve(process.argv[2])+'?numfmt=point';   // V2.18.0: suite text is dot-decimal (EU format: numfmttest.js)
 let pass=0,fail=0;
 const chk=(n,ok,extra)=>{console.log((ok?'  PASS  ':'  FAIL  ')+n+(extra?'   '+extra:''));ok?pass++:fail++;};
 const OUTER={width:415,height:843},INNER={width:840,height:910};

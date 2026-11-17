@@ -16,7 +16,7 @@ function setScreen(w,[W,H],coarse=true){
   w.matchMedia=q=>({matches:/pointer:\s*coarse/.test(q)?coarse:false,addEventListener(){},removeEventListener(){}});
 }
 async function open(screen){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
     beforeParse(w){setScreen(w,screen);w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}});
   const w=dom.window;w.errs=[];w.addEventListener('error',e=>w.errs.push(e.message));
   await wait(700);

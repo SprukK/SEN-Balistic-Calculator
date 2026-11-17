@@ -12,7 +12,7 @@ let pass=0,fail=0;
 const chk=(n,ok,extra)=>{console.log((ok?'  PASS  ':'  FAIL  ')+n+(extra?'   '+extra:''));ok?pass++:fail++;};
 
 async function open(file,{idb,ls,ua}={}){
-  const opts={runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+  const opts={runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
     beforeParse(w){
       if(idb){w.indexedDB=idb;w.IDBKeyRange=IDBKeyRange;}
       if(ls!=null)w.localStorage.setItem(SK,ls);

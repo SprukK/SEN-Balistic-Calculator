@@ -12,7 +12,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 let pass=0,fail=0;
 const chk=(n,ok,extra)=>{console.log((ok?'  PASS  ':'  FAIL  ')+n+(extra?'   '+extra:''));ok?pass++:fail++;};
 async function open(ls){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
     beforeParse(w){Object.defineProperty(w,'innerWidth',{configurable:true,value:412});Object.defineProperty(w,'innerHeight',{configurable:true,value:915});   // phone screen (jsdom's default is a two-pane wide screen)
       w.alert=()=>{};w.confirm=()=>true;w.scrollTo=()=>{};if(ls)w.localStorage.setItem(SK,ls);
       w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}});
@@ -133,7 +133,7 @@ const ai=$(w,'sh-angle');ai.value='20';ai.dispatchEvent(new w.KeyboardEvent('key
 chk('angle sheet sets Home angle 20°, answer re-solved',$(w,'home-angle').value==='20'&&txt(w,'fd-angle')==='Angle 20°'&&txt(w,'fa-elev')===txt(w,'home-elev'));
 
 // 7b. On-screen keyboard: sheets sit above it (--kb = window height − visual viewport height)
-{const dom2=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+{const dom2=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
   beforeParse(v){Object.defineProperty(v,'innerWidth',{configurable:true,value:412});Object.defineProperty(v,'innerHeight',{configurable:true,value:915});v.alert=()=>{};v.scrollTo=()=>{};
     const vv=new v.EventTarget();vv.height=915;vv.offsetTop=0;v.visualViewport=vv;
     v.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}});
@@ -147,7 +147,7 @@ chk('angle sheet sets Home angle 20°, answer re-solved',$(w,'home-angle').value
  chk('…the sheet box sits on --kb and its height leaves room for it',/\.sbox\{bottom:var\(--kb,0px\);max-height:calc\(84vh - var\(--kb,0px\)\)\}/.test(css));}
 
 // 7c. Divider between the panes (inner screen): drag 30–70 %, double-tap reset, remembered
-{const d2=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+{const d2=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
   beforeParse(v){Object.defineProperty(v,'innerWidth',{configurable:true,value:780});Object.defineProperty(v,'innerHeight',{configurable:true,value:720});v.alert=()=>{};v.scrollTo=()=>{};
     v.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}});
  const v=d2.window;await wait(700);const root=v.document.documentElement,dv=v.document.getElementById('pane-div');
@@ -158,7 +158,7 @@ chk('angle sheet sets Home angle 20°, answer re-solved',$(w,'home-angle').value
  p('pointermove',740);const lo=v.eval('APP.railW');p('pointermove',20);const hi=v.eval('APP.railW');p('pointerup',20);
  chk('clamped to 30 % … 70 %',lo===0.3&&hi===0.7&&!dv.classList.contains('drag'),lo+' / '+hi);
  v.eval('saveDB()');await wait(50);
- const d3=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+ const d3=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
    beforeParse(x){Object.defineProperty(x,'innerWidth',{configurable:true,value:780});Object.defineProperty(x,'innerHeight',{configurable:true,value:720});x.alert=()=>{};x.scrollTo=()=>{};
      x.localStorage.setItem(SK,v.localStorage.getItem(SK));x.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});}});
  await wait(700);

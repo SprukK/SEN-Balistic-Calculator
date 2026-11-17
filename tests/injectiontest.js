@@ -11,7 +11,7 @@ let pass=0,fail=0;
 const chk=(n,ok,extra)=>{console.log((ok?'  PASS  ':'  FAIL  ')+n+(extra?'   '+extra:''));ok?pass++:fail++;};
 const all=[];
 async function open({idb,url,quiet}={}){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:url||'https://x.test/index.html',...(quiet?{virtualConsole:new VirtualConsole()}:{}),
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:url||'https://x.test/index.html?numfmt=point',...(quiet?{virtualConsole:new VirtualConsole()}:{}),
     beforeParse(w){if(idb){w.indexedDB=idb;w.IDBKeyRange=IDBKeyRange;}
       Object.defineProperty(w,'innerWidth',{configurable:true,value:412});Object.defineProperty(w,'innerHeight',{configurable:true,value:915});
       w.alerts=[];w.alert=m=>w.alerts.push(String(m));w.confirms=[];w.confirm=m=>{w.confirms.push(String(m));return true;};w.scrollTo=()=>{};w.print=()=>{};
@@ -119,12 +119,12 @@ for(const mode of ['html','attr','js']){
 // 5. D-04: a link with only new items opens the review; nothing is added until Import; Cancel adds nothing.
 {const proj={id:'link-proj',name:'Linked slug',cal:'.25',mfg:'Shared',type:'slug',diam:6.35,mass:60,oal:12.9,bcg7:0.11,bcg1:0.2,c:0,ff:1};
  const code=share({schema:{projectiles:1},projectiles:[proj]});
- const w=await open({url:'https://x.test/index.html#import='+code});
+ const w=await open({url:'https://x.test/index.html?numfmt=point#import='+code});
  const has=()=>J(w,"DB.projectiles.some(p=>p.name==='Linked slug')");
  chk('D-04 link with only new items → review sheet open, nothing added yet',$(w,'modal').classList.contains('open')&&/1 new item/.test($(w,'mbox').textContent)&&!has());
  [...w.document.querySelectorAll('#mbox button')].find(b=>b.textContent==='Import').click();await wait(30);
  chk('D-04 Import adds it',has());
- const w2=await open({url:'https://x.test/index.html#import='+code});
+ const w2=await open({url:'https://x.test/index.html?numfmt=point#import='+code});
  [...w2.document.querySelectorAll('#mbox button')].find(b=>b.textContent==='Cancel').click();await wait(30);
  chk('D-04 Cancel adds nothing',!J(w2,"DB.projectiles.some(p=>p.name==='Linked slug')"));
  const w3=await open();w3.eval('receiveShare('+JSON.stringify('try this: '+code)+')');await wait(300);

@@ -27,7 +27,7 @@ function unit(name,accept){
 }
 const all=[];
 async function open(dev,ls){
-  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/',
+  const dom=new JSDOM(fs.readFileSync(FILE,'utf8'),{runScripts:'dangerously',pretendToBeVisual:true,url:'https://x.test/?numfmt=point',
     beforeParse(w){w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:(t,k)=>k==='measureText'?()=>({width:10}):()=>{}});
       Object.defineProperty(w.navigator,'bluetooth',{value:{requestDevice:async()=>w.nextDev||dev}});w.alert=()=>{};w.confirm=()=>true;
       if(ls)w.localStorage.setItem('sen_platform_v1',ls);}});
