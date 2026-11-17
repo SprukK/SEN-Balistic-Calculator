@@ -36,6 +36,7 @@ function parseQ(q){const o={};let m;
   if((m=q.match(/name='((?:[^'\\]|\\.)*)'/)))o.name=m[1].replace(/\\'/g,"'").replace(/\\\\/g,'\\');
   if((m=q.match(/'([^']+)' in parents/)))o.parent=m[1];
   if((m=q.match(/mimeType='([^']+)'/)))o.mime=m[1];
+  if((m=q.match(/appProperties has \{ key='senId' and value='([^']+)' \}/)))o.senId=m[1];   // V2.18.1 D-20
   return o;}
 async function fakeFetch(url,opt={}){
   G.reqs.push({url,method:opt.method||'GET'});
@@ -46,7 +47,7 @@ async function fakeFetch(url,opt={}){
   if(u.pathname==='/oauth2/v3/userinfo')return R(200,{email:'spruk.k@gmail.com',email_verified:true});
   if(u.pathname==='/drive/v3/files'&&(opt.method||'GET')==='GET'){
     const q=parseQ(u.searchParams.get('q')||'');
-    let list=Object.values(G.files).filter(f=>!f.trashed&&(!q.name||f.name===q.name)&&(!q.parent||f.parents.includes(q.parent))&&(!q.mime||f.mimeType===q.mime));
+    let list=Object.values(G.files).filter(f=>!f.trashed&&(!q.name||f.name===q.name)&&(!q.parent||f.parents.includes(q.parent))&&(!q.mime||f.mimeType===q.mime)&&(!q.senId||(f.appProperties||{}).senId===q.senId));
     if(/createdTime desc/.test(u.searchParams.get('orderBy')||''))list=list.sort((a,b)=>b.created-a.created);
     return R(200,{files:list.map(f=>({id:f.id,name:f.name,createdTime:new Date(f.created).toISOString()}))});}
   if(u.pathname==='/drive/v3/files'&&opt.method==='POST'){const m=JSON.parse(opt.body);const id='f'+(++G.n);
@@ -59,7 +60,9 @@ async function fakeFetch(url,opt={}){
     const b=(opt.headers['Content-Type'].match(/boundary=(.+)$/)||[])[1];const parts=opt.body.split('--'+b).slice(1,-1).map(p=>p.replace(/^\r\n/,'').split('\r\n\r\n'));
     const meta=JSON.parse(parts[0].slice(1).join('\r\n\r\n').replace(/\r\n$/,'')),body=parts[1].slice(1).join('\r\n\r\n').replace(/\r\n$/,'');
     if(!meta.parents||!G.files[meta.parents[0]])return R(404,{error:{code:404,errors:[{reason:'notFound'}]}});
-    const id='f'+(++G.n);G.files[id]={id,name:meta.name,mimeType:meta.mimeType,parents:meta.parents,created:Date.now()+G.n,body,ctype:parts[1][0]};return R(200,{id,name:meta.name});}
+    const id='f'+(++G.n);G.files[id]={id,name:meta.name,mimeType:meta.mimeType,parents:meta.parents,created:Date.now()+G.n,body,ctype:parts[1][0],appProperties:meta.appProperties};
+    if(G.dropAnswer){G.dropAnswer=false;throw new TypeError('Failed to fetch');}   // V2.18.1 D-20: the upload landed, the answer was lost
+    return R(200,{id,name:meta.name});}
   return R(400,{error:{message:'unexpected '+url}});
 }
 const idb=new IDBFactory();
@@ -171,6 +174,17 @@ const nf=Object.keys(G.files).length;w.eval(`APP.drive.rootId=null;APP.drive.dir
 chk('folder ids lost: the existing folders are found again (no duplicates)',folders()==='Backups,Dope cards,Profiles,SEN Ballistics,Shot strings,Wind'&&Object.keys(G.files).length===nf+1);
 Object.values(G.files).filter(f=>f.mimeType===FOLDER).forEach(f=>f.trashed=true);w.eval('driveBackupNow()');await wait(150);
 chk('folders moved to the bin: created again, the backup lands in the new Backups',folders()==='Backups,SEN Ballistics'&&inDir('Backups').length===1);
+
+// V2.18.1 D-20: a retried upload whose first answer was lost is not sent twice; folder checks once per flush
+{const before=inDir('Backups').length;G.dropAnswer=true;w.eval('driveBackupNow()');await wait(150);
+ chk('D-20 upload landed but its answer was lost: still queued, marked tried',w.eval('drv.queue.length')===1&&w.eval('drv.queue[0].tried')===true&&inDir('Backups').length===before+1);
+ w.eval('driveFlush()');await wait(150);
+ chk('D-20 retry: found by its senId in Drive and dropped — one file, not two',w.eval('drv.queue.length')===0&&inDir('Backups').length===before+1);
+ const f=inDir('Backups').slice(-1)[0];chk('D-20 uploads carry appProperties.senId',!!(f.appProperties&&f.appProperties.senId));
+ G.online=false;w.eval("driveEnqueue('wind','a.csv','text/csv','a,b');driveEnqueue('wind','b.csv','text/csv','a,b');driveEnqueue('wind','c.csv','text/csv','a,b')");await wait(30);G.online=true;
+ const n0=G.reqs.length;w.eval('driveFlush()');await wait(200);
+ const checks=G.reqs.slice(n0).filter(r=>/\/drive\/v3\/files\/[^/?]+\?fields=id,trashed/.test(r.url)).length;
+ chk('D-20 three queued files → each folder checked at most once in the flush (root + Wind: ≤ 2; V2.18.0 made one per file)',checks>=1&&checks<=2&&w.eval('drv.queue.length')===0,checks+' checks');}
 
 // export file, client ID, disconnect, sinks
 const exp=J(`JSON.parse(JSON.stringify({app2:appForExport()}))`);

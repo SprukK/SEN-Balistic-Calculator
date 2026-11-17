@@ -7,6 +7,33 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.18.1 — patch — low impact and housekeeping (review release R7: P-14, P-15, P-16, P-18, P-20, P-21, D-19, D-20, B-10, B-17, test gaps)
+
+**Physics (reproduced independently by `tests/p14ref.py`).**
+- **P-14 — zero-session wind drift in zero air.** The drift baked into the zero now uses the zero-pass time of flight when zero air differs from current air (was current-air TOF). Example: 3 m/s zero crosswind, zero air −5 °C vs current 20 °C → 9.8777 mm (reference 9.8775). Equal air: bit-identical to V2.18.0.
+- **P-15 — solver bounds.** An unreachable zero (bisection pinned at the ±0.1 rad limit) returns no trajectory with `zeroFail`; every screen shows "outside the computed range" instead of a dope (checked on Home, Trajectory, Solver, Holds, dope cards: no errors). The flight loop is capped at 10⁵ steps (90° look-up).
+- **P-18 — horizontal Coriolis measured from the zero (owner accepted).** Like spin drift: the zero absorbs its share, ΔH − 2Ω·sin(lat)·∫x dt(zero)·R/R₀. Queen at 46° N, 50 m zero: 200 m 6.8264 mm (raw 8.9313), 300 m 17.7721 mm (raw 20.9295); 0 at the zero distance when the air is the same.
+- **P-16 —** a pellet gets no Sg even with a typed C on Stability; a dope card whose rifle was deleted uses the fallback zero air instead of failing.
+- **P-20 —** Formulas page: speed of sound is the dry-air formula (humid air up to ~0.5 % faster; < 1 mm at 200 m). Note only.
+- **P-21 —** Formulas density anchor renamed ("formula check: 1010 hPa as typed"); new anchor **Everyday Default** = 20 °C, 1010 hPa QNH at 298 m, 65 % → 1.1516 kg/m³. MOA↔mrad literals replaced by the named constants.
+
+**Data and devices.**
+- **D-19 —** a snapshot saved by a newer SEN schema loads read-only with a banner and is never saved over.
+- **D-20 —** Drive uploads carry `appProperties.senId`; an upload whose answer was lost is looked up before retrying (one file, not two). Each Drive folder is checked once per flush (was once per file).
+- **B-10 (owner: 10 s, no measuring) —** every GATT operation in the SenBle queue is cut off after 10 s, so one stuck write no longer blocks the link.
+- **B-17 —** on iPhone / iPad the Connect buttons are replaced by a note (Apple blocks Web Bluetooth; enter device data by hand).
+- **Not built:** **B-16** (owner: leave as is). **P-19** (optional) not done.
+
+**Test gaps closed (review segment lists).** runtests 135 → 174 anchors: two-pass zero and the Everyday Default drops against py-ballisticcalc (±0.3 mm), v200 226.047 m/s, Eötvös ±50.61, `twistForSg` 16.634″, worst-case Sg Queen 1.038 / King 0.938, banded BC self-consistency, P-14 / P-15 / P-18 known answers. **Still open:** `cantShift` and `windDriftField` on slopes (need a py-ballisticcalc run).
+
+**Docs.** tests/README.md: suite count wording, 174 anchors, Berger 980 hPa, lowtest row and command. CLAUDE.md: points to V8; rule 6 is the Miller rule.
+
+**Files.** index.html, RTI-SEN-Ballistic-Calculator-V2.18.1.html (V2.18.0 → archive/), sw.js (CACHE sen-ballistics-v2.18.1), tests/runtests.js, tests/p14ref.py (new), tests/lowtest.js (new), tests/drivetest.js, tests/README.md, CLAUDE.md, SEN-Patch-Log.md.
+
+**Verify.** All 52 suites in tests/README.md green (runtests 174/0, lowtest 14/0, drivetest 42/0 — V2.18.0 fails the 4 new D-20 checks); Lab maindatatest 13/0; owner export round trip: nothing rejected, no keys changed; Chromium 412 / 780 px: 7 screens, no errors, no sideways scroll.
+
+---
+
 ## V2.18.0 — minor — EU number format and import part picker (review release R6 part 2: CORE-27, CORE-28)
 
 **What's new.**

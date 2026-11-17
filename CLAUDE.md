@@ -8,12 +8,12 @@ All project work happens in the **"SEN - Ballistic Calculator" Claude Project** 
 
 | Task | Doc in Project knowledge |
 |---|---|
-| Rules for everything | `PROJECT_INSTRUCTIONS_V7` (also pasted into the Project instructions) |
+| Rules for everything | `PROJECT_INSTRUCTIONS_V8` (also pasted into the Project instructions) |
 | Any ballistic calculation or physics code | `SEN-BALLISTICS-SKILL.md` |
 | Any code at all | `clean-code-rules.md` |
 | Proposing or building a feature | `claude/SEN-Feature-Register.md` (check status and ID first) |
 
-If this file and V7 disagree, V7 wins. Do not recall ballistic equations from memory without checking the skill.
+If this file and V8 disagree, V8 wins. Do not recall ballistic equations from memory without checking the skill.
 
 ## What lives where
 
@@ -23,14 +23,14 @@ If this file and V7 disagree, V7 wins. Do not recall ballistic equations from me
 - Deployment: https://sprukk.github.io/SEN-Balistic-Calculator/
 - Legacy repo (archived, history migrated): github.com/lnQNtrol/SEN-Balistic-Calcutalor
 
-## Non-negotiable rules (summary — full text in V7)
+## Non-negotiable rules (summary — full text in V8)
 
 1. **Never build without an explicit "go".** Present the plan, wait.
 2. **Single-file HTML PWA, no build step.** No bundler, no node_modules committed.
 3. **Minimal change.** Touch only what the task needs. No refactoring, renaming or reformatting unrelated code. No abstraction for hypothetical needs.
 4. **Formula integrity first (§20A).** Every formula is verified against an external authority and an independent reproduction before it ships. Trust the reproduced number over any stated anchor.
 5. **§9H BC convention.** SD = mass_gr / (7000·d_in²), with no π/4 term; the area-based formula inflates BC by 4/π = 1.273. BC[kg/m²] = BC[lb/in²] × 703.07. Anchor: Altaros Queen .25 G7 0.128 = 90.0 kg/m².
-6. **Stability constant C is calibre-specific and never interpolated or transferred.** Outside the verified range, Sg is "not computed".
+6. **Stability is the Miller twist rule (= Berger's calculator, §9S).** With twist in inches, C = 30·d² — a unit conversion, not a per-calibre constant; a C stored in a profile is an override and is labelled as such. L/D < 2.0 and pellets: Sg "not computed".
 7. **Security.** No `innerHTML` sinks; JSON import uses schema-whitelist sanitisation.
 8. **Metric first.** Mass always grains, BC always lb/in².
 
@@ -39,7 +39,7 @@ If this file and V7 disagree, V7 wins. Do not recall ballistic equations from me
 See `tests/README.md` for the exact commands.
 
 - `node --check` on the extracted script.
-- `tests/runtests.js` — 20 physics anchors, all green.
+- `tests/runtests.js` — 174 physics anchors, all green.
 - **Any change to navigation, sheets or event wiring also runs `tests/domtest.js`** (real-DOM jsdom click test).
 - If a change alters what a test asserts, update the test in the same commit.
 - `index.html` must be byte-identical to the versioned HTML.

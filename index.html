@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.18.0</title>
+<title>SEN Ballistics V2.18.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -1214,7 +1214,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.18.0 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.18.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1310,10 +1310,13 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
     return x>px&&x>zero_m?py+(zero_m-px)/(x-px)*(y-py):y;}
   for(let i=0;i<60;i++){const m=(lo+hi)/2;finalY(m)>0?hi=m:lo=m;}
   const za=(lo+hi)/2;
-  // V2.12.0: time of flight to the zero range in the zero pass (zero air) — spin drift is referenced to the zero
-  let zeroTof=null;{let x=0,y=-sight_m,vx=mv*Math.cos(za),vy=mv*Math.sin(za),n=0,px=0;
-    while(x<zero_m&&n++<1e5){px=x;[x,y,vx,vy]=step(x,y,vx,vy,dt,zen);}
-    if(x>=zero_m)zeroTof=(n-1+(x>px?(zero_m-px)/(x-px):1))*dt;}
+  // V2.18.1 P-15: the bisection is bounded at ±0.1 rad — a zero it can't reach ends there. Report it, never fly it.
+  if(Math.abs(Math.abs(za)-0.1)<1e-9){const none=[];none.zeroFail=true;none.za=za;return none;}
+  // V2.12.0: time of flight to the zero range in the zero pass (zero air) — spin drift is referenced to the zero.
+  // V2.18.1 P-18: ∫x dt to the zero range in the same pass (zero air) — horizontal Coriolis is referenced to the zero.
+  let zeroTof=null,zeroXT=null;{let x=0,y=-sight_m,vx=mv*Math.cos(za),vy=mv*Math.sin(za),n=0,px=0,I=0;
+    while(x<zero_m&&n++<1e5){px=x;[x,y,vx,vy]=step(x,y,vx,vy,dt,zen);I+=(px+x)/2*dt;}
+    if(x>=zero_m){const f=x>px?(zero_m-px)/(x-px):1;zeroTof=(n-1+f)*dt;zeroXT=I-(px+x)/2*dt+(px+zero_m)/2*f*dt;}}
   // PASS 2 — current-atmosphere integration with the fixed zero angle.
   // V2.10.0 (CALC-07): flight.mv launches this pass at another MV with the same zero angle (the shot-to-shot
   // MV spread of a real rifle). Omitted → mv: bit-identical to before.
@@ -1323,7 +1326,8 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
   // Subsonic ELR drops exceed 80 m well before 1 km — scale the guard with requested range
   // (30% of max_m, floor 80 m) so 800 m+ trajectories complete instead of reporting OOR.
   const yGuard=-Math.max(80,0.3*max_m);
-  while(x<=max_m+dt&&y>yGuard){
+  let nf=0;   // V2.18.1 P-15: the same step cap as the zero pass (a shot that can't reach max_m ends instead of hanging)
+  while(x<=max_m+dt&&y>yGuard&&nf++<1e5){
     const px=x,py=y,pvx=vx,pvy=vy,pt=t;
     [x,y,vx,vy]=step(x,y,vx,vy,dt,cur);t+=dt;
     // L1 (V1.13.2): dense output. Points were recorded at the first dt-step PAST each output
@@ -1345,6 +1349,8 @@ function rk4traj(mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1
   }
   out.za=za;out.sight=sight_m; // V1.32.0: bore-line geometry for cant
   out.zeroTof=zeroTof;         // V2.12.0
+  out.zeroXT=zeroXT;           // V2.18.1 P-18
+  out.zeroAirSame=zen.rho===cur.rho&&zen.aS===cur.aS;   // V2.18.1 P-14
   // Same trajectory for another shot angle / head-tailwind (solveShot), cached per rounded key.
   if(!flight){const A=[mv,bc_g7,mass_gr,zero_m,max_m,sight_m,rho,aS,stepOut,drag,bc_g1,bands,zeroEnv],cache=new Map();
     // head may be a number, or a function of distance (wind field) passed with headKey identifying it.
@@ -1769,7 +1775,9 @@ function solveShot(pts,nearest,zero_m,dist_m,angle_deg,wind_ms,windDir_deg,mv,cl
   // CORE-17: a crosswind field (two or more stations) replaces the single wind for the drift at the target.
   const wf=field?windDriftField(P,dist_m,field):null;
   const wd=wf!=null?wf:windDrift(tp.tof,dist_m,mv,crossSigned);
-  const wdZeroBaked=windDrift(zp.tof,zero_m,mv,zCrossSigned);
+  // V2.18.1 P-14: the drift baked into the zero happened in zero air — its time of flight is the zero pass's.
+  // Equal air: the current-air time at the zero range (bit-identical to before).
+  const wdZeroBaked=windDrift(pts.zeroAirSame===false&&pts.zeroTof!=null?pts.zeroTof:zp.tof,zero_m,mv,zCrossSigned);
   const wdNet=wd-wdZeroBaked;
   const mrWind=wdNet/dist_m, clWind=mrWind/click;
   const cross=Math.abs(crossSigned); // magnitude for display ("crosswind 6.3 m/s")
@@ -1855,6 +1863,13 @@ function windDriftField(pts,range,w,h=0.25){
 const OMEGA=7.292115e-5, DEG=Math.PI/180;
 function xTimeIntegral(pts,tp){let I=0,px=0,pt=0;for(const p of pts){if(p.range>tp.range+1e-9)break;I+=(p.range+px)/2*(p.tof-pt);px=p.range;pt=p.tof;}return I;} // ∫x dt, m·s
 function coriolisH_mm(pts,tp,lat){return 2*OMEGA*Math.sin(lat*DEG)*xTimeIntegral(pts,tp)*1000;}
+// V2.18.1 P-18 (owner accepted): horizontal Coriolis measured from the zero, like spin drift and jump — the part already
+// inside a zero at z is a fixed angle: Δ(d) − Δ(z)·d/z, Δ(z) from the zero pass (zero air). Vertical (Eötvös) is unchanged:
+// it depends on azimuth, which the zero session doesn't record.
+function coriolisHFromZero_mm(pts,tp,lat,zero_m){
+  const h=coriolisH_mm(pts,tp,lat);if(!(pts.zeroXT>0)||!(zero_m>0))return h;
+  return h-2*OMEGA*Math.sin(lat*DEG)*pts.zeroXT*1000*tp.range/zero_m;
+}
 function coriolisV_mm(pts,tp,lat,az){return 2*OMEGA*Math.cos(lat*DEG)*Math.sin(az*DEG)*xTimeIntegral(pts,tp)*1000;}
 /* V2.8.0 CALC-06 — aerodynamic jump from a crosswind (Litz, Applied Ballistics for Long-Range Shooting, 2nd ed.
    pp. 75–83): Y = 0.01·Sg − 0.0024·L + 0.032 MOA per mph of crosswind, L = length in calibres. A launch-angle
@@ -1901,7 +1916,7 @@ const QDEF={
   range:{name:'Range',canon:'m',opts:{m:'Meters',yd:'Yards',ft:'Feet'},to:{m:v=>v,yd:v=>v/0.9144,ft:v=>v/0.3048},from:{m:v=>v,yd:v=>v*0.9144,ft:v=>v*0.3048},lab:{m:'m',yd:'yd',ft:'ft'},dp:{m:0,yd:0,ft:0}},
   zrange:{name:'Zeroing range',canon:'m',opts:{m:'Meters',yd:'Yards',ft:'Feet'},to:{m:v=>v,yd:v=>v/0.9144,ft:v=>v/0.3048},from:{m:v=>v,yd:v=>v*0.9144,ft:v=>v*0.3048},lab:{m:'m',yd:'yd',ft:'ft'},dp:{m:0,yd:0,ft:0}},
   drop:{name:'Drop / elevation',canon:'mm',opts:{mm:'mm',cm:'cm',in:'inches'},to:{mm:v=>v,cm:v=>v/10,in:v=>v/25.4},from:{mm:v=>v,cm:v=>v*10,in:v=>v*25.4},lab:{mm:'mm',cm:'cm',in:'in'},dp:{mm:1,cm:2,in:2}},
-  ang:{name:'Angular',canon:'mrad',opts:{mrad:'MRAD',moa:'MOA'},to:{mrad:v=>v,moa:v=>v*3.43775},from:{mrad:v=>v,moa:v=>v/3.43775},lab:{mrad:'mrad',moa:'MOA'},dp:{mrad:2,moa:2}},
+  ang:{name:'Angular',canon:'mrad',opts:{mrad:'MRAD',moa:'MOA'},to:{mrad:v=>v,moa:v=>v*MRAD2MOA},from:{mrad:v=>v,moa:v=>v/MRAD2MOA},lab:{mrad:'mrad',moa:'MOA'},dp:{mrad:2,moa:2}},
   sight:{name:'Sight height',canon:'mm',opts:{mm:'mm',cm:'cm',in:'inches'},to:{mm:v=>v,cm:v=>v/10,in:v=>v/25.4},from:{mm:v=>v,cm:v=>v*10,in:v=>v*25.4},lab:{mm:'mm',cm:'cm',in:'in'},dp:{mm:0,cm:1,in:2}},
   vel:{name:'Muzzle velocity',canon:'ms',opts:{ms:'m/s',fps:'fps'},to:{ms:v=>v,fps:v=>v/0.3048},from:{ms:v=>v,fps:v=>v*0.3048},lab:{ms:'m/s',fps:'fps'},dp:{ms:1,fps:0}},
   wind:{name:'Wind speed',canon:'ms',opts:{ms:'m/s',mph:'mph',kn:'knots'},to:{ms:v=>v,mph:v=>v/0.44704,kn:v=>v*3600/1852},from:{ms:v=>v,mph:v=>v*0.44704,kn:v=>v*1852/3600},lab:{ms:'m/s',mph:'mph',kn:'kn'},dp:{ms:1,mph:1,kn:1}},
@@ -1998,6 +2013,7 @@ const decHtml=h=>numFmt()==='eu'?String(h).split(/(<[^>]*>)/).map(s=>s[0]==='<'?
    format changes; the original text is kept so switching back is exact. Built only from markup present before boot renders. */
 const STATIC_DEC=new Map();
 function staticDecInit(){
+  if(!document.createTreeWalker||!document.body)return;   // V2.18.1: the anchor suite's stub DOM has none
   const w=document.createTreeWalker(document.body,4);let n;
   while((n=w.nextNode()))if(/\d\.\d/.test(n.data)&&!(n.parentElement&&n.parentElement.closest('script,style,textarea,[data-nodec]')))STATIC_DEC.set(n,n.data);
 }
@@ -2262,6 +2278,9 @@ async function loadDB(){
     loadError='Stored data could not be read ('+e.message+') — the app started with defaults. '+(kept?'The unreadable copy was kept ('+kept+').':'The unreadable copy could NOT be kept.')+' Restore a backup: Settings → Google Drive → Restore, or Profiles → Import.';
     return;
   }
+  // V2.18.1 D-19: data written by a newer SEN (e.g. after rolling back to an older build) is shown, never saved over
+  const newer=schemaNewerThanApp(d);
+  if(newer.length){storeReadOnly=true;loadError='This data was saved by a newer SEN version ('+newer.join(', ')+'). It is shown read-only and nothing is saved: install the newer version again (or export a backup first).';}
   applySnapshot(d);
 }
 function saveDB(){
@@ -2297,8 +2316,17 @@ async function clearAllData(){
   try{localStorage.removeItem(SK);localStorage.removeItem(MIG_KEY);}catch(e){}
 }
 async function factoryReset(){if(!confirm('Reset ALL data to defaults? Profiles will be lost.'))return;await clearAllData();location.reload();}
+const isIOSDevice=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+/* V2.18.1 B-17 — Apple blocks Web Bluetooth in every iOS browser (A-05): the Connect buttons become a one-line note. */
+const IOS_BLE_NOTE='Bluetooth isn\'t available on iPhone or iPad — enter values by hand.';
+function iosBleNote(){
+  if(!isIOSDevice())return;
+  ['ble-btn','rf-btn','lr-btn'].forEach(id=>{const b=document.getElementById(id);if(!b||b.dataset.ios)return;b.dataset.ios='1';b.style.display='none';
+    const n=document.createElement('span');n.className='note ios-ble';n.style.cssText='margin:0 0 0 auto;text-align:right';n.textContent=IOS_BLE_NOTE;b.after(n);});
+  const a=document.getElementById('cal-add');if(a)a.remove();
+}
 function iosNeedsInstall(){
-  const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const ios=isIOSDevice();
   const standalone=navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
   return ios&&!standalone;
 }
@@ -3608,8 +3636,9 @@ function calcStab(){
   const tw=twIn*25.4;  // canonical mm for calcSg
   const cIn=+document.getElementById('st-c').value;
   let C,cValid;
-  if(cIn&&cIn>=0.5){C=cIn;cValid=true;}
-  else{const ci=stabKind.pellet?{c:0,valid:false}:millerC(d,oal);C=ci.c;cValid=ci.valid;}
+  if(stabKind.pellet){C=0;cValid=false;}   // V2.18.1 P-16: pellets have no Sg, a typed C included (§9S)
+  else if(cIn&&cIn>=0.5){C=cIn;cValid=true;}
+  else{const ci=millerC(d,oal);C=ci.c;cValid=ci.valid;}
   if(!cValid){
     // C cannot be verified for this calibre/geometry — do NOT show an Sg number (§11E, §20A).
     document.getElementById('st-cmode').textContent=stabKind.pellet?'pellet':'outside Miller range';
@@ -3778,7 +3807,7 @@ function solve(){
   document.getElementById('sv-sd-on').classList.toggle('on',!!APP.solverSpin);
   const lat=+document.getElementById('sv-lat').value||0, az=+document.getElementById('sv-az').value||0;
   let coH=0,coV=0,sdMm=null,sgI=null,advNote='';
-  if(APP.solverCor){coH=coriolisH_mm(pts,tp,lat);coV=coriolisV_mm(pts,tp,lat,az);}
+  if(APP.solverCor){coH=coriolisHFromZero_mm(pts,tp,lat,zc.range);coV=coriolisV_mm(pts,tp,lat,az);}   // V2.18.1 P-18
   if(APP.solverSpin){sgI=sessionSg();if(sgI){   // V2.12.0: measured from the zero (zero air Sg + zero-pass TOF)
     const r=getRifle(),p=getProj(),sgZ=calcSg(p.mass,p.diam,p.oal,r.twist,S.mv,projC(p).c,zc.temp,zc.pres);
     sdMm=spinFromZero_mm(sgI.sg,tp.tof,tdist,sgZ,pts.zeroTof,zc.range,sgI.twistDir);}}
@@ -3930,7 +3959,7 @@ function updDist(sid,did,f,v){const c=getCard();if(!c)return;const s=c.stages.fi
 function computeCardTraj(c){
   const p=DB.projectiles.find(x=>x.id===c.projId), cw=getWx(c.cwxId,DB.rifles.find(x=>x.id===c.rifleId)||null);
   if(!p||!cw)return null;
-  const r=DB.rifles.find(x=>x.id===c.rifleId);
+  const r=DB.rifles.find(x=>x.id===c.rifleId)||null;   // V2.18.1 P-16: null, never undefined — a missing rifle must not fall back to the active one
   // Option A: zero conditions (range, wind, atmosphere) read LIVE from the card's rifle.
   const z=zeroConds(r,c.zero);
   const cwp=wxPres(cw);
@@ -4052,7 +4081,7 @@ function dopeRfRender(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.18.0'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.18.1'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4546,7 +4575,7 @@ function tdContext(){
 }
 function tdNeedMrad(dial,unit,offMm,d){
   const r=getRifle(),click=rifleScope(r)?.clickStepMrad||0.1;
-  const m=unit==='click'?dial*click:unit==='moa'?dial*0.290888:dial;
+  const m=unit==='click'?dial*click:unit==='moa'?dial*MOA2MRAD:dial;   // V2.18.1 P-21: the shared constant
   return{need:m-offMm/d,click};
 }
 // Rows: distance, shot angle, dial, group offset. Read from the inputs (unit-aware values are canonical).
@@ -4708,7 +4737,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.18.0'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.18.1'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -5035,6 +5064,10 @@ function updateBleStatus(state,txt){
    (0x180F/0x2A19), disconnect callback. Device drivers (Calypso today; FX chrono, rangefinders and the
    LoRa bridge later) sit on top and never touch navigator.bluetooth themselves. A native wrapper would
    replace this object only. */
+/* V2.18.1 B-10 — one stuck GATT operation must not freeze the device's queue for ever. Owner ruling: a generous 10 s
+   (healthy writes settle in milliseconds; the review's 5 s waits for a LabRadar timing capture on the Honor). */
+const GATT_OP_MS=10000;
+function gattTimed(fn){let tm;return Promise.race([Promise.resolve().then(fn),new Promise((_,rej)=>{tm=setTimeout(()=>rej(new Error('Bluetooth operation timed out ('+GATT_OP_MS/1000+' s)')),GATT_OP_MS);})]).finally(()=>clearTimeout(tm));}
 const bleWired=new WeakMap();   // V2.16.5 B-08: device → newest {link,onDisconnect}; the listener is added once per device
 const SenBle={
   supported(){return!!(typeof navigator!=='undefined'&&navigator.bluetooth&&navigator.bluetooth.requestDevice);},
@@ -5046,7 +5079,7 @@ const SenBle={
     const link={dev,server,name:dev.name||'',id:dev.id,
       connected:()=>!!(dev.gatt&&dev.gatt.connected),
       disconnect:()=>{try{dev.gatt.disconnect();}catch(e){}},
-      op(fn){const run=q.then(fn,fn);q=run.catch(()=>{});return run;}, // serialise every GATT operation on this device
+      op(fn){const timed=()=>gattTimed(fn);const run=q.then(timed,timed);q=run.catch(()=>{});return run;}, // serialise every GATT operation on this device; V2.18.1 B-10: each one time-limited
       async chars(svc){let c=await(await server.getPrimaryService(svc)).getCharacteristics();
         if(!c.length){await new Promise(r=>setTimeout(r,300));c=await(await server.getPrimaryService(svc)).getCharacteristics();}return c;},
       write(ch,bytes){return link.op(()=>ch.properties.writeWithoutResponse?ch.writeValueWithoutResponse(bytes):ch.writeValue(bytes));},
@@ -6086,10 +6119,12 @@ function devSheet(k){
     if(st)kids.push(btn('Use MV → session',()=>{chUse();closeSheet();},'btn primary'));   // Main's own "use the string" path
   }
   const acts=el('div','btnrow');
-  if(k==='wx'){acts.append(btn(list.length?'+ Connect another':'Connect Calypso',async()=>{closeSheet();await calAdd();if(calOn().length&&!homeLive)toggleHomeLive();devSync();}),
-    btn('Station setup',()=>devGo('sensors','stn-panel')));}
-  else if(k==='rf')acts.append(btn(list.length?'+ Connect another':'Connect rangefinder',async()=>{closeSheet();await rfAdd();if(APP.rfFill===false)rfSetFill(true);devSync();}));
-  else{if(!list.length)acts.append(btn('Connect LabRadar',async()=>{closeSheet();await lrConnect();devSync();}));
+  const ios=isIOSDevice();   // V2.18.1 B-17
+  if(ios)kids.push(el('div','note',IOS_BLE_NOTE));
+  if(k==='wx'){if(!ios)acts.append(btn(list.length?'+ Connect another':'Connect Calypso',async()=>{closeSheet();await calAdd();if(calOn().length&&!homeLive)toggleHomeLive();devSync();}));
+    acts.append(btn('Station setup',()=>devGo('sensors','stn-panel')));}
+  else if(k==='rf'){if(!ios)acts.append(btn(list.length?'+ Connect another':'Connect rangefinder',async()=>{closeSheet();await rfAdd();if(APP.rfFill===false)rfSetFill(true);devSync();}));}
+  else{if(!list.length&&!ios)acts.append(btn('Connect LabRadar',async()=>{closeSheet();await lrConnect();devSync();}));
     acts.append(btn('Shot string · Xero import',()=>devGo('sensors','ch-str')));}
   kids.push(acts);
   box.replaceChildren(el('div','sgrab'),...kids);
@@ -6675,9 +6710,10 @@ const FORMULAS=[
              {l:'60° ↔ 120° swing → steadiness cos 30°',got:()=>windMean([{t:0,s:4,d:60},{t:1000,s:4,d:120}],60,1000).steady,want:0.8660,tol:5e-5,u:''}]},
   {name:'Moist-air density (Magnus)',status:'ok',eq:'ρ = (P−e)/(R_d·T) + e/(R_v·T), e = RH·6.1078·10^(7.5t/(237.3+t))',
     src:'Magnus vapour pressure; R_d 287.058, R_v 461.495 J/(kg·K) — skill §5A; ICAO standard atmosphere',used:'every trajectory, truing',
-    anchors:[{l:'Everyday default 20 °C / 1010 hPa / 65 %',got:()=>airDensity(20,1010,65),want:1.1934,tol:5e-4,u:'kg/m³'},
+    anchors:[{l:'formula check: 20 °C / 1010 hPa as typed / 65 %',got:()=>airDensity(20,1010,65),want:1.1934,tol:5e-4,u:'kg/m³'},   // V2.18.1 P-21: raw-input check, not the Everyday Default
+             {l:'Everyday Default: 20 °C / 1010 hPa QNH at 298 m (974.8 station) / 65 %',got:()=>airDensity(20,stationPres(1010,298),65),want:1.1516,tol:5e-4,u:'kg/m³'},
              {l:'ICAO 15 °C / 1013.25 hPa / dry',got:()=>airDensity(15,1013.25,0),want:1.2250,tol:5e-4,u:'kg/m³'}]},
-  {name:'Speed of sound',status:'ok',eq:'a = √(γ·R_d·T), γ = 1.4',src:'ideal gas — skill §5A; ICAO 340.29 m/s at 15 °C',used:'Mach for drag lookup, transonic flags',
+  {name:'Speed of sound',status:'ok',eq:'a = √(γ·R_d·T), γ = 1.4',src:'ideal gas — skill §5A; ICAO 340.29 m/s at 15 °C. Dry-air value: humid air is up to about 0.5 % faster in hot, humid weather (+0.25 % at the Everyday Default) — under 1 mm of drop at 200 m at the velocities checked (V2.18.1 P-20)',used:'Mach for drag lookup, transonic flags',
     anchors:[{l:'20 °C',got:()=>sos(20),want:343.24,tol:0.02,u:'m/s'},{l:'ICAO 15 °C',got:()=>sos(15),want:340.29,tol:0.02,u:'m/s'}]},
   {name:'Sectional density (§9H)',status:'ok',eq:'SD = m_gr / (7000·d_in²) — no π/4',src:'small-arms convention — skill §3',used:'BC / Truing, Bench',
     anchors:[{l:'Altaros Queen .25, 60 gr',got:()=>calcSD(60,6.35),want:0.137,tol:5e-4,u:'lb/in²'}]},
@@ -7515,15 +7551,22 @@ async function driveFolderOk(id){if(!id)return false;try{const j=await(await dri
 // The app's folder and the one sub-folder needed; ids remembered, re-found or re-created when gone.
 async function driveDir(key){
   const cfg=driveCfg();cfg.dirs=cfg.dirs&&typeof cfg.dirs==='object'?cfg.dirs:{};
-  if(!(await driveFolderOk(cfg.rootId))){cfg.rootId=await driveFindFolder(DRIVE_ROOT,null)||await driveMkdir(DRIVE_ROOT,null);cfg.dirs={};saveDB();}
+  const seen=drv.checked;   // V2.18.1 D-20: during one flush each folder is checked once, not once per file
+  if(!(seen&&seen.has('\u0000root'))){if(!(await driveFolderOk(cfg.rootId))){cfg.rootId=await driveFindFolder(DRIVE_ROOT,null)||await driveMkdir(DRIVE_ROOT,null);cfg.dirs={};saveDB();}if(seen)seen.add('\u0000root');}
   const id=cfg.dirs[key];
-  if(id&&await driveFolderOk(id))return id;
-  cfg.dirs[key]=await driveFindFolder(DRIVE_DIRS[key],cfg.rootId)||await driveMkdir(DRIVE_DIRS[key],cfg.rootId);saveDB();
+  if(id&&((seen&&seen.has(key))||await driveFolderOk(id))){if(seen)seen.add(key);return id;}
+  cfg.dirs[key]=await driveFindFolder(DRIVE_DIRS[key],cfg.rootId)||await driveMkdir(DRIVE_DIRS[key],cfg.rootId);saveDB();if(seen)seen.add(key);
   return cfg.dirs[key];
+}
+// V2.18.1 D-20: every upload carries the queue item's id; an item sent before whose answer was lost is found by it
+async function driveHasSent(id){
+  const q="appProperties has { key='senId' and value="+driveQ(id)+" } and trashed=false";
+  const j=await(await driveFetch(DRIVE_API+'/files?fields=files(id)&pageSize=1&q='+encodeURIComponent(q))).json();
+  return !!(j.files&&j.files.length);
 }
 async function driveUpload(it){
   const dir=await driveDir(it.dir),b='sen'+uid().replace(/[^\w]/g,'');
-  const body='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify({name:it.name,parents:[dir],mimeType:it.as||it.mime})+
+  const body='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify({name:it.name,parents:[dir],mimeType:it.as||it.mime,appProperties:{senId:String(it.id)}})+
     '\r\n--'+b+'\r\nContent-Type: '+it.mime+'; charset=UTF-8\r\n\r\n'+it.body+'\r\n--'+b+'--';
   return(await driveFetch(DRIVE_UP+'/files?uploadType=multipart&fields=id,name',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body})).json();
 }
@@ -7532,13 +7575,16 @@ async function driveFlush(){
   if(drv.sending||!drv.queue.length)return;
   if(!navigator.onLine){driveSay(drv.queue.length+' waiting — sent when you are back online.');return;}
   if(!driveLive()){driveSay(drv.queue.length+' waiting — tap "Send now" to reconnect to Google.');return;}
-  drv.sending=true;driveRender();let sent=0;
+  drv.sending=true;drv.checked=new Set();driveRender();let sent=0;
   try{
-    while(drv.queue.length){const it=drv.queue[0];await driveUpload(it);drv.queue.shift();driveQSave();sent++;
+    while(drv.queue.length){const it=drv.queue[0];
+      if(it.tried&&await driveHasSent(it.id)){drv.queue.shift();driveQSave();sent++;continue;}   // D-20: it got there last time
+      it.tried=true;driveQSave();
+      await driveUpload(it);drv.queue.shift();driveQSave();sent++;
       if(it.kind==='backup'){driveCfg().lastBackup=Date.now();saveDB();}}
     driveSay(sent?'Sent '+sent+' file'+(sent>1?'s':'')+' to Google Drive.':'');
   }catch(e){driveSay((sent?'Sent '+sent+'; ':'')+e.message+(e.status===401?' — tap "Send now" to reconnect.':'')+' '+drv.queue.length+' waiting.',true);}
-  finally{drv.sending=false;driveRender();}
+  finally{drv.sending=false;drv.checked=null;driveRender();}
 }
 // A tap: make sure a token is in (sign in inside the gesture), then send.
 async function driveTapSend(){
@@ -7567,16 +7613,16 @@ function driveSave(files){
   if(files.every(f=>driveEnqueue(...f)))driveTapSend();else driveRender();
 }
 function driveBackupNow(){
-  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.18.0'};
+  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.18.1'};
   driveSave([['backups','SEN backup '+driveStamp()+'.json','application/json',JSON.stringify(d,null,1),'backup']]);
 }
 function driveSaveProfile(t,id){
   const b=shareBundle(t,id),type=SHARE_TYPES[t],rec=b&&DB[type].find(x=>x.id===id);if(!b)return;
-  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.18.0'},null,1)]]);
+  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.18.1'},null,1)]]);
 }
 function driveSaveDope(){
   const c=getCard();if(!c)return;
-  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.18.0'},null,1)]];
+  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.18.1'},null,1)]];
   const h=dopePrintHTML(c);   // null when the card can't be computed — the JSON still goes
   if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print)','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title>'+h.replace(/<table>/g,'<table border="1" cellpadding="4" style="border-collapse:collapse">'),'',DRIVE_DOC]);   // → Google Doc
   driveSave(f);
@@ -7588,7 +7634,7 @@ function driveSaveShots(){
   const csv='shot,velocity_ms,velocity_fps,kept,running_sd_ms,time\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes',run[i].sd==null?'':run[i].sd.toFixed(2),c.times[i]?new Date(c.times[i]).toISOString():''].join(',')).join('\n')+
     '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n'+(notes?'\nnotes\n'+q(notes)+'\n':'');
   driveSave([['shots',nm,'text/csv',csv,'',DRIVE_SHEET],   // → Google Sheet
-    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.18.0',saved:new Date().toISOString()},null,1)]]);
+    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.18.1',saved:new Date().toISOString()},null,1)]]);
 }
 function driveWindRows(){
   const now=Date.now(),win=wavgWin();
@@ -7600,7 +7646,7 @@ function driveSaveWind(){
   const rows=driveWindRows();if(!rows.length||rows.every(r=>!r.readings)){alert('No wind readings to save — connect a Calypso first.');return;}
   const t=new Date().toISOString(),keys=Object.keys(rows[0]);
   driveSave([['wind','Wind '+driveStamp(),'text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n','',DRIVE_SHEET],   // → Google Sheet
-    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.18.0'},null,1)]]);
+    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.18.1'},null,1)]]);
 }
 // Restore: JSON files in Backups, Profiles and Dope cards, newest first → the normal import.
 async function driveRestoreList(){
@@ -7704,6 +7750,7 @@ driveInit();  // V2.13.0 CORE-26
 chNotesInit();chHomeRender();   // V2.16.0
 applyLayout();window.addEventListener('resize',()=>dbnc('layout',applyLayout,120));
 chanInit();   // V2.17.0 D-09
+iosBleNote();   // V2.18.1 B-17
 renderStoreWarn();renderIosHint();requestPersist();fxCheck();
 importFromLink();
 }

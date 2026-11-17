@@ -210,5 +210,40 @@ chk('from the zero: exactly 0 at the zero range', spinFromZero_mm(1.26,0.4,100,1
 chk('from the zero: Sg 1.5 t 1.0 s @300 m, zero 50 m (Sg 1.4, t 0.19 s) = 62.01195 mm (Python)', spinFromZero_mm(1.5,1.0,300,1.4,0.19,50,'right'), 62.01194996, 1e-6);
 chk('from the zero: left twist mirrors', spinFromZero_mm(1.5,1.0,300,1.4,0.19,50,'left'), -62.01194996, 1e-6);
 chk('from the zero: no zero TOF → not computed (never silently raw)', spinFromZero_mm(1.5,1.0,300,1.4,null,50,'right'), null);
+
+console.log('\n=== V2.18.1 (R7): zero-air drift, unreachable zero, Coriolis from the zero, test gaps ===');
+// Independent reference: tests/p14ref.py (2-D point mass, RK4, G7, moist air — no app code).
+// Queen 60 gr G7 0.128, 255 m/s, sight 44 mm, zero 50 m in 0 °C / 979.6 hPa station / 80 %, flight in the Everyday Default.
+{const cur={rho:airDensity(20,stationPres(1010,298),65),aS:sos(20),bc7:0.128,bc1:0.245},zer={rho:airDensity(0,979.6,80),aS:sos(0),bc7:0.128,bc1:0.245};
+ const P=rk4traj(255,0.128,60,50,300,0.044,cur.rho,cur.aS,1,'g7',0.245,null,zer),at=r=>P.find(p=>Math.abs(p.range-r)<1e-6);
+ chk('P-14 drift baked into the zero (3 m/s from the right, zero air) = 9.8775 mm (p14ref; was 9.04 from current-air time)',-solveShot(P,nearestPt,50,200,0,0,90,255,0.1,3,90).windNetMm,9.877528638577687,0.01);
+ chk('P-14 zero-pass time to 50 m = 0.199371 s (p14ref)',P.zeroTof,0.19937094091874158,1e-5);
+ const E=rk4traj(255,0.128,60,50,300,0.044,cur.rho,cur.aS,1,'g7',0.245,null,cur),tz=E.find(p=>Math.abs(p.range-50)<1e-6);
+ chk('P-14 equal air: baked drift bit-identical to the current-air time (as before)',solveShot(E,nearestPt,50,200,0,0,90,255,0.1,3,90).windNetMm===solveShot(E,nearestPt,50,200,0,0,90,255,0.1,0,90).windNetMm-windDrift(tz.tof,50,255,3)?1:0,1);
+ chk('P-18 horizontal Coriolis from the zero at 200 m = 6.8264 mm (p14ref; raw 8.9313)',coriolisHFromZero_mm(P,at(200),46.05,50),6.826367058116308,0.002);
+ chk('P-18 … at 300 m = 17.7721 mm (p14ref; raw 20.9295)',coriolisHFromZero_mm(P,at(300),46.05,50),17.77211610157315,0.002);
+ chk('P-18 raw ΔH at 200 m unchanged = 8.9313 mm (p14ref)',coriolisH_mm(P,at(200),46.05),8.931295200564307,0.002);
+ // test gap: two-pass zero against py-ballisticcalc (review C.1: +0.363 / −356.06 / −2372.76 / −6312.71) and p14ref
+ [[50,0.363],[100,-356.06],[200,-2372.76],[300,-6312.71]].forEach(([d,w])=>chk('test gap: two-pass zero, drop at '+d+' m ≈ pbc '+w+' mm',at(d).drop,w,0.3));
+ // test gap: Everyday Default at station pressure, one air (pbc −356.78 / −2374.21 / −6314.89; own RK4 −356.78 / −2374.16)
+ const ae=r=>E.find(p=>Math.abs(p.range-r)<1e-6);
+ [[100,-356.78],[200,-2374.21],[300,-6314.89]].forEach(([d,w])=>chk('test gap: Everyday Default (974.8 hPa station) drop at '+d+' m ≈ pbc '+w+' mm',ae(d).drop,w,0.3));
+ chk('test gap: … velocity at 200 m = 226.047 m/s (own RK4; pbc 226.042)',ae(200).v,226.047,0.006);
+ chk('P-18 equal air: 0 at the zero range (grid residual < 1e-4 mm)',coriolisHFromZero_mm(E,ae(50),46.05,50),0,1e-4);}
+{const cur={rho:airDensity(20,stationPres(1010,298),65),aS:sos(20)};
+ chk('P-15 unreachable zero (1000 m at 255 m/s): no points, zeroFail',(()=>{const Z=rk4traj(255,0.128,60,1000,1100,0.044,cur.rho,cur.aS,1,'g7',0.245,null);return Z.length===0&&Z.zeroFail===true?1:0;})(),1);
+ chk('P-15 shot straight up (look 90°, max 3000 m): returns within the step cap',(()=>{const t0=Date.now(),L=rk4traj(255,0.128,60,50,3000,0.044,cur.rho,cur.aS,1,'g7',0.245,null,null,{look:90});return Array.isArray(L)&&Date.now()-t0<5000?1:0;})(),1);
+ chk('P-15 nearestPt on an empty trajectory → null (callers show out of range)',nearestPt([],100),null);}
+// test gaps: Eötvös, twistForSg, worst-case Sg, banded self-consistency
+{const pts=[];for(let x=0;x<=500;x++)pts.push({range:x,tof:x/250});
+ chk('test gap: Eötvös, 250 m/s constant, 500 m, lat 46.05°, east = +50.6095 mm (Ω·cos(lat)·X·T)',coriolisV_mm(pts,pts[500],46.05,90),OMEGA*Math.cos(46.05*DEG)*500*2*1000,1e-6);
+ chk('test gap: … west = −50.6095 mm',coriolisV_mm(pts,pts[500],46.05,270),-50.60949225115044,1e-6);}
+chk('test gap: twistForSg Queen, Sg 1.5 at the worst case = 1:16.634″ (closed form 20·√(1.0376/1.5))',twistForSg(1.5,60,6.35,12.9,229,millerC(6.35,12.9).c,-5,1013)/25.4,20*Math.sqrt(calcSg(60,6.35,12.9,508,229,millerC(6.35,12.9).c,-5,1013)/1.5),0.002);
+chk('test gap: worst-case Sg Queen 1:20″ = 1.038',calcSg(60,6.35,12.9,508,229,millerC(6.35,12.9).c,-5,1013),1.038,5e-4);
+chk('test gap: worst-case Sg King 1:20″ = 0.938',calcSg(66,6.35,13.9,508,229,millerC(6.35,13.9).c,-5,1013),0.938,5e-4);
+{const env={rho:airDensity(20,stationPres(1010,298),65),aS:sos(20)};
+ const one=rk4traj(260,0.128,60,50,250,0.044,env.rho,env.aS,1,'g7',0.245,null),band=rk4traj(260,0.128,60,50,250,0.044,env.rho,env.aS,1,'g7',0.245,{drag:'g7',bands:[{vHi:400,vLo:240,bc:0.128},{vHi:240,vLo:0,bc:0.128}]});
+ chk('test gap: bands that all carry 0.128 fly bit-identical to the single BC 0.128 (250 m)',one.length===band.length&&one.every((p,i)=>p.drop===band[i].drop&&p.v===band[i].v)?1:0,1);
+ chk('test gap: bandBC picks the band holding the velocity',bandBC([{vHi:400,vLo:240,bc:0.13},{vHi:240,vLo:0,bc:0.12}],250),0.13,0);}
 console.log('\nPASS '+pass+'   FAIL '+fail);
 process.exit(fail?1:0);
