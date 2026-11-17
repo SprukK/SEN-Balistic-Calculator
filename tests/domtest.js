@@ -82,6 +82,25 @@ chk('manual wind is a disclosure',$('#home-manwind').tagName==='DETAILS');
 chk('disclosure summaries populated',!!$('#ht-sum').textContent&&!!$('#hm-sum').textContent,
   JSON.stringify($('#ht-sum').textContent)+' / '+JSON.stringify($('#hm-sum').textContent));
 
+// 6. V2.16.6 U-02 — Android back and Escape close a profile form (owner: ask only when something was typed)
+{const pop=()=>w.dispatchEvent(new w.PopStateEvent('popstate',{state:null}));
+ const isOpen=()=>$('#modal').classList.contains('open');
+ w.confirm=()=>true;
+ click($$('#nav button[data-page]').find(b=>b.dataset.page==='home'));w.eval("gotoPage('profiles')");
+ w.eval('openRifleForm()');const pg=w.eval('curPage()');pop();
+ chk('U-02 back with an untouched rifle form → form closed, page unchanged',!isOpen()&&w.eval('curPage()')===pg,pg+' → '+w.eval('curPage()'));
+ w.eval('openRifleForm()');d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+ chk('U-02 Escape closes the form',!isOpen());
+ let asked=0;w.confirm=()=>{asked++;return false;};
+ w.eval('openRifleForm()');const nm=$('#rf-name');nm.value='typed';nm.dispatchEvent(new w.Event('input',{bubbles:true}));pop();
+ chk('U-02 back after typing asks "discard changes?"; No keeps the form open',asked===1&&isOpen()&&w.eval('curPage()')===pg);
+ w.confirm=()=>{asked++;return true;};pop();
+ chk('U-02 … and Yes closes it without saving',asked===2&&!isOpen()&&!w.eval("DB.rifles.some(r=>r.name==='typed')"));
+ w.eval("importData({schema:{projectiles:1},projectiles:[{id:'bk1',name:'Back test proj',cal:'.25',type:'slug',diam:6.35,mass:30,oal:10,bcg7:0.1,bcg1:0.2}]},{review:true})");
+ chk('U-02 import review is open',isOpen()&&/1 new item/.test($('#mbox').textContent));
+ pop();chk('U-02 back on the import review → closed, nothing imported',!isOpen()&&!w.eval("DB.projectiles.some(p=>p.name==='Back test proj')"));
+ w.confirm=()=>true;}
+
 console.log('');
 chk('ZERO uncaught errors in whole run',errs.length===0,errs.slice(0,3).join(' / '));
 console.log('\nPASS '+pass+'   FAIL '+fail);

@@ -38,6 +38,7 @@ Run all twenty-nine before every release. All must be fully green.
 | `injectiontest.js` | Injection (V2.16.3, review release R2): the review's three payloads (HTML `x"'><i data-xss>`, attribute `x" data-xss`, handler `x',window.__p(),'`) in every id, link and text field of every record type → every stored id follows the id rule, links between the file's records kept, and on Home, the session sheets, Trajectory, Profiles, every form, the share dialogs, Dope cards, Truing, Stability, Solver, Wind, Holds (incl. BC pending), Bench and Sensors no live markup and no inline handler runs payload code (D-02, D-03); typed `<b>` saved as text; own export → import keeps ids and links (incl. `@zero`); duplicate ids and `__proto__` links (D-14, D-15); link / pasted code with only new items opens the review, Import adds, Cancel adds nothing, file import unchanged (D-04); 50 MB bomb refused in < 1 s, code > 64 kB and file > 10 MB refused, reticle > 64 hashes refused (D-16); a store holding bad ids repaired at start with links (D-02); scope file sanitised, preview in MOA, magnification imported (W-09); **V2.16.4:** a payload in a choice field refuses the record (D-06) | PASS 31 / FAIL 0 |
 | `truedstatetest.js` | Trued state (V2.16.4, review release R3): known answers — Queen trued G7 0.119, 255 m/s, Everyday Default, 50 m zero → 11.97 mrad at 200 m (12.09 as a maker BC with the Sg penalty); trued, banded and malformed-band projectiles through export → import → restart (P-02); V1.24.1 export trued 0.163 → 0.128 once, G1 → pending, V2.16.3 export unchanged (D-07); Velocity truing re-pulls the session BC (P-01); editing the active projectile / rifle / weather reaches the session, a typed BC stays (W-01); a typed BC ends the trued state, a name edit keeps it (P-05); manual BC 0.200 on a banded profile → −1874.69 mm at 200 m, bands decide for the profile BC whatever the fallback (−1966.64 mm), drop truing on a banded projectile returns 0.115 (P-07); chrono MV and typed BC kept across a restart with the note, profile fields re-read, damaged sources fall back (W-04); 15 out-of-range / unknown-choice records refused with the reason, the owner's own edge values (T-1) all import (D-06) | PASS 26 / FAIL 0 |
 | `readtest.js` | What the shooter reads (V2.16.5, review release R4): stale / lost Calypso wind marked old, manual after 30 s or on disconnect (B-01); strict `:WU` parsing (B-07); one handler per unit after reconnects (B-08); DataView offset (B-14); truing air from the session, blank refused (P-03); velocity exactly at d — known answers from the independent reference `p06ref.py` (P-06); rising velocities refused (P-13); station / sea-level pressure (P-12); Holds marks and estimated reticles (P-04, W-05); no silent Mil-Grid, new reticles estimated, one-time migration (W-03, W-10); no Infinity / NaN in dope (P-10); decimal commas in shot strings (B-03). `p06ref.py` is run by hand (`python3 tests/p06ref.py`) to regenerate the reference velocities. |
+| `robusttest.js` | Robustness (V2.16.6, review release R5), restarts on a shared fake IndexedDB: stale localStorage fallback marked old and never saved (D-08, incl. the one-retry open and the migration marker), unreadable snapshot kept as `db-unreadable-<time>` with a warning that seeding can't clear (D-10), deleted catalog items stay deleted (D-17), legacy zero pressure keeps its kind (D-18), no idle observer loop (U-03), delete lists the dope cards + Trajectory needs a rifle (W-07), stage timer resumes (W-11), duplicate names refused + projectile / rifle form notes (W-12), printed card says station + date (W-13), empty card MV marked required (W-14). U-02 is in `domtest.js`, B-05 / B-09 / B-11 / B-13 in `labradartest.js`, D-11 – D-13 in `swtest.js`. |
 | `recoverytest.js` | Start-up recovery (V2.16.1, review release R1), every case restarted on the same IndexedDB: a `null` Home layout removed and the good ones kept; a layout whose module list is not a list reset from its own template (same id and name); only junk left → the fresh-install set with Field as Default; a one-line note once; a course card with no stages shows a message and survives restarts; Hit/Miss on a stage with no targets do nothing; `{units:{range:'parsec'}}` and bad secondary units / app settings through "Take theirs" → no exception, nothing applied, next start boots; a store already holding them boots with the defaults; the app's own settings survive; every APP key has a type; drops-, single- and banded-trued BCs unchanged after two restarts (`bcConv` native); **V2.16.2 TR-01:** Velocity truing picker on top, session projectile first and marked, Apply names and writes only the solved projectile (picker changed → result cleared; session projectile byte-identical through a restart) | PASS 44 / FAIL 0 |
 | `swtest.js` | Service worker (V1.25.1, CORE-09): runs the real `sw.js` against a simulated CacheStorage — activating a release deletes only Main's old caches (`sen-ballistics-*`, legacy `sen-calc-*`) and never the Lab probe's (`sen-ble-probe-*`, `sen-lab-*`) or anyone else's | PASS 6 / FAIL 0 |
 
@@ -58,7 +59,7 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node domtest.js ../index.html)
 
 # 3. storage test: new build vs the previous release (its real localStorage data is migrated)
-(cd tests && NODE_PATH=/tmp/jsdom/node_modules node storagetest.js ../index.html ../RTI-SEN-Ballistic-Calculator-V1.17.2.html)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node storagetest.js ../index.html ../archive/RTI-SEN-Ballistic-Calculator-V1.17.2.html)
 
 # 4. import test
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node importtest.js ../index.html)
@@ -73,7 +74,7 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node unittest.js ../index.html)
 
 # 8. course test: new build vs the previous release (its real dope cards are upgraded)
-(cd tests && NODE_PATH=/tmp/jsdom/node_modules node coursetest.js ../index.html ../RTI-SEN-Ballistic-Calculator-V1.22.0.html)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node coursetest.js ../index.html ../archive/RTI-SEN-Ballistic-Calculator-V1.22.0.html)
 
 # 9. layout test
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node layouttest.js ../index.html)
@@ -83,7 +84,7 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules:/opt/npm-tools/node_modules node rendertest.js ../index.html)
 
 # 11. trued-BC migration test: new build vs the release before the V1.24.2 drag fix
-(cd tests && NODE_PATH=/tmp/jsdom/node_modules node bcmigtest.js ../index.html ../RTI-SEN-Ballistic-Calculator-V1.24.1.html)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node bcmigtest.js ../index.html ../archive/RTI-SEN-Ballistic-Calculator-V1.24.1.html)
 
 # 12. formula panel test
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node formulatest.js ../index.html)
@@ -92,7 +93,7 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 (cd tests && node swtest.js ../sw.js)
 
 # 14. home layouts test: new build vs the previous release (its Home order must be reproduced by "Default")
-(cd tests && NODE_PATH=/tmp/jsdom/node_modules node homelayouttest.js ../index.html ../RTI-SEN-Ballistic-Calculator-V1.25.1.html)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node homelayouttest.js ../index.html ../archive/RTI-SEN-Ballistic-Calculator-V1.25.1.html)
 
 # 15. course runner test
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node courserunnertest.js ../index.html)
@@ -104,13 +105,13 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node windavgtest.js ../index.html)
 
 # 18. stability test: new build vs the previous release (its seeded C values are migrated)
-(cd tests && NODE_PATH=/tmp/jsdom/node_modules node stabtest.js ../index.html ../RTI-SEN-Ballistic-Calculator-V1.29.1.html)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node stabtest.js ../index.html ../archive/RTI-SEN-Ballistic-Calculator-V1.29.1.html)
 
 # 19. flight test (shot angle, head/tailwind, QNH)
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node flighttest.js ../index.html)
 
 # 20. pressure-type test: new build vs the previous release (its profiles are migrated)
-(cd tests && NODE_PATH=/tmp/jsdom/node_modules node pressuretest.js ../index.html ../RTI-SEN-Ballistic-Calculator-V1.31.0.html)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node pressuretest.js ../index.html ../archive/RTI-SEN-Ballistic-Calculator-V1.31.0.html)
 
 # 21. drop-truing test
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node truedroptest.js ../index.html)
@@ -187,6 +188,7 @@ npm install jsdom fake-indexeddb --prefix /tmp/jsdom
 # V2.16.4: trued BCs and profile values reach the dope; import ranges (needs fake-indexeddb)
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node truedstatetest.js ../index.html)
 (cd tests && NODE_PATH=/tmp/jsdom/node_modules node readtest.js ../index.html)
+(cd tests && NODE_PATH=/tmp/jsdom/node_modules node robusttest.js ../index.html)
 ```
 
 ## Provenance

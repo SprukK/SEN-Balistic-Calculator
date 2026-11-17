@@ -8,6 +8,8 @@
 // each shot's V0 appended live to the CALC-07 shot string (typed string replaced, LabRadar string continued),
 // mass / PF / V@d never used, bad-CRC frame dropped, key refused → no poll + message, disconnect stops the poll,
 // silent link flagged, ZERO commands other than 06 / 1A / 01, no HTML sinks.
+// V2.16.6: B-05 a new series starts a new string; B-09 junk header / bad CRC → resync, long frames still assemble;
+// B-11 no reply to the app key → "no answer" within 5 s; B-13 chrono MV range.
 // Usage: node labradartest.js <app.html>   (needs jsdom; see README.md)
 const {JSDOM}=require('jsdom'),fs=require('fs');
 const FILE=process.argv[2];
@@ -36,12 +38,12 @@ function labradar(id,acceptKey){
     if(a[0]!==1||crcRef(a.slice(0,-2))!==((a[a.length-2]<<8)|a[a.length-1])){u.bad++;return;}
     const c=a[1],seq=(a[2]<<8)|a[3],p=a.slice(8,-2);u.cmds.push(c);if(!u.enabled)return;
     if(c===0x06)send(frame(0x86,seq,hex('00000000000000000104032001000020')));
-    if(c===0x1a){const ok=acceptKey&&p.length===64&&p.every((x,i)=>x===KEY[i]);send(frame(0x9a,seq,[ok?0:1]));if(ok)setTimeout(()=>send(frame(0x27,0,[0,0x39])),20);}
+    if(c===0x1a){if(u.noKey)return;const ok=acceptKey&&p.length===64&&p.every((x,i)=>x===KEY[i]);send(frame(0x9a,seq,[ok?0:1]));if(ok)setTimeout(()=>send(frame(0x27,0,[0,0x39])),20);}
     if(c===0x01){const st=new Array(26).fill(0);st[1]=u.battery;st[3]=u.armed;send(frame(0x81,seq,st));}});}};
   const en={uuid:EN,properties:{read:true,write:true},writeValue(b){return gatt(async()=>{const a=Array.from(new Uint8Array(b.buffer||b));if(a.length===1&&a[0]===1)u.enabled=true;});}};
   const server={async getPrimaryServices(){return[]},async getPrimaryService(s){if(String(s).toLowerCase()!==SVC)throw new Error('not found');return{getCharacteristics:async()=>[cmd,evt,en]};}};
   u.gatt={connected:false,async connect(){this.connected=true;return server},disconnect(){this.connected=false;u.fire('gattserverdisconnected')}};
-  u.event=(c,p)=>send(frame(c,0,p));u.raw=f=>send(f);return u;
+  u.event=(c,p)=>send(frame(c,0,p));u.raw=f=>send(f);u.frame=frame;return u;
 }
 let queue=[],lastOpts=null;
 function open(){
@@ -104,6 +106,37 @@ const t2=id=>w2.document.getElementById(id).textContent;
 chk('a unit that refuses the key: "refused" shown, message, no status poll',/app key refused/.test(t2('lr-status'))&&/refused the app key/.test(t2('lr-note'))&&!R.cmds.includes(1),t2('lr-status'));
 await w2.eval('lrConnect()');await wait(30);
 chk('chooser cancelled → nothing breaks',w2.errs.length===0);
+// V2.16.6 B-05 / B-09 / B-11 / B-13 in a fresh window
+{queue=[];const w3=open();await wait(700);const J3=e=>JSON.parse(w3.eval('JSON.stringify('+e+')'));const t3=id=>w3.document.getElementById(id).textContent;
+ w3.eval("gotoPage('sensors')");
+ const S3=labradar('id3',true);queue.push(S3);await w3.eval('lrConnect()');await wait(300);
+ const cs=()=>J3('chClean(APP.chronoStr)');
+ for(const f of SHOTS.slice(0,3)){S3.raw(f);await wait(60);}
+ chk('B-05 series 57: three shots in one string that records its series',cs().shots.length===3&&cs().series===57);
+ S3.event(0x27,[0,0x3a]);await wait(60);S3.raw(SHOTS[3]);await wait(60);
+ chk('B-05 the unit moves to series 58 → the next shot starts a new string "series 58"',cs().shots.length===1&&cs().series===58&&/series 58$/.test(cs().name)&&/New LabRadar series 58/.test(t3('ch-msg')),cs().name);
+ S3.link=null;S3.gatt.disconnect();await wait(60);queue.push(S3);await w3.eval('lrConnect()');await wait(300);S3.event(0x27,[0,0x3a]);await wait(60);S3.raw(SHOTS[0]);await wait(60);
+ chk('B-05 same series after a reconnect → the string continues',cs().shots.length===2&&cs().series===58);
+ // B-09: a false frame start claiming 256 bytes, then a real shot inside what it claimed
+ S3.raw([0x01,0x55,0,0,0,0,1,0]);await wait(30);S3.raw(SHOTS[1]);await wait(60);
+ const n0=cs().shots.length;await wait(2200);S3.event(0x25,[1]);await wait(80);
+ chk('B-09 junk header: after 2 s without its claimed length, one byte is dropped and the real shot behind it is read',cs().shots.length===n0+1&&t3('lr-arm')==='armed',n0+' → '+cs().shots.length);
+ const bad=S3.frame(0x20,0,SHOTS[2].slice(8,-2));bad[bad.length-1]^=0xff;S3.raw([...bad,...SHOTS[2]]);await wait(80);
+ chk('B-09 a bad-CRC frame followed at once by a good one: the bad one dropped, the good one read',cs().shots.length===n0+2);
+ const long=S3.frame(0x20,0,[...SHOTS[0].slice(8,-2),...new Array(234).fill(0)]);S3.raw(long);await wait(80);
+ chk('B-09 a 300-byte frame split over 20-byte notifications still assembles',long.length===310&&cs().shots.length===n0+3);
+ // B-11: a unit that never answers the app key
+ const N=labradar('idN',true);N.noKey=true;w3.eval('LR&&LR.link.disconnect()');await wait(30);queue.push(N);await w3.eval('lrConnect()');await wait(300);
+ chk('B-11 before 5 s: key still "sending…"',/app key sending/.test(t3('lr-status')));
+ await wait(5000);
+ chk('B-11 no reply to the app key within 5 s → "no answer" and the link-silent note',/app key no answer/.test(t3('lr-status'))&&/link silent/.test(t3('lr-note')),t3('lr-note'));
+ // B-13
+ const al=[];w3.alert=m=>al.push(String(m));w3.document.getElementById('ch-mv').value='2800';w3.eval('useChronoMV()');
+ chk('B-13 chrono MV 2800 m/s refused like the rifle form',/at most 600/.test(al.join())&&J3('S.src.mv')!=='chrono');
+ w3.document.getElementById('ch-mv').value='280';w3.eval('useChronoMV()');
+ chk('B-13 chrono MV 280 m/s is used',J3('S.mv')===280&&J3('S.src.mv')==='chrono');
+ w3.eval('LR&&LR.link.disconnect()');w2.errs.push(...w3.errs);}
+
 const src=w.eval('[lrCrc,lrFrame,lrTake,lrV0,lrSend,lrToggle,lrConnect,lrRx,lrShot,lrStop,lrOnDisconnect,lrUi,lrRender].map(String).join("")');
 chk('no HTML sinks in the driver',!/innerHTML|insertAdjacentHTML|outerHTML|document\.write/.test(src));
 w.eval('LR&&LR.link.disconnect()');w2.eval('LR&&LR.link.disconnect()');

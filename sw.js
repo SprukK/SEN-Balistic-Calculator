@@ -6,13 +6,16 @@
 
    STRATEGY:
    - HTML documents (index.html): NETWORK-FIRST — a fresh deploy is picked up on the next launch
-     when online; falls back to the cached copy when offline.
+     when online; falls back to the cached copy when offline, or when the network hasn't answered
+     within 3 s (weak signal at the range). Only OK responses replace the cached copy (V2.16.6
+     D-11/D-12); install bypasses the browser's HTTP cache so a new CACHE never holds the old
+     build (D-13).
    - Icons + Google Fonts: cache-first / stale-while-revalidate (rarely change, fine offline).
 
    RELEASE CHECKLIST (every version): bump CACHE below in the same commit as the new index.html.
    Nothing else in the PWA kit changes. Keep a versioned copy of the build for the archive if
    wanted, but index.html is the canonical app the PWA serves. */
-const CACHE = 'sen-ballistics-v2.16.5';
+const CACHE = 'sen-ballistics-v2.16.6';
 const CORE = [
   './',
   './index.html',
@@ -22,7 +25,7 @@ const CORE = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 /* V1.25.1 (CORE-09): Main and the Lab app share the sprukk.github.io origin, so they share ONE
@@ -39,6 +42,8 @@ self.addEventListener('activate', e => {
   );
 });
 
+const NAV_TIMEOUT_MS = 3000;
+
 const isHTML = req =>
   req.mode === 'navigate' ||
   req.destination === 'document' ||
@@ -50,15 +55,22 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
 
   if (url.origin === location.origin && isHTML(req)) {
-    e.respondWith(
-      fetch(req)
-        .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(req, copy));
-          return res;
-        })
-        .catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
-    );
+    const cached = () => caches.match(req).then(hit => hit || caches.match('./index.html'));
+    const net = fetch(req).then(res => {
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy));
+      }
+      return res;
+    });
+    e.respondWith(new Promise(resolve => {
+      let done = false;
+      const answer = r => { if (!done) { done = true; resolve(r); } };
+      const timer = setTimeout(() => cached().then(hit => { if (hit) answer(hit); }), NAV_TIMEOUT_MS);
+      net.then(res => { clearTimeout(timer); answer(res); },
+               () => { clearTimeout(timer); cached().then(answer); });
+    }));
+    if (e.waitUntil) e.waitUntil(net.catch(() => {}));   // a late answer still refreshes the cache
     return;
   }
 

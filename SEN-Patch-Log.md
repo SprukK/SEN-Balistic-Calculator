@@ -7,6 +7,77 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.16.6 — patch — storage, service worker and workflow robustness (review release R5: D-08, D-10, D-11, D-12, D-13, D-17, D-18, U-02, U-03, W-07, W-11, W-12, W-13, W-14, B-05, B-09, B-11, B-13, U-10, U-11)
+
+**Problem (V2.16.0 reviews, reproduced).**
+- **D-08:** when IndexedDB failed to open at one start, the app silently loaded the months-old localStorage copy from the V1.18.0 migration and saved edits there. They were lost at the next good start.
+- **D-10:** an unreadable snapshot raised a warning that the first seeding save cleared; the seeded defaults then overwrote it.
+- **D-11 / D-12 / D-13 (service worker):**
+  - any response (a 404 during a deploy too) replaced the cached app;
+  - a weak signal hung the start;
+  - install could store the previous build under the new cache name (HTTP cache).
+- **D-17:** deleted catalog projectiles and scopes came back at every start.
+- **D-18:** a legacy rifle zeroed in a station-type weather had its zero pressure converted again as sea level (≈ −35 hPa).
+- **U-02:** Android back with a profile form open changed the page underneath and left the form floating; Escape did nothing.
+- **U-03:** the pane-empty observer re-triggered itself about 8 times a second while idle.
+- **W-07:** deleting a rifle, projectile or weather that a dope card used gave no warning. Trajectory ran without a rifle.
+- **W-11:** a running stage timer froze after a restart.
+- **W-12:** duplicate profile names were accepted, which made import matching ambiguous. No note for OAL > 22 mm, a diameter off its calibre tag, or a non-stock twist.
+- **W-13:** the printed card didn't say the zero pressure was station, and had no date.
+- **W-14:** an empty card MV silently became 255 m/s.
+- **B-05:** a new LabRadar series kept adding to the old shot string.
+- **B-09:** a junk frame header could swallow the frames behind it until a 4 kB buffer filled.
+- **B-11:** a LabRadar that never answered the app key showed "Starting…" forever.
+- **B-13:** a chrono MV of 2800 m/s was accepted.
+- **U-10:** 66 versioned builds (31 MB) sat in the repo root. **U-11:** dead `tdRowsN`.
+
+**Fix.**
+- **D-08:**
+  - `indexedDB.open` is retried once after 300 ms.
+  - A verified localStorage → IndexedDB migration writes `sen_platform_migrated` (date) in Main's namespace. Installs migrated before V2.16.6 get it at their next good start.
+  - A fallback that finds the marker shows "Storage could not be opened — showing an old copy … Changes are NOT saved", and `saveDB` writes nothing for the rest of that session. It does not reopen IndexedDB mid-session, so the old copy can never be written over the current data.
+  - The localStorage copy stays (rollback, Lab fallback reader). A never-migrated install without IndexedDB works on localStorage as before.
+- **D-10:**
+  - On a parse failure the raw text is saved as `db-unreadable-<time>` (IndexedDB; `sen_platform_unreadable` on localStorage) before anything else runs.
+  - The warning is a separate `loadError` that `storeOk()` never clears. It says where the copy is and how to restore, and has a Dismiss button.
+- **D-11 / D-12 / D-13 (`sw.js`):**
+  - Only `res.ok` HTML replaces the cached copy; a 404 still reaches the page.
+  - The navigation fetch races a 3 s timer: if the network hasn't answered, the cached copy is served, and a late answer still refreshes the cache.
+  - Install uses `cache:'reload'`.
+- **D-17:** each catalog is seeded once per catalog version (`APP.seeded {proj, scopes}`). A fresh store gets the catalog; an existing store is only flagged, so a deletion made before the update stays. A future catalog change bumps the number.
+- **D-18:** `migrateZeroFields` copies the zero weather's pressure kind, and its altitude when it is sea level. An untyped legacy weather gets the kind `migratePressureType` gives it.
+- **U-02 (owner ruling):**
+  - Back and Escape close an open form at once when nothing was typed, and ask "Discard changes?" when something was. No keeps the form.
+  - Only user input/change events count; forms filling their own fields don't.
+  - `openModal` arms a back guard like `openSheet`. The import review closes on back without importing.
+- **U-03:** `paneEmptySync` writes `hidden` / `textContent` only when they change (idle: 16 runs in 2 s → 0).
+- **W-07 (owner: warn and list):**
+  - The delete confirmation lists the dope cards that use the rifle, projectile or current weather, marks the running course, and says they'll need another one.
+  - Trajectory (and so the Solver) requires a rifle, as Home does.
+- **W-11:** a stage timer that was running resumes after a restart. One whose time is up isn't restarted.
+- **W-12 (owner: refuse):**
+  - Saving a rifle, projectile, scope or weather under a name another one of the same type already has is refused with the reason. A record that already shared its name before can still be saved unchanged; the owner's export has no duplicates.
+  - Information notes, never refusals: projectile OAL over the magazine (22 mm) or single-shot (25 mm) limit; a diameter more than 0.3 mm from its calibre tag; a rifle twist different from the stock Mora barrel for its calibre (.22 1:16, .25 1:20, .30 1:20, .35 1:16, 6.5 mm custom 1:12).
+- **W-13:** the printed card says "… hPa station" and "Printed <date time>".
+- **W-14:** an empty card MV stays empty, marked required (amber border, placeholder). Compute and Print ask for it. A new card from a session without an MV starts empty, not 255.
+- **B-05 (owner: yes):** the shot string stores its LabRadar series (`chClean` whitelist, integer 0–65535). A new series on the unit starts a new string named after it, with a note. The same series after a reconnect continues.
+- **B-09:** a bad CRC, or a frame start still short of its claimed length after 2 s, drops one byte and rescans, so a real frame inside a false header is found. Long frames (300 B over 20-byte notifications) still assemble.
+- **B-11:** no reply to the app key within 5 s → key "no answer" and the link-silent note.
+- **B-13:** "Use MV" from the chronograph takes the rifle form's rule (> 0, ≤ 600 m/s).
+- **U-10 (owner: archive):** every earlier `RTI-SEN-Ballistic-Calculator-V*.html` moved to `archive/` (66 files, with a short README). The six test baselines (V1.17.2, V1.22.0, V1.24.1, V1.25.1, V1.29.1, V1.31.0) load from there (`tests/README.md` updated). The current release's versioned build stays in the root. GitHub Pages URLs of old builds now live under `/archive/`.
+- **U-11:** `let tdRowsN=1;` removed.
+
+**Files.** `index.html`, `RTI-SEN-Ballistic-Calculator-V2.16.6.html`, `sw.js` (CACHE `sen-ballistics-v2.16.6`), `archive/` (moved builds + README), `tests/robusttest.js` (new, 33), `tests/domtest.js` (+6 U-02), `tests/labradartest.js` (+10 B-05 / B-09 / B-11 / B-13), `tests/swtest.js` (+7 D-11 – D-13, simulated fetch / cache / Request), `tests/README.md`.
+
+**Verify.**
+- All 49 suites in `tests/README.md` green.
+- On V2.16.5: domtest fails 5, labradartest 8, robusttest 10 before crashing; the U-03 observer runs 16–17 times in 2 s on V2.16.5 vs 0.
+- Lab `maindatatest` 13 / 13 against the new Main (storage contract).
+- Owner's export round-trips with nothing refused; session still trued (local only, not committed).
+- Chromium 412 / 780: seven pages, the projectile and rifle forms with notes showing, and Dope cards — no sideways scroll, 0 errors.
+
+---
+
 ## V2.16.5 — patch — what the shooter reads is current and honest (review release R4: B-01, B-07, B-08, B-14, P-03, P-06, P-13, P-12, P-04, W-05, W-03, W-10, P-10, B-03)
 
 **Problem (V2.16.0 reviews, reproduced).**

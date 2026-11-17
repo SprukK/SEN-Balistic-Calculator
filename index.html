@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.16.5</title>
+<title>SEN Ballistics V2.16.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -270,7 +270,8 @@ html[data-tt="bc"] [data-tt]:not([data-tt="bc"]),html[data-tt="mvt"] [data-tt]:n
 .fpill.live{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:var(--accent);color:var(--text)}
 .fpill.live .fpill-n::before{content:'● ';color:var(--green)}
 .fpill.live .fpill-v{color:var(--accent)}
-.fpill.old{border-color:var(--warn);color:var(--warn)}   /* V2.16.5 B-01: stale Calypso wind */
+.fpill.old{border-color:var(--warn);color:var(--warn)}
+input.need{border-color:var(--warn)}   /* V2.16.5 B-01: stale Calypso wind */
 .fpill.man{border-style:dashed;border-color:var(--gold);color:var(--text2)}
 .fpill.man .fpill-v{color:var(--gold);font-weight:600}
 .fpill::after{content:'';position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent)}
@@ -1207,7 +1208,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.16.5 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.16.6 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -1896,7 +1897,7 @@ let APP={bright:1.0,dual:true,precision:'normal',transonicWarn:true,defaultDrag:
    arrays only where their reader cleans or checks them. Anything else is dropped, so the default stays. */
 const hasKey=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const APP_DEF={...APP};
-const APP_LATER={advLast:'string',calMount:'number',calMountSrc:'string',chNotes:'string',chrono:'object',chronoStr:'object',drive:'object',fdTipSeen:'boolean',retMig1:'boolean',fieldDefault:'boolean',help:'object',helpAll:'boolean',hmTgtBrg:'number',hmWindBrg:'number',iosHintOff:'boolean',layoutId:'string',layouts:'array',navTabs:'array',panes:'object',railW:'number',retMag:'number',run:'object',tgtBrgSrc:'string',theme:'object',truTab:'string'};
+const APP_LATER={advLast:'string',calMount:'number',calMountSrc:'string',chNotes:'string',chrono:'object',chronoStr:'object',drive:'object',fdTipSeen:'boolean',retMig1:'boolean',seeded:'object',fieldDefault:'boolean',help:'object',helpAll:'boolean',hmTgtBrg:'number',hmWindBrg:'number',iosHintOff:'boolean',layoutId:'string',layouts:'array',navTabs:'array',panes:'object',railW:'number',retMag:'number',run:'object',tgtBrgSrc:'string',theme:'object',truTab:'string'};
 const appType=k=>hasKey(APP_DEF,k)?(APP_DEF[k]===null?'string':typeof APP_DEF[k]):hasKey(APP_LATER,k)?APP_LATER[k]:null;
 const nullOk=k=>!hasKey(APP_DEF,k)||APP_DEF[k]===null;
 const isType=(v,t)=>t==='array'?Array.isArray(v):t==='object'?!!v&&typeof v==='object'&&!Array.isArray(v):t==='number'?Number.isFinite(v):typeof v===t;
@@ -2144,6 +2145,9 @@ function migrateDopeCard(c){
 }
 let DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],designs:[]};let currentDopeId=null;
 let _idb=null,storeError=null,storeBytes=0,storePersisted=null;
+// V2.16.6 D-08/D-10: a load problem stays on screen until dismissed (storeOk() never clears it); storeReadOnly = no saves this session
+let loadError=null,storeReadOnly=false,freshStore=false;   // freshStore: nothing usable was stored (first start, reset, or unreadable)
+const MIG_KEY='sen_platform_migrated';   // D-08: set once IndexedDB holds the data, so the old localStorage copy is known to be stale
 function snapshotJSON(){return JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:APP,schema:SCHEMA,session:{rifleId:S.rifleId,projId:S.projId,zeroWxId:S.zeroWxId,curWxId:S.curWxId,zero_m:S.zero_m,dist_m:S.dist_m,drag:S.drag,
   mv:S.mv,bc:S.bc,sight_mm:S.sight_mm,ct:S.ct,cp:S.cp,crh:S.crh,src:{...S.src}}});}   // V2.16.4 W-04: values + their sources
 function applySnapshot(d){DB={rifles:[],projectiles:[],weathers:[],scopes:[],reticles:[],dopeCards:[],ranges:[],designs:[],...d};UNITS={...UNITS,...cleanUnits(d.units)};SUNITS={...SUNITS,...cleanUnits(d.sunits,true)};APP={...APP,...cleanApp2(d.app2)};if(d.session)Object.assign(S,cleanSession(d.session));}
@@ -2161,27 +2165,50 @@ function cleanSession(o){
 function schemaNewerThanApp(d){return Object.keys(SCHEMA).filter(k=>d&&d.schema&&(d.schema[k]||0)>SCHEMA[k]);}
 function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
 function idbRun(mode,op){return new Promise((res,rej)=>{const tx=_idb.transaction(IDB_STORE,mode);const q=op(tx.objectStore(IDB_STORE));tx.oncomplete=()=>res(q.result);tx.onerror=tx.onabort=()=>rej(tx.error||new Error('transaction aborted'));});}
+function markMigrated(){try{if(localStorage.getItem(SK)!=null&&!localStorage.getItem(MIG_KEY))localStorage.setItem(MIG_KEY,new Date().toISOString().slice(0,10));}catch(e){}}
 async function copyLocalToIdb(raw){
   await idbRun('readwrite',st=>st.put(raw,IDB_KEY));
   if(await idbRun('readonly',st=>st.get(IDB_KEY))!==raw)throw new Error('migrated copy did not verify');
+  markMigrated();
+}
+async function idbOpenRetry(){   // D-08: one retry after 300 ms before giving up on IndexedDB
+  try{return await idbOpen();}catch(e){if(typeof indexedDB==='undefined')throw e;await new Promise(r=>setTimeout(r,300));return idbOpen();}
 }
 async function readStoredJSON(){
   try{
-    _idb=await idbOpen();
+    _idb=await idbOpenRetry();
     const raw=await idbRun('readonly',st=>st.get(IDB_KEY));
-    if(raw!=null)return raw;
+    if(raw!=null){markMigrated();return raw;}   // also marks installs migrated before V2.16.6 (D-08)
     const old=localStorage.getItem(SK);
     if(old!=null)await copyLocalToIdb(old);
     return old;
-  }catch(e){_idb=null;try{return localStorage.getItem(SK);}catch(e2){return null;}}
+  }catch(e){
+    _idb=null;
+    try{
+      const mig=localStorage.getItem(MIG_KEY);
+      if(mig){storeReadOnly=true;loadError='Storage could not be opened — showing an old copy (IndexedDB holds the current data since '+mig+'). Changes are NOT saved; close and reopen the app.';}
+      return localStorage.getItem(SK);
+    }catch(e2){return null;}
+  }
+}
+async function keepUnreadable(raw){   // D-10: the unreadable text is copied aside before seeding can overwrite it
+  const key='db-unreadable-'+new Date().toISOString().replace(/[:.]/g,'-');
+  try{if(_idb)await idbRun('readwrite',st=>st.put(raw,key));else localStorage.setItem('sen_platform_unreadable',raw);return key;}catch(e){return null;}
 }
 async function loadDB(){
   const raw=await readStoredJSON();
-  if(!raw)return;
+  if(!raw){freshStore=true;return;}
   storeBytes=raw.length;
-  try{applySnapshot(JSON.parse(raw));}catch(e){storeFail('stored data could not be read ('+e.message+')');}
+  let d;try{d=JSON.parse(raw);}catch(e){
+    const kept=await keepUnreadable(raw);
+    freshStore=true;
+    loadError='Stored data could not be read ('+e.message+') — the app started with defaults. '+(kept?'The unreadable copy was kept ('+kept+').':'The unreadable copy could NOT be kept.')+' Restore a backup: Settings → Google Drive → Restore, or Profiles → Import.';
+    return;
+  }
+  applySnapshot(d);
 }
 function saveDB(){
+  if(storeReadOnly)return;   // D-08: never write the stale copy over anything
   const raw=snapshotJSON();storeBytes=raw.length;
   if(_idb){idbRun('readwrite',st=>st.put(raw,IDB_KEY)).then(storeOk,e=>storeFail(e.message));return;}
   try{localStorage.setItem(SK,raw);storeOk();}catch(e){storeFail(e.message);}
@@ -2190,13 +2217,16 @@ function storeFail(msg){storeError=msg;renderStoreWarn();}
 function storeOk(){if(storeError){storeError=null;renderStoreWarn();}}
 function renderStoreWarn(){
   const el=document.getElementById('store-warn');if(!el)return;
-  el.textContent=storeError?'⚠ Data NOT saved — '+storeError+'. Export a backup now: More → Profiles → Export JSON.':'';
-  el.style.display=storeError?'':'none';
+  el.textContent='';
+  const line=s=>{const d=document.createElement('div');d.textContent=s;el.appendChild(d);return d;};
+  if(loadError){const d=line('⚠ '+loadError+' ');if(!storeReadOnly){const b=document.createElement('button');b.className='btn-xs';b.textContent='Dismiss';b.onclick=()=>{loadError=null;renderStoreWarn();};d.appendChild(b);}}
+  if(storeError)line('⚠ Data NOT saved — '+storeError+'. Export a backup now: More → Profiles → Export JSON.');
+  el.style.display=loadError||storeError?'':'none';
 }
 async function requestPersist(){try{if(navigator.storage&&navigator.storage.persist)storePersisted=await navigator.storage.persist();}catch(e){}}
 async function clearAllData(){
   if(_idb){await idbRun('readwrite',st=>st.delete(IDB_KEY));await idbRun('readwrite',st=>st.delete('driveq'));}   // V2.13.0: + Drive upload queue
-  try{localStorage.removeItem(SK);}catch(e){}
+  try{localStorage.removeItem(SK);localStorage.removeItem(MIG_KEY);}catch(e){}
 }
 async function factoryReset(){if(!confirm('Reset ALL data to defaults? Profiles will be lost.'))return;await clearAllData();location.reload();}
 function iosNeedsInstall(){
@@ -2259,7 +2289,19 @@ const getScope=id=>DB.scopes.find(s=>s.id===id)||null;
    Altaros/maker G1/G7 claims are UNVERIFIED and kept only as a note; real airgun slug BC
    runs 10–20% below claims. Trajectory stays blocked until a BC is entered or LabRadar-trued.
    `cal` = nominal bore tag (not measured diameter — driving bands push slugs above bore). */
+/* V2.16.6 D-17 — each catalog is seeded once per catalog version, so a catalog item the user deleted stays deleted.
+   A fresh store gets the catalog; an existing store is only flagged (it already holds the catalog it had seeded).
+   Changing a catalog later: bump its number here and the new items are added once. */
+const CATALOG_VER={proj:1,scopes:1};
+function catalogDue(k){
+  const have=APP.seeded&&typeof APP.seeded[k]==='number'?APP.seeded[k]:0;
+  if(have>=CATALOG_VER[k])return false;
+  APP.seeded={...(APP.seeded&&typeof APP.seeded==='object'?APP.seeded:{}),[k]:CATALOG_VER[k]};
+  if(!freshStore&&!have){saveDB();return false;}   // existing install from before V2.16.6: flag only
+  return true;
+}
 function seedProjectileCatalog(){
+  if(!catalogDue('proj'))return;
   const C=[
       {name:'AEA Long Range Master HP .22 38.6gr',cal:'.22',type:'slug',mfg:'AEA',diam:5.51,mass:38.6,oal:11.54,bcg7:0,bcg1:0,c:0,ff:0,notes:'Hollow Point · BC PENDING (measure via Truing)'},
       {name:'AEA Long Range Master HP .22 30.2gr',cal:'.22',type:'slug',mfg:'AEA',diam:5.51,mass:30.2,oal:0,bcg7:0,bcg1:0,c:0,ff:0,notes:'Hollow Point · BC PENDING (measure via Truing)'},
@@ -2378,7 +2420,7 @@ function seedProjectileCatalog(){
       DB.projectiles.push({id:uid(),...p});added++;
     }
   }
-  if(added)saveDB();
+  saveDB();
 }
 /* Back-tag existing installs' projectiles with a nominal `cal` (item 4) so the caliber filter
    works on pre-V1.12 data. Diameter→nominal by bore band; never overwrites an existing cal. */
@@ -2423,12 +2465,12 @@ function vectorCatalog(){   // V2.16.5: shared by the catalog seed and the W-03 
   ];
 }
 function seedVectorScopes(){
+  if(!catalogDue('scopes'))return;
   const V=vectorCatalog();
-  let added=0;
   for(const s of V){
-    if(!DB.scopes.some(x=>x.sku===s.sku)){DB.scopes.push({id:uid(),source:'Vector official spec (catalog seed Jul 2026)',...s});added++;}
+    if(!DB.scopes.some(x=>x.sku===s.sku))DB.scopes.push({id:uid(),source:'Vector official spec (catalog seed Jul 2026)',...s});
   }
-  if(added)saveDB();
+  saveDB();
 }
 /* V2.16.5 W-03 — once per store: a Vector catalog scope whose catalog reticle is "none" (no verified geometry) but which
    carries the generic Mil-Grid without saying so in its name or notes got it silently (the old scope form had no
@@ -2512,6 +2554,8 @@ function migrateZeroFields(){
     if(r.zTemp===undefined){
       const zw=getWx(S.zeroWxId);
       r.zTemp=zw?zw.temp:20;r.zPres=zw?zw.pres:1010;r.zRH=zw?zw.rh:65;changed=true;
+      // V2.16.6 D-18: the pressure keeps its kind (an untyped legacy weather gets the kind migratePressureType will give it)
+      if(zw){r.zPresType=zw.presType||(SEEDED_WX.includes(zw.name)?'sea':'station');if(r.zPresType==='sea')r.zAlt=zw.alt>=0?zw.alt:300;}
     }
     if(r.zero===undefined){r.zero=S.zero_m||50;changed=true;}
     if(r.reg1===undefined){r.reg1='';r.reg2='';r.ssj=false;r.regDelta='';r.dwell='';changed=true;}
@@ -3300,7 +3344,7 @@ function trajFail(msg,silent){
 }
 function runTraj(silent){
   const p=getProj();
-  if(!p||S.mv==null||S.bc==null||S.sight_mm==null)return trajFail('Select a rifle, projectile and current weather to compute a solution.',silent);
+  if(!getRifle()||!p||S.mv==null||S.bc==null||S.sight_mm==null)return trajFail('Select a rifle, projectile and current weather to compute a solution.',silent);   // V2.16.6 W-07: a rifle is required, as on Home
   if(S.ct==null)return trajFail('Select a current weather profile to compute a solution.',silent);
   if(!(S.bc>0))return trajFail('‘'+p.name+'’ has no BC yet — enter one in its profile, or measure it in the BC / Truing tab.',silent);
   const z=zeroConds();
@@ -3722,7 +3766,7 @@ function refreshDopeSel(){
 }
 function newDope(){
   const r=getRifle();
-  const c={id:uid(),name:'New card',rifleId:S.rifleId,projId:S.projId,cwxId:S.curWxId,mv:S.mv||255,zero:(r&&r.zero!=null?r.zero:S.zero_m),notes:'',
+  const c={id:uid(),name:'New card',rifleId:S.rifleId,projId:S.projId,cwxId:S.curWxId,mv:S.mv>0?S.mv:null,zero:(r&&r.zero!=null?r.zero:S.zero_m),notes:'',
     stages:[{id:uid(),name:'Stage 1',notes:'',dists:[{id:uid(),range:50,angle:0,wind:0,wdir:90},{id:uid(),range:100,angle:0,wind:0,wdir:90},{id:uid(),range:150,angle:0,wind:0,wdir:90}]}]};
   migrateDopeCard(c);DB.dopeCards.push(c);currentDopeId=c.id;saveDB();refreshDopeSel();loadDope();
 }
@@ -3741,11 +3785,12 @@ function loadDope(){
   document.getElementById('dc-rifle').value=c.rifleId||'';
   document.getElementById('dc-proj').value=c.projId||'';
   document.getElementById('dc-cwx').value=c.cwxId||'';
-  document.getElementById('dc-mv').value=c.mv||255;
+  document.getElementById('dc-mv').value=c.mv>0?c.mv:'';dcMvMark(c);   // V2.16.6 W-14: an empty MV stays empty and is marked required
   document.getElementById('dc-zero').value=c.zero||50;
   document.getElementById('dc-notes').value=c.notes||'';
   renderDopeZero();renderStages();
 }
+function dcMvMark(c){const el=document.getElementById('dc-mv');if(!el)return;el.placeholder='required';el.classList.toggle('need',!(c.mv>0));}
 function renderDopeZero(){
   const c=getCard();if(!c)return;
   const r=DB.rifles.find(x=>x.id===c.rifleId);
@@ -3765,7 +3810,7 @@ function touchDope(){
   c.projId=document.getElementById('dc-proj').value;
   c.cwxId=document.getElementById('dc-cwx').value;c.mv=+document.getElementById('dc-mv').value;
   c.zero=+document.getElementById('dc-zero').value;c.notes=document.getElementById('dc-notes').value;
-  saveDB();refreshDopeSel();renderDopeZero();
+  saveDB();refreshDopeSel();renderDopeZero();dcMvMark(c);
 }
 function renderStages(){
   const c=getCard();if(!c)return;
@@ -3849,6 +3894,7 @@ function cardSpinWind(tr,sol,d){
 }
 function calcDope(){
   const c=getCard();if(!c)return;
+  if(!(c.mv>0)){alert('Enter the card MV — it is required.');return;}   // W-14
   const tr=computeCardTraj(c);
   if(!tr){alert('Select rifle, projectile, and current weather for this card.');return;}
   if(tr.bcPending){document.getElementById('dc-note').textContent=`${tr.projName} has no BC yet — enter one in its profile or measure it in the Truing tab before generating dope.`;c.stages.forEach(s=>s.dists.forEach(d=>{const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};set('dc-rc-'+d.id,'—');set('dc-re-'+d.id,'no BC');set('dc-rw-'+d.id,'—');}));return;}
@@ -3867,6 +3913,7 @@ function calcDope(){
 }
 function printDope(){
   const c=getCard();if(!c){alert('Select a card.');return;}
+  if(!(c.mv>0)){alert('Enter the card MV — it is required.');return;}   // W-14
   const tr=computeCardTraj(c);if(!tr){alert('Card needs rifle, projectile, and current weather.');return;}
   if(tr.bcPending){alert(tr.projName+' has no BC yet — enter one in its profile or measure it in the Truing tab before printing dope.');return;}
   document.getElementById('print-content').innerHTML=dopePrintHTML(c,tr);
@@ -3876,7 +3923,7 @@ function printDope(){
 function dopePrintHTML(c,tr=computeCardTraj(c)){
   if(!tr||tr.bcPending)return null;
   const z=tr.z;
-  let h=`<div class="pd"><h1>DOPE — ${esc(c.name||'Unnamed')}</h1><div class="pdm">Rifle: ${tr.r?esc(tr.r.name):'—'} · ${tr.sc?esc(tr.sc.name):""} · Proj: ${esc(tr.p.name)}<br>MV ${ut('vel',c.mv)} · Zero ${ut('zrange',z.range)}${z.wSpd>0?' · zeroed in '+ut('wind',z.wSpd)+' @ '+z.wDir+'°':''} · ${tr.click} mrad/click<br>Zero atmos: ${ut('temp',z.temp)} ${ut('pres',z.pres)} ${z.rh}% · Current: ${esc(tr.cw.name)}${c.notes?'<br>'+esc(c.notes):''}</div>`;
+  let h=`<div class="pd"><h1>DOPE — ${esc(c.name||'Unnamed')}</h1><div class="pdm">Rifle: ${tr.r?esc(tr.r.name):'—'} · ${tr.sc?esc(tr.sc.name):""} · Proj: ${esc(tr.p.name)}<br>MV ${ut('vel',c.mv)} · Zero ${ut('zrange',z.range)}${z.wSpd>0?' · zeroed in '+ut('wind',z.wSpd)+' @ '+z.wDir+'°':''} · ${tr.click} mrad/click<br>Zero atmos: ${ut('temp',z.temp)} ${ut('pres',z.pres)} station ${z.rh}% · Current: ${esc(tr.cw.name)} · Printed ${new Date().toLocaleString('sv').slice(0,16)}${c.notes?'<br>'+esc(c.notes):''}</div>`;   // V2.16.6 W-13
   c.stages.forEach((s,si)=>{
     h+=`<div class="sh">STAGE ${si+1}: ${esc(s.name||'')}${s.time?' · ⏱ '+s.time+' s':''}${s.notes?' — '+esc(s.notes):''}</div><table><thead><tr><th>Target</th><th>Range</th><th>Angle</th><th>Drop ${U.dropU()}</th><th>Elev clk</th><th>Wind clk (spin only, EST)</th><th>Info</th></tr></thead><tbody>`;
     s.dists.forEach(d=>{
@@ -3933,7 +3980,7 @@ function dopeRfRender(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.5'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.6'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4025,7 +4072,12 @@ function confirmDelete(t,id){
   // M3 (V1.13.2): name resolved from the DB (was carried through a data attribute — truncated on ':' and injectable)
   const coll=t==='r'?DB.rifles:t==='p'?DB.projectiles:t==='w'?DB.weathers:t==='s'?DB.scopes:DB.reticles;
   const name=coll.find(x=>x.id===id)?.name||'item';
-  if(!confirm(`Delete "${name}"?`))return;
+  // V2.16.6 W-07 (owner: warn and list): dope cards that use this rifle / projectile / weather
+  const key=t==='r'?'rifleId':t==='p'?'projId':t==='w'?'cwxId':null;
+  const cards=key?DB.dopeCards.filter(c=>c[key]===id):[];
+  const what=t==='r'?'rifle':t==='p'?'projectile':'current weather';
+  const used=cards.length?`\n\nUsed by ${cards.length} dope card${cards.length>1?'s':''}: ${cards.map(c=>'"'+c.name+'"'+(APP.run&&APP.run.cardId===c.id?' (the running course)':'')).join(', ')} — ${cards.length>1?'they':'it'} will need another ${what}.`:'';
+  if(!confirm(`Delete "${name}"?${used}`))return;
   if(!confirm(`Really delete "${name}"? This cannot be undone.`))return;
   if(t==='r'){DB.rifles=DB.rifles.filter(x=>x.id!==id);if(S.rifleId===id)S.rifleId=null;}
   if(t==='p'){DB.projectiles=DB.projectiles.filter(x=>x.id!==id);if(S.projId===id)S.projId=null;}
@@ -4035,10 +4087,40 @@ function confirmDelete(t,id){
   saveDB();renderProfiles();Bus.notify();
 }
 function fldHtml(id,lbl,val,step){return`<div class="fld"><label>${lbl}</label><input id="${id}" type="${step!==undefined?'number':'text'}" ${step!==undefined?'step="'+step+'"':''} value="${esc(val??'')}"></div>`;}   // V2.16.3 D-03
-function openModal(html){document.getElementById('mbox').innerHTML=html;document.getElementById('modal').classList.add('open');}
+function openModal(html){document.getElementById('mbox').innerHTML=html;document.getElementById('modal').classList.add('open');modalTyped=false;backArm();}
 function closeModal(){document.getElementById('modal').classList.remove('open');}
+/* V2.16.6 U-02 — Android back and Escape close an open form like a sheet. Owner ruling: close at once when nothing was
+   typed; ask "discard changes?" when something was. Only the user's own typing counts (input/change events — forms that
+   fill their fields in code don't fire them). Returns false when the user chose to keep the form. */
+let modalTyped=false;
+function modalOpen(){return document.getElementById('modal').classList.contains('open');}
+function dismissModal(){if(modalTyped&&!confirm('Discard changes?'))return false;closeModal();return true;}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
 
+/* V2.16.6 W-12 — names unique per profile type (owner: refuse; import matching goes by name). An existing record that already
+   shares its name with another can still be saved under that name, so old data stays editable; new clashes are refused.
+   Projectile and rifle forms also show information notes, never a refusal: OAL over the magazine / single-shot limit,
+   a diameter that doesn't fit its calibre tag, a twist that isn't the stock Mora barrel's (custom barrels are fine). */
+function nameTaken(coll,id,name){
+  const n=String(name).trim().toLowerCase(),cur=id?coll.find(x=>x.id===id):null;
+  if(cur&&String(cur.name||'').trim().toLowerCase()===n)return false;
+  return coll.some(x=>x.id!==id&&String(x.name||'').trim().toLowerCase()===n);
+}
+const nameClash=(coll,id,name,what)=>nameTaken(coll,id,name)?`A ${what} named "${name}" already exists — choose another name.`:'';
+const MORA_TWIST_IN={'.22':16,'.25':20,'.30':20,'.35':16,'6.5mm':12};   // §3–6 (6.5 mm = custom, not yet made)
+const CAL_NOM_MM={'.177':4.5,'.20':5.0,'.22':5.5,'.25':6.35,'.30':7.62,'.35':9.0,'.457':11.6,'.495':12.57,'.58':14.7};
+function formNote(id,lines){const el=document.getElementById(id);if(!el)return;el.textContent=lines.map(s=>'ⓘ '+s).join('  ');el.style.display=lines.length?'':'none';}
+function projFormFlags(){
+  const v=i=>(document.getElementById(i)||{}).value,oal=+v('pf-oal'),d=+v('pf-diam'),cal=v('pf-cal'),nom=CAL_NOM_MM[cal],f=[];
+  if(oal>25)f.push('OAL is over the Mora single-shot limit (25 mm) and the magazine limit (22 mm).');
+  else if(oal>22)f.push('OAL is over the Mora magazine limit (22 mm) — single-shot tray only.');
+  if(d>0&&nom&&Math.abs(d-nom)>0.3)f.push(`Diameter is more than 0.3 mm from the ${cal} nominal (${nom} mm) — check the calibre tag.`);
+  formNote('pf-flags',f);
+}
+function rifleFormFlags(){
+  const v=i=>(document.getElementById(i)||{}).value,cal=v('rf-cal'),tw=+v('rf-twist'),st=MORA_TWIST_IN[cal];
+  formNote('rf-flags',st&&tw>0&&Math.abs(tw-st)>0.05?[`Twist differs from the stock Mora ${cal} barrel (1:${st}″) — fine for a custom barrel.`]:[]);
+}
 function openRifleForm(id){
   const r=DB.rifles.find(x=>x.id===id)||{name:'',cal:'.25',twist:508,twistDir:'right',blen:700,sight:44,mv:255,notes:'',scopeId:DB.scopes[0]?.id,railOn:false,railMrad:0,railUnit:'mil',downClicks:'',zero:50,zwSpd:0,zwDir:90,zTemp:20,zPres:1010,zPresType:'sea',zAlt:300,zRH:65,reg1:'',reg2:'',ssj:false,regDelta:'',dwell:''};
   const twd=r.twistDir||'right';
@@ -4058,6 +4140,7 @@ function openRifleForm(id){
     })()}</select></div>
     ${fldHtml('rf-twist','Twist (in/turn)',(r.twist/25.4).toFixed(2),0.01)}<div class="fld"><label>Twist direction</label><select id="rf-twdir"><option value="right" ${twd==='right'?'selected':''}>Right (RH) — default</option><option value="left" ${twd==='left'?'selected':''}>Left (LH)</option><option value="smooth" ${twd==='smooth'?'selected':''}>Smooth bore</option></select></div>${fldHtml('rf-blen','Barrel mm',r.blen,1)}
     ${fldHtml('rf-mv','Default MV m/s',r.mv,0.1)}
+    <div class="note" id="rf-flags" style="display:none;grid-column:1/-1"></div>
     <div class="fld"><label>Scope (shared)</label><select id="rf-scope" onchange="renderRifleBudgetNote()">${scopeOpts||'<option value="">— add a scope first —</option>'}</select></div></div>
     <h3 style="margin-top:14px;font-size:13px">Mounting on this rifle</h3>
     <div class="fgrid">
@@ -4097,6 +4180,7 @@ function openRifleForm(id){
 
     <div class="btnrow"><button class="btn primary" onclick="saveRifle('${id||''}')">Save</button><button class="btn" onclick="closeModal()">Cancel</button></div>`);
   renderRifleBudgetNote();
+  ['rf-cal','rf-twist'].forEach(i=>document.getElementById(i).addEventListener('input',rifleFormFlags));document.getElementById('rf-cal').addEventListener('change',rifleFormFlags);rifleFormFlags();
 }
 let _ssj=false;
 function setSSJ(on){_ssj=on;document.getElementById('rf-ssj-on').classList.toggle('on',on);document.getElementById('rf-ssj-off').classList.toggle('on',!on);
@@ -4140,6 +4224,7 @@ function saveRifle(id){
     [dc===''?0:+dc,'Down-clicks',{min:0,int:true}]
   ]);
   if(err){alert(err);return;}
+  {const nc=nameClash(DB.rifles,id,obj.name,'rifle');if(nc){alert(nc);return;}}   // V2.16.6 W-12
   if(!obj.scopeId){alert('Select a scope.');return;}
   if(id){const ex=DB.rifles.find(x=>x.id===id);delete ex.scope;Object.assign(ex,obj);}else{DB.rifles.push({id:uid(),...obj});}
   if(S.curWxId===ZERO_WX&&id===S.rifleId)Bus.sameAsZero(); // edited zero conditions flow into "Same as zero"
@@ -4189,6 +4274,7 @@ function saveScope(id){
     [obj.magMax,'Max magnification',{gt:0,max:200}]
   ]);
   if(err){alert(err);return;}
+  {const nc=nameClash(DB.scopes,id,obj.name,'scope');if(nc){alert(nc);return;}}   // V2.16.6 W-12
   if(id){Object.assign(DB.scopes.find(x=>x.id===id),obj);}else{DB.scopes.push({id:uid(),...obj});}
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
@@ -4386,7 +4472,6 @@ function tdNeedMrad(dial,unit,offMm,d){
   return{need:m-offMm/d,click};
 }
 // Rows: distance, shot angle, dial, group offset. Read from the inputs (unit-aware values are canonical).
-let tdRowsN=1;
 function tdReadRows(){
   return[...document.querySelectorAll('#td-rows .td-row')].map(r=>{const q=k=>r.querySelector('[data-k="'+k+'"]').value;
     return{d:q('d'),a:q('a'),dial:q('dial'),off:q('off')};});
@@ -4476,6 +4561,7 @@ function openProjForm(id){
     ${fldHtml('pf-oal','OAL mm',p.oal,0.1)}${fldHtml('pf-c','Stability C (0=est)',p.c,0.001)}
     ${fldHtml('pf-bcg7','BC G7 lb/in²',p.bcg7,0.001)}${fldHtml('pf-bcg1','BC G1 lb/in²',p.bcg1,0.001)}
     ${fldHtml('pf-ff','Form factor',p.ff,0.001)}${fldHtml('pf-notes','Notes',p.notes)}</div>
+    <div class="note" id="pf-flags" style="display:none"></div>
     <div class="note" style="margin-top:8px"><b>Shape for McGyro (optional)</b> — leave empty if unknown.</div>
     <div class="projdia" data-dia="diam,oal,nose,rtr,mep,base"></div>
     <div class="fgrid">${fldHtml('pf-nose','Nose length mm',p.noseL??'',0.01)}${fldHtml('pf-rtr','Nose Rt/R (1 round/tangent, 0 cone)',p.rtr??'',0.05)}
@@ -4484,6 +4570,7 @@ function openProjForm(id){
     <div class="note">BC convention §9H: SD = gr/(7000·d_in²), no π/4. Mass always grains, BC always lb/in². Calibre is the nominal bore tag (for filtering), not measured diameter.</div>
     <div class="btnrow"><button class="btn primary" onclick="saveProj('${id||''}')">Save</button><button class="btn" onclick="closeModal()">Cancel</button></div>`);
   mountProjDiagrams(document.getElementById('mbox'));
+  ['pf-oal','pf-diam','pf-cal'].forEach(i=>document.getElementById(i).addEventListener('input',projFormFlags));document.getElementById('pf-cal').addEventListener('change',projFormFlags);projFormFlags();
 }
 function saveProj(id){
   const v=i=>document.getElementById(i).value;
@@ -4506,6 +4593,7 @@ function saveProj(id){
     [obj.dens,'Density',{gt:1,max:25}]
   ]);
   if(err){alert(err);return;}
+  {const nc=nameClash(DB.projectiles,id,obj.name,'projectile');if(nc){alert(nc);return;}}   // V2.16.6 W-12
   if(!obj.name){alert('Projectile needs a name.');return;}
   if(id){
     // V2.16.4 P-05: a typed BC replaces a trued one — the trued state (no Sg penalty, bands) ends with it
@@ -4536,12 +4624,13 @@ function saveWx(id){
   ]);
   if(!err&&obj.presType==='sea'&&!(obj.alt>0)){alert('Sea-level (QNH) pressure needs the altitude of the place to convert it to station pressure.');return;}
   if(err){alert(err);return;}
+  {const nc=nameClash(DB.weathers,id,obj.name,'weather profile');if(nc){alert(nc);return;}}   // V2.16.6 W-12
   if(id){Object.assign(DB.weathers.find(x=>x.id===id),obj);}else{DB.weathers.push({id:uid(),...obj});}
   if(id&&id===S.curWxId)repullProfile(['ct','cp','crh']);   // V2.16.4 W-01
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.5'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.6'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -4979,16 +5068,24 @@ function lrFrame(cmd,seq,payload){
   const p=payload||[],L=p.length,f=[1,cmd,(seq>>8)&255,seq&255,(L>>>24)&255,(L>>16)&255,(L>>8)&255,L&255,...p],c=lrCrc(f);
   return new Uint8Array([...f,c>>8,c&255]);
 }
-function lrTake(d,b){ // frames reassembled across notifications; junk skipped, bad CRC dropped
+function lrTake(d,b){ // frames reassembled across notifications; junk skipped
+  // V2.16.6 B-09: a bad CRC, or a frame start still short of its claimed length after 2 s, is a false start:
+  // drop one byte and look again (a real frame may sit inside what the false header claimed)
   d.buf=d.buf.concat(Array.from(b));const out=[];
   for(;;){
-    const B=d.buf,i=B.indexOf(1);if(i<0){d.buf=[];break;}if(i>0)B.splice(0,i);
+    const B=d.buf,i=B.indexOf(1);if(i<0){d.buf=[];d.waitT=0;break;}if(i>0){B.splice(0,i);d.waitT=0;}
     if(B.length<10)break;
     const L=((B[4]<<24)>>>0)+(B[5]<<16)+(B[6]<<8)+B[7];
     if(L>4096){B.splice(0,1);continue;}
-    if(B.length<10+L)break;
-    const f=B.splice(0,10+L);
-    if(lrCrc(f.slice(0,-2))===((f[f.length-2]<<8)|f[f.length-1]))out.push({cmd:f[1],p:f.slice(8,-2)});
+    if(B.length<10+L){
+      if(!d.waitT)d.waitT=Date.now();
+      else if(Date.now()-d.waitT>2000){B.splice(0,1);d.waitT=0;continue;}
+      break;
+    }
+    d.waitT=0;
+    const f=B.slice(0,10+L);
+    if(lrCrc(f.slice(0,-2))===((f[f.length-2]<<8)|f[f.length-1])){B.splice(0,10+L);out.push({cmd:f[1],p:f.slice(8,-2)});}
+    else B.splice(0,1);
   }
   return out;
 }
@@ -5010,6 +5107,7 @@ async function lrConnect(){
     lrRender();
     await lrSend(d,0x06);await new Promise(r=>setTimeout(r,150));
     await lrSend(d,0x1a,LR_KEY);
+    setTimeout(()=>{if(LR===d&&d.key==='sending…'){d.key='no answer';lrRender();}},5000);   // V2.16.6 B-11
   }catch(e){
     if(e&&e.name==='NotFoundError'){lrRender();return;}
     lrStop();LR=null;lrUi('',(e&&e.message)||'Connect failed');
@@ -5034,7 +5132,11 @@ function lrShot(d,v){
   d.last={v,t:Date.now()};
   if(d.paused){lrRender();return;}   // V2.11.0 r2: paused → shown, not added to the shot string
   let c=chClean(APP.chronoStr);
-  if(!c||c.src!=='labradar')c={shots:[],times:[],off:[],name:'LabRadar '+(d.link.name||'')+(d.series!=null?' · series '+d.series:''),date:new Date().toISOString().slice(0,10),src:'labradar',unit:'ms'};
+  // V2.16.6 B-05 (owner: yes): a new series on the unit starts a new string; the same series (e.g. after a reconnect) continues
+  const newSeries=c&&c.src==='labradar'&&d.series!=null&&c.series!=null&&c.series!==d.series;
+  if(c&&c.src==='labradar'&&c.series==null)c.series=d.series;
+  if(!c||c.src!=='labradar'||newSeries){c={shots:[],times:[],off:[],name:'LabRadar '+(d.link.name||'')+(d.series!=null?' · series '+d.series:''),date:new Date().toISOString().slice(0,10),src:'labradar',unit:'ms',series:d.series};
+    if(newSeries)chMsg('New LabRadar series '+d.series+': a new shot string was started.');}
   if(c.shots.length>=CH_MAX){chMsg('Shot string full ('+CH_MAX+' shots): clear it to keep recording.');return;}
   c.shots.push(v);c.times.push(Date.now());   // V2.16.0: arrival time (Chrono Advanced)
   const ta=document.getElementById('ch-str');if(ta)ta.value=c.shots.map(x=>un('vel',x)).join(' ');
@@ -5056,6 +5158,7 @@ function lrRender(){
   const silent=on&&d.poll&&d.lastRx&&Date.now()-d.lastRx>25000;
   set('lr-note',!on?(d.last?'Last shot '+uq('vel',d.last.v)+' · '+new Date(d.last.t).toTimeString().slice(0,8):''):
     /^refused/.test(d.key)?'The LabRadar refused the app key: no shots will arrive. Save a Lab log and send it over.':
+    d.key==='no answer'?'No reply to the app key from the LabRadar within 5 s: link silent — disconnect and connect again.':
     silent?'No reply from the LabRadar for '+Math.round((Date.now()-d.lastRx)/1000)+' s: link silent.':
     d.last?'Last shot '+uq('vel',d.last.v)+' · '+new Date(d.last.t).toTimeString().slice(0,8):d.key==='accepted'?'Ready: arm the LabRadar and shoot.':'Starting…');
   devSync();   // V2.11.0 r2
@@ -5212,6 +5315,7 @@ function useBLEWind(){calypsoLive('avg');}
 function useChronoMV(){
   const mv=+document.getElementById('ch-mv').value;
   if(!mv){alert('Enter MV first.');return;}
+  {const err=vchk([[mv,'MV',{gt:0,max:600,req:true}]]);if(err){alert(err);return;}}   // V2.16.6 B-13: same rule as the rifle form
   S.mv=mv;S.src.mv='chrono';
   const es=+document.getElementById('ch-es').value,sd=+document.getElementById('ch-sd').value;
   APP.chrono={mv,es:es>0?es:null,sd:sd>0?sd:null,at:new Date().toISOString().slice(0,10)};saveDB();
@@ -5243,7 +5347,8 @@ function chClean(o){
   const str=(v,n)=>isStr(v)?v.slice(0,n):'';
   const xo=o.xero&&typeof o.xero==='object'?o.xero:{},xero={};
   ['avg','sd','es'].forEach(k=>{if(isNum(xo[k])&&xo[k]>=0)xero[k]=xo[k];});
-  return{shots,times,off,name:str(o.name,60),date:str(o.date,60),src:o.src==='xero'?'xero':o.src==='labradar'?'labradar':'typed',unit:o.unit==='fps'?'fps':'ms',xero:Object.keys(xero).length?xero:null};
+  return{shots,times,off,name:str(o.name,60),date:str(o.date,60),src:o.src==='xero'?'xero':o.src==='labradar'?'labradar':'typed',unit:o.unit==='fps'?'fps':'ms',xero:Object.keys(xero).length?xero:null,
+    series:Number.isInteger(o.series)&&o.series>=0&&o.series<=65535?o.series:null};   // V2.16.6 B-05: LabRadar series of the string
 }
 function chStats(v){
   const n=v.length;if(!n)return null;
@@ -5725,7 +5830,8 @@ function onBack(){
   if(backDrain){backDrain=0;backLast='dropped the spare guards';backDiag();return;}   // our own history.go()
   backDepth=Math.max(0,backDepth-1);backAct=false;   // a new guard needs a new tap
   const go=p=>{backFromPop=true;gotoPage(p);backFromPop=false;};
-  if(document.getElementById('sheet').classList.contains('open')){closeSheet();backLast='closed a sheet';}
+  if(modalOpen()){backLast=dismissModal()?'closed a form':'kept the form';}
+  else if(document.getElementById('sheet').classList.contains('open')){closeSheet();backLast='closed a sheet';}
   else{
     let prev=pageStack.pop();while(prev&&prev===curPage())prev=pageStack.pop();
     if(prev){go(prev);backLast='back to '+prev;}
@@ -5970,11 +6076,12 @@ const PANE_EMPTY={bench:'Create or pick a design: its drawing, mass, SD and cent
 // a page pane with nothing visible in it says what will appear there
 function paneEmptySync(){
   const rail=document.getElementById('sol-rail'),box=rail&&rail.querySelector('.pane-empty');if(!box)return;
-  if(typeof paneShown==='undefined'||paneShown!=='page'){box.hidden=true;return;}
+  if(typeof paneShown==='undefined'||paneShown!=='page'){if(!box.hidden)box.hidden=true;return;}   // V2.16.6 U-03: write only on change
   const shown=[...rail.children].filter(e=>!['pane-sw','rail-head'].includes(e.id)&&!e.classList.contains('pane-empty')&&e.tagName!=='SPAN')
     .some(e=>getComputedStyle(e).display!=='none'&&e.textContent.trim()!=='');
   const pg=curPage(),k=pg==='truing'?'truing:'+(APP.truTab||'vel'):pg;
-  box.hidden=shown;box.textContent=shown?'':(PANE_EMPTY[k]||'Results appear here.');
+  const txt=shown?'':(PANE_EMPTY[k]||'Results appear here.');
+  if(box.hidden!==shown)box.hidden=shown;if(box.textContent!==txt)box.textContent=txt;
 }
 // a table wider than its box: fade at the right edge + "swipe" hint until it's scrolled to the end
 function tblHints(){
@@ -6381,6 +6488,8 @@ function courseCall(hit){
   if(calls.length>=n)courseNext();else courseSave();
 }
 function courseTimer(){const r=courseRun();if(r.start){r.start=null;if(courseIv){clearInterval(courseIv);courseIv=null;}}else{r.start=Date.now();courseIv=setInterval(renderCourseTimer,1000);}saveDBSoon();renderCourseTimer();}
+// V2.16.6 W-11: a stage timer that was running when the app closed keeps counting after a restart (APP.run.start is stored)
+function courseResume(){const r=APP.run,st=r&&r.start?courseStage():null;if(st&&st.time>0&&!courseIv&&(Date.now()-r.start)/1000<st.time)courseIv=setInterval(renderCourseTimer,1000);}
 function renderCourseTimer(){
   const st=courseStage(),t=document.getElementById('cs-timer'),b=document.getElementById('cs-tbtn');if(!t||!b)return;
   if(!st||!(st.time>0)){t.textContent='';b.style.display='none';return;}
@@ -7303,16 +7412,16 @@ function driveSave(files){
   if(files.every(f=>driveEnqueue(...f)))driveTapSend();else driveRender();
 }
 function driveBackupNow(){
-  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.5'};
+  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.6'};
   driveSave([['backups','SEN backup '+driveStamp()+'.json','application/json',JSON.stringify(d,null,1),'backup']]);
 }
 function driveSaveProfile(t,id){
   const b=shareBundle(t,id),type=SHARE_TYPES[t],rec=b&&DB[type].find(x=>x.id===id);if(!b)return;
-  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.16.5'},null,1)]]);
+  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.16.6'},null,1)]]);
 }
 function driveSaveDope(){
   const c=getCard();if(!c)return;
-  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.5'},null,1)]];
+  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.6'},null,1)]];
   const h=dopePrintHTML(c);   // null when the card can't be computed — the JSON still goes
   if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print)','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title>'+h.replace(/<table>/g,'<table border="1" cellpadding="4" style="border-collapse:collapse">'),'',DRIVE_DOC]);   // → Google Doc
   driveSave(f);
@@ -7324,7 +7433,7 @@ function driveSaveShots(){
   const csv='shot,velocity_ms,velocity_fps,kept,running_sd_ms,time\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes',run[i].sd==null?'':run[i].sd.toFixed(2),c.times[i]?new Date(c.times[i]).toISOString():''].join(',')).join('\n')+
     '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n'+(notes?'\nnotes\n'+q(notes)+'\n':'');
   driveSave([['shots',nm,'text/csv',csv,'',DRIVE_SHEET],   // → Google Sheet
-    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.16.5',saved:new Date().toISOString()},null,1)]]);
+    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.16.6',saved:new Date().toISOString()},null,1)]]);
 }
 function driveWindRows(){
   const now=Date.now(),win=wavgWin();
@@ -7336,7 +7445,7 @@ function driveSaveWind(){
   const rows=driveWindRows();if(!rows.length||rows.every(r=>!r.readings)){alert('No wind readings to save — connect a Calypso first.');return;}
   const t=new Date().toISOString(),keys=Object.keys(rows[0]);
   driveSave([['wind','Wind '+driveStamp(),'text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n','',DRIVE_SHEET],   // → Google Sheet
-    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.16.5'},null,1)]]);
+    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.16.6'},null,1)]]);
 }
 // Restore: JSON files in Backups, Profiles and Dope cards, newest first → the normal import.
 async function driveRestoreList(){
@@ -7413,6 +7522,7 @@ DB.rifles.forEach(r=>{if(typeof r.cal==='string')r.cal=r.cal.trim();});  // M5 (
    Re-pull them from the restored profiles (manual overrides were never persisted, so nothing is
    overwritten; pullFromProfiles skips any field whose profile is missing). */
 restoreSession();   // V2.16.4 W-04: profile-sourced fields re-read, hand-set ones kept (owner ruling)
+courseResume();   // V2.16.6 W-11
 applyDisplayPrefs();if(APP.wakeLock)wlAcquire();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&APP.wakeLock&&!_wl)wlAcquire();});
 reticleMag=APP.retMag??null;document.documentElement.style.setProperty('--ret-px',RET_PX_FIXED+'px');
 turretElevMode=APP.turretMode||'match';
@@ -7442,7 +7552,8 @@ importFromLink();
 window.addEventListener('hashchange',importFromLink);
 boot().catch(e=>console.error('SEN boot failed:',e));
 window.addEventListener('resize',()=>{if(lastTraj)drawChart();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(modalOpen())dismissModal();else closeSheet();}});
+['input','change'].forEach(t=>document.getElementById('mbox').addEventListener(t,()=>{modalTyped=true;}));   // U-02
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 </script>
 </body>
