@@ -7,6 +7,50 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.17.0 — minor — warnings where dope is read, truing sensitivity, two-window guard, course summary (review release R6, part 1: P-08, P-09, P-11, D-09, CALC-27)
+
+R6 is split, as its prompt allows: this release carries the warnings, the truing sensitivity, the two-window guard and the course summary. The app-wide EU number format (CORE-27, F-2) and the import part picker (CORE-28, F-3) follow in V2.18.0.
+
+**Problem (V2.16.0 reviews, reproduced).**
+- **P-08:** King at the worst case (−5 °C, 1013 hPa, 229 m/s) has Sg 0.938. Home showed ordinary dope with "Sg 0.94 BC×0.829"; no screen warned. The Formulas page stated the penalty only for 1.0 ≤ Sg < 1.5.
+- **P-09:** transonic and diabolo warnings existed only on the Trajectory tab, and were keyed on the drag model, not the projectile: a slug on G1 got "Diabolo", a pellet on G7 got only the generic text, and a launch at M 1.22 got none. Settings → Transonic warnings changed nothing.
+- **P-11:** velocity truing printed one BC with no indication how sensitive it is (±0.3 m/s on either velocity at 23 m moves 0.128 to 0.119 … 0.138).
+- **D-09:** two windows on one store: the later save silently threw away the other window's changes.
+
+**Fix.**
+- **P-08 (owner: warn, keep the dope):** one shared warning — "Sg 0.94 < 1.0 — Miller predicts a tumble. The dope is kept, but its BC penalty is extrapolated below its valid range (1.0–1.5)…". It appears on Home (short form in the status line), Trajectory, Solver, Holds, the dope-card note and the printed card. It also shows for a trued BC, where no penalty is applied. The penalty formula is unchanged; the Formulas page now says it is extrapolated below 1.0.
+- **P-09 (owner: the setting hides only the slug warning):** `machWarn(pts, type, upTo)` over the flight up to the distance in question.
+  - Pellet with any point above M 0.80 → diabolo warning, always.
+  - Slug whose flight touches M 0.8–1.2 → transonic warning, hidden only when Settings → Transonic warnings is off. A launch above M 1.2 that slows through the zone counts.
+  - Same screens as P-08. The Trajectory tab's two old drag-keyed lines are replaced.
+- **P-11 (§9T):** single-point velocity truing adds "Sensitivity: V @ d ±1 m/s → BC a … b · V₀ ±1 m/s → BC c … d". It says plainly that this is a sensitivity per 1 m/s, not an uncertainty band, until a verified LabRadar downrange accuracy figure exists. Banded truing is unchanged.
+- **D-09 (owner: fix it):**
+  - A revision number under its own key (`rev`) in Main's IndexedDB store. The Lab reads only `db`; `maindatatest` 13 / 13.
+  - `saveDB` reads the revision and writes the snapshot and the next revision in one readwrite transaction. If another window wrote in between, nothing is written; the banner "SEN was changed in another window — reload… Changes made here are NOT saved" appears with a Reload button, and that window saves nothing more.
+  - Saves are announced on `BroadcastChannel('sen_main')`, so the other window shows the banner at once.
+  - A window saves once while starting, so opening a second window (installed app + browser tab) makes the first one show the banner. That is intended: the newest window is the one that writes.
+  - Factory reset clears the revision too. localStorage fallback has no guard (single-window only).
+- **CALC-27 (owner: course summary):**
+  - After the last target of the last stage, the course module shows "Course finished": per stage, hits / calls and the time used (the stage timer's time when the stage was left, "—" when untimed); per target, its calls; the total with a percentage.
+  - The Hit / Miss row is hidden. Tapping a stage or a target goes back to it.
+  - Times and the finished flag live in `APP.run` and survive a restart. Found by the test on the way: the Hit / Miss row and the per-target call marks share the class `cs-calls`, so the row is now addressed as `.btnrow.cs-calls`.
+
+**§20A.**
+- P-08 known answer King → Sg 0.9377, reproduced by hand with Miller's formula.
+- P-11 known answers reproduced by a new independent model, `tests/p11ref.py` (point-mass, G7, moist air, bisection on BC): V₂₃ −0.3 / +0.3 → 0.1190 / 0.1384; V₀ −0.3 / +0.3 → 0.1382 / 0.1192; ±1 → 0.1022 / 0.1709 and 0.1699 / 0.1028. The app agrees within 1e-3.
+- P-09 Mach thresholds: pellet 290 m/s M 0.845; Queen 300 m/s M 0.874, 420 m/s M 1.224, 255 m/s M 0.743 (Everyday Default, a = 343.24 m/s).
+
+**Files.** `index.html`, `RTI-SEN-Ballistic-Calculator-V2.17.0.html`, `archive/RTI-SEN-Ballistic-Calculator-V2.16.6.html` (moved), `sw.js` (CACHE `sen-ballistics-v2.17.0`), `tests/warntest.js` (new, 34), `tests/p11ref.py` (new), `tests/storagetest.js` (save-warning check moved to the newest window — the older one is refused by D-09 by design), `tests/README.md`.
+
+**Verify.**
+- All 50 suites in `tests/README.md` green.
+- On V2.16.6, warntest fails 10 checks and crashes at P-11.
+- Lab `maindatatest` 13 / 13.
+- Owner's export round-trips with nothing refused.
+- Chromium 412 / 780: seven pages plus Home / Holds / Dope with all warnings showing (longest Home status line fits), 0 errors.
+
+---
+
 ## V2.16.6 — patch — storage, service worker and workflow robustness (review release R5: D-08, D-10, D-11, D-12, D-13, D-17, D-18, U-02, U-03, W-07, W-11, W-12, W-13, W-14, B-05, B-09, B-11, B-13, U-10, U-11)
 
 **Problem (V2.16.0 reviews, reproduced).**

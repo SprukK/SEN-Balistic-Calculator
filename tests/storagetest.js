@@ -67,13 +67,14 @@ chk('fallback save lands in localStorage',rifleNames(w3.localStorage.getItem(SK)
 chk('newer-schema file is flagged',JSON.stringify(w1.eval("schemaNewerThanApp({schema:{rifles:99}})"))==='["rifles"]');
 chk('legacy file without schema passes',w1.eval("schemaNewerThanApp({rifles:[]}).length")===0);
 
-// F. A failed save is shown, and cleared by the next good save.
-w1.eval("window._realIdb=_idb;_idb={transaction(){throw new Error('quota exceeded')}};");
-let threw=false;try{w1.eval('saveDB()');}catch(e){threw=true;}
+// F. A failed save is shown, and cleared by the next good save. (V2.17.0 D-09: in the newest window — w1 is older
+//    than w2 on the same store, so its saves are refused by design.)
+w2.eval("window._realIdb=_idb;_idb={transaction(){throw new Error('quota exceeded')}};");
+let threw=false;try{w2.eval('saveDB()');}catch(e){threw=true;}
 await wait(50);
-const banner=w1.document.getElementById('store-warn');
+const banner=w2.document.getElementById('store-warn');
 chk('failed save shows the warning',!threw&&banner.style.display!=='none'&&/NOT saved/.test(banner.textContent),JSON.stringify(banner.textContent));
-w1.eval('_idb=window._realIdb;saveDB();');await wait(150);
+w2.eval('_idb=window._realIdb;saveDB();');await wait(150);
 chk('next good save hides the warning',banner.style.display==='none');
 
 // G. Factory reset clears both stores (otherwise the migration would resurrect old data).
