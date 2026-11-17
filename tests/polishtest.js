@@ -1,6 +1,6 @@
 // Polish test (V2.11.0 r10): Truing sub-tabs, empty right-pane hint, wide-table hint, profile ⋯ menu,
 // flatter panels.
-// Truing: four tools tagged, one shown at a time (also in the right pane), remembered, Velocity first by default.
+// Truing: four tools tagged (V2.16.2: Velocity has its projectile bar on top, so three blocks), one shown at a time (also in the right pane), remembered, Velocity first by default.
 // Empty pane: shows what will appear, per page / tool; hides once a result is there. Tables: a table wider than
 // its box gets the fade + "swipe" hint (inside the box), gone at the right end. Profiles: ☆ stays, the other
 // four actions move into a ⋯ sheet that runs the original buttons; tapping the name edits. Panels: sections,
@@ -29,7 +29,7 @@ w.eval(`Bus.setRifle(DB.rifles.find(r=>/\\.25/.test(r.name)).id);Bus.setProj(DB.
 // 1. Truing sub-tabs
 w.eval(`gotoPage('truing')`);await wait(30);
 const groups=k=>[...w.document.querySelectorAll('body [data-tt="'+k+'"]')].map(e=>e.id||e.className.split(' ')[0]);
-chk('four Truing tools tagged: Velocity, Impacts, BC / SD, MV–temp',groups('vel').length===2&&groups('imp').length===2&&groups('bc').length===3&&groups('mvt').length===3,['vel','imp','bc','mvt'].map(k=>k+':'+groups(k).join('+')).join(' '));
+chk('four Truing tools tagged: Velocity, Impacts, BC / SD, MV–temp',groups('vel').length===3&&groups('imp').length===2&&groups('bc').length===3&&groups('mvt').length===3,['vel','imp','bc','mvt'].map(k=>k+':'+groups(k).join('+')).join(' '));
 chk('Velocity first by default, its tab selected',w.document.documentElement.dataset.tt==='vel'&&w.document.querySelector('.trtabs button.on').dataset.trt==='vel');
 chk('CSS shows only the chosen tool (page and right pane)',/html\[data-tt="vel"\] \[data-tt\]:not\(\[data-tt="vel"\]\)/.test(css)&&/html\[data-tt="mvt"\] \[data-tt\]:not\(\[data-tt="mvt"\]\)\{display:none!important\}/.test(css));
 [...w.document.querySelectorAll('.trtabs button')].find(b=>b.dataset.trt==='imp').click();await wait(20);

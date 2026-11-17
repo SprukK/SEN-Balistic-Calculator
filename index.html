@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0b0e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>SEN Ballistics V2.16.1</title>
+<title>SEN Ballistics V2.16.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -775,10 +775,13 @@ html.help-all .help-btn{display:none}
 <!-- ═══════════ BC TRUING (A6) ═══════════ -->
 <div class="page" id="page-truing">
   <div class="subnav advtabs trtabs" role="tablist" aria-label="BC and truing tools"><button type="button" role="tab" data-trt="vel" onclick="setTruTab('vel')">Velocity</button><button type="button" role="tab" data-trt="imp" onclick="setTruTab('imp')">Impacts</button><button type="button" role="tab" data-trt="bc" onclick="setTruTab('bc')">BC / SD</button><button type="button" role="tab" data-trt="mvt" onclick="setTruTab('mvt')">MV–temp</button></div>
+  <div class="panel" id="tu-projbar" data-tt="vel">   <!-- V2.16.2 TR-01: the projectile being trued, on top -->
+    <div class="fld"><label>Projectile to true</label><select id="tu-proj" onchange="tuLoadProj()"></select></div>
+    <div class="note" id="tu-proj-note" style="margin-top:4px"></div>
+  </div>
   <div class="panel" data-tt="vel">
     <div class="ph"><h2>BC Truing</h2><span class="psub">solve real BC from measured downrange velocity</span></div>
     <div class="fgrid">
-      <div class="fld"><label>Projectile</label><select id="tu-proj" onchange="tuLoadProj()"></select></div>
       <div class="fld"><label>Drag model</label><select id="tu-drag"><option value="g7">G7 (slug default)</option><option value="g1">G1</option></select></div>
     </div>
     <div class="fgrid" style="margin-top:8px">
@@ -794,7 +797,7 @@ html.help-all .help-btn{display:none}
   <div class="panel" id="tu-result" data-tt="vel" style="display:none">
     <div class="ph"><h2>Result</h2><span class="psub" id="tu-result-sub"></span></div>
     <div id="tu-result-body"></div>
-    <div class="btnrow"><button class="btn primary" onclick="tuApply()">Apply to projectile profile</button></div>
+    <div class="btnrow"><button class="btn primary" id="tu-apply-btn" onclick="tuApply()">Apply to projectile profile</button></div>
     <div class="note" id="tu-apply-note"></div>
   </div>
   <div class="panel" id="td-panel" data-tt="imp">
@@ -1203,7 +1206,7 @@ html.help-all .help-btn{display:none}
 <div class="page" id="page-settings">
   <div id="settings-body"></div>
   <div class="btnrow"><button class="btn" id="reload-btn" onclick="reloadApp()">Reload app</button></div>
-  <div class="note">SEN Ballistics Platform V2.16.1 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
+  <div class="note">SEN Ballistics Platform V2.16.2 · re-architecture of V3.2.2 · physics core ported verbatim &amp; verified · Reticle→Scope→Rifle model · single-file PWA · github.com/SprukK/SEN-Balistic-Calculator</div>
 </div>
 
 <!-- profile modals -->
@@ -3892,7 +3895,7 @@ function dopeRfRender(){
 }
 function exportDope(){
   const c=getCard();if(!c)return;
-  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.1'},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.2'},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(c.name||'dope')+'.json';a.click();
 }
 function deleteDope(){
@@ -4234,14 +4237,23 @@ function mvtApply(){
   alert(`Session MV set to ${ut('vel',S.mv)} from the MV–temp model at ${ut('temp',ct)}.`);
 }
 function tuInit(){
-  const sel=document.getElementById('tu-proj');
-  sel.innerHTML=favSort(DB.projectiles).map(p=>`<option value="${p.id}">${favMark(p)}${esc(p.name)}</option>`).join('');
-  if(S.projId)sel.value=S.projId;
+  // V2.16.2 TR-01: the session projectile first (marked), the others below; the page always opens on the session one
+  const sel=document.getElementById('tu-proj'),ses=getProj();
+  const opt=p=>{const o=document.createElement('option');o.value=p.id;o.textContent=favMark(p)+p.name+(p===ses?' · session':'');return o;};
+  const others=favSort(DB.projectiles).filter(p=>p!==ses),grp=document.createElement('optgroup');
+  grp.label='Other projectiles';grp.append(...others.map(opt));
+  sel.replaceChildren(...(ses?[opt(ses)]:[]),...(others.length?[grp]:[]));
+  sel.value=ses?ses.id:(others[0]?others[0].id:'');
+  document.getElementById('tu-proj-note').textContent=ses?'':'No session projectile — pick the one you measured.';
   if(!tuPoints.length)tuPoints=[{d:23,v:''}];
   tuLoadProj();tuRenderPoints();tdContext();if(!document.querySelector('#td-rows .td-row'))tdRender();
 }
 function tuLoadProj(){
   const p=DB.projectiles.find(x=>x.id===document.getElementById('tu-proj').value);
+  if(tuLastResult&&tuLastResult.pid!==(p&&p.id)){   // V2.16.2 TR-01: a result is never applied to another projectile
+    tuLastResult=null;document.getElementById('tu-result').style.display='none';
+    document.getElementById('tu-proj-note').textContent='Projectile changed — tap True BC again.';
+  }
   if(p){document.getElementById('tu-drag').value=p.type==='pellet'?'g1':'g7';if(S.mv)document.getElementById('tu-mv').value=S.mv;}
 }
 function tuAddPoint(){tuPoints.push({d:'',v:''});tuRenderPoints();}
@@ -4284,7 +4296,9 @@ function tuSolve(){
     const spread=Math.max(...bands.map(b=>b.bc))-Math.min(...bands.map(b=>b.bc));
     body+=`<div class="flag ${spread>0.02?'warn':'info'}">BC ${spread>0.02?'changes':'is roughly constant'} across velocity bands (spread ${spread.toFixed(3)}). ${spread>0.02?'This is the signature of a drag curve that bends differently than the '+drag.toUpperCase()+' reference — the banded model captures it; a single BC would not.':'A single BC would model this projectile adequately over the measured range.'}</div>`;
   }
-  tuLastResult=result;
+  result.pid=p.id;tuLastResult=result;   // V2.16.2 TR-01: Apply writes to this projectile only
+  document.getElementById('tu-proj-note').textContent='';
+  document.getElementById('tu-apply-btn').textContent='Apply to '+p.name;
   document.getElementById('tu-result').style.display='block';
   document.getElementById('tu-result-sub').textContent=sub;
   document.getElementById('tu-result-body').innerHTML=body;
@@ -4292,7 +4306,7 @@ function tuSolve(){
 }
 function tuApply(){
   if(!tuLastResult)return;
-  const p=DB.projectiles.find(x=>x.id===document.getElementById('tu-proj').value);
+  const p=DB.projectiles.find(x=>x.id===tuLastResult.pid);
   if(!p)return;
   const drag=tuLastResult.drag, key=drag==='g7'?'bcg7':'bcg1';
   if(tuLastResult.mode==='single'){
@@ -4468,7 +4482,7 @@ function saveWx(id){
   saveDB();closeModal();renderProfiles();refreshSelects();Bus.notify();
 }
 function exportAll(){
-  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.1'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
+  const blob=new Blob([JSON.stringify({...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.2'},null,2)],{type:'application/json'});   // V2.13.0: no Drive state in exports
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sen-ballistics-export.json';a.click();
 }
 function importAll(input){
@@ -7140,16 +7154,16 @@ function driveSave(files){
   if(files.every(f=>driveEnqueue(...f)))driveTapSend();else driveRender();
 }
 function driveBackupNow(){
-  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.1'};
+  const d={...DB,units:UNITS,sunits:SUNITS,app2:appForExport(),schema:SCHEMA,exported:new Date().toISOString(),app:'SEN Ballistics V2.16.2'};
   driveSave([['backups','SEN backup '+driveStamp()+'.json','application/json',JSON.stringify(d,null,1),'backup']]);
 }
 function driveSaveProfile(t,id){
   const b=shareBundle(t,id),type=SHARE_TYPES[t],rec=b&&DB[type].find(x=>x.id===id);if(!b)return;
-  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.16.1'},null,1)]]);
+  driveSave([['profiles',IMPORT_LABEL[type]+' — '+rec.name+'.json','application/json',JSON.stringify({...b,app:'SEN Ballistics V2.16.2'},null,1)]]);
 }
 function driveSaveDope(){
   const c=getCard();if(!c)return;
-  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.1'},null,1)]];
+  const f=[['dope','Dope — '+(c.name||'card')+'.json','application/json',JSON.stringify({dopeCard:c,schema:SCHEMA,app:'SEN Ballistics V2.16.2'},null,1)]];
   const h=dopePrintHTML(c);   // null when the card can't be computed — the JSON still goes
   if(h)f.push(['dope','Dope — '+(c.name||'card')+' (print)','text/html','<!doctype html><meta charset="utf-8"><title>'+esc(c.name||'Dope')+'</title>'+h.replace(/<table>/g,'<table border="1" cellpadding="4" style="border-collapse:collapse">'),'',DRIVE_DOC]);   // → Google Doc
   driveSave(f);
@@ -7161,7 +7175,7 @@ function driveSaveShots(){
   const csv='shot,velocity_ms,velocity_fps,kept,running_sd_ms,time\n'+c.shots.map((v,i)=>[i+1,v.toFixed(2),(v/0.3048).toFixed(1),c.off.includes(i)?'no':'yes',run[i].sd==null?'':run[i].sd.toFixed(2),c.times[i]?new Date(c.times[i]).toISOString():''].join(',')).join('\n')+
     '\n\nkept_n,mean_ms,es_ms,sd_ms\n'+[st.n,st.mean.toFixed(2),st.es.toFixed(2),st.sd==null?'':st.sd.toFixed(2)].join(',')+'\n'+(notes?'\nnotes\n'+q(notes)+'\n':'');
   driveSave([['shots',nm,'text/csv',csv,'',DRIVE_SHEET],   // → Google Sheet
-    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.16.1',saved:new Date().toISOString()},null,1)]]);
+    ['shots',nm+'.json','application/json',JSON.stringify({chronoStr:c,stats:st,notes:isStr(APP.chNotes)?APP.chNotes:'',source:c.src,app:'SEN Ballistics V2.16.2',saved:new Date().toISOString()},null,1)]]);
 }
 function driveWindRows(){
   const now=Date.now(),win=wavgWin();
@@ -7173,7 +7187,7 @@ function driveSaveWind(){
   const rows=driveWindRows();if(!rows.length||rows.every(r=>!r.readings)){alert('No wind readings to save — connect a Calypso first.');return;}
   const t=new Date().toISOString(),keys=Object.keys(rows[0]);
   driveSave([['wind','Wind '+driveStamp(),'text/csv','time,'+keys.join(',')+'\n'+rows.map(r=>[t,...keys.map(k=>r[k]==null?'':String(r[k]).replace(/,/g,' '))].join(',')).join('\n')+'\n','',DRIVE_SHEET],   // → Google Sheet
-    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.16.1'},null,1)]]);
+    ['wind','Wind '+driveStamp()+'.json','application/json',JSON.stringify({time:t,session:{speed_ms:S.wind.speed,dir_deg:S.wind.dir,source:S.wind.source||null},stations:rows,app:'SEN Ballistics V2.16.2'},null,1)]]);
 }
 // Restore: JSON files in Backups, Profiles and Dope cards, newest first → the normal import.
 async function driveRestoreList(){

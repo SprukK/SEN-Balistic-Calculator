@@ -1,6 +1,7 @@
 // Start-up recovery test (V2.16.1, review release R1): a damaged store must never stop the app from starting.
 // U-01 damaged Home layouts · W-02/W-08 course card or stage without content · D-05 units and app settings
-// checked on import ("Take theirs") and at load · D-01 a trued BC is never converted again at a restart.
+// checked on import ("Take theirs") and at load · D-01 a trued BC is never converted again at a restart ·
+// TR-01 (V2.16.2) Velocity truing applies only to the projectile it was solved for.
 // Every case restarts the app on the same IndexedDB (fake-indexeddb), as storagetest.js does.
 // Usage: node recoverytest.js <app.html>   (needs jsdom + fake-indexeddb; see README.md)
 const {JSDOM,VirtualConsole}=require('jsdom'),fs=require('fs');
@@ -122,9 +123,9 @@ for(const [name,file] of [["{units:{range:'parsec'}}",{units:{range:'parsec'}}],
 {const {idb,out:first}=await store(`const p=DB.projectiles.find(x=>x.id===S.projId);
    tdLast={pid:p.id,drag:'g7',bc:0.119,ds:[100,150]};tdApply();
    const q=DB.projectiles.find(x=>/King/.test(x.name)&&x.id!==p.id)||DB.projectiles.find(x=>x.id!==p.id);tuInit();document.getElementById('tu-proj').value=q.id;
-   tuLastResult={drag:'g7',mode:'single',bc:0.125};tuApply();window._q=q.id;
+   tuLastResult={drag:'g7',mode:'single',bc:0.125,pid:q.id};tuApply();window._q=q.id;
    const b=DB.projectiles.find(x=>x.id!==p.id&&x.id!==q.id&&x.bcg7>0);document.getElementById('tu-proj').value=b.id;
-   tuLastResult={drag:'g7',mode:'banded',bands:[{vHi:280,vLo:240,bc:0.120},{vHi:240,vLo:200,bc:0.110}]};tuApply();
+   tuLastResult={drag:'g7',mode:'banded',bands:[{vHi:280,vLo:240,bc:0.120},{vHi:240,vLo:200,bc:0.110}],pid:b.id};tuApply();
    window._out=[p.id,q.id,b.id];`);
  const ids=first;let w;
  const read=w=>J(w,`${JSON.stringify(ids)}.map(id=>{const p=DB.projectiles.find(x=>x.id===id);return{bc:p.bcg7,conv:p.bcConv,bands:p.bcBands&&p.bcBands.bands.map(b=>b.bc)};})`);
@@ -133,6 +134,28 @@ for(const [name,file] of [["{units:{range:'parsec'}}",{units:{range:'parsec'}}],
  chk('D-01 single velocity-trued BC 0.125 unchanged',r[1].bc===0.125&&r[1].conv==='native',JSON.stringify(r[1]));
  chk('D-01 banded 0.120 / 0.110 unchanged',r[2].bc===0.12&&JSON.stringify(r[2].bands)==='[0.12,0.11]'&&r[2].conv==='native',JSON.stringify(r[2]));
  chk('D-01 Home still on 0.119 (session re-pulled from the trued profile)',J(w,'S.bc')===0.119);}
+
+// 10. TR-01 (V2.16.2): Velocity truing writes only to the projectile it was solved for.
+{const {idb,out:ids}=await store(`const cp=DB.projectiles.find(x=>/AEA CP/.test(x.name)),qn=DB.projectiles.find(x=>/Queen/.test(x.name)&&x.bcg7>0);
+   const c={...JSON.parse(JSON.stringify(qn)),id:uid(),name:'Queen copy',fav:false};DB.projectiles.push(c);Bus.setProj(cp.id);window._out=[cp.id,c.id];`);
+ const [cpId,cloneId]=ids;let w=await open(idb);
+ w.eval("gotoPage('truing');setTruTab('vel')");await wait(30);
+ const sel=$(w,'tu-proj');
+ chk('TR-01 picker opens on the session projectile, listed first and marked',sel.value===cpId&&/· session$/.test(sel.options[0].textContent)&&sel.options[0].value===cpId&&sel.querySelector('optgroup').label==='Other projectiles');
+ const box=$(w,'tu-projbar'),panel=box.nextElementSibling;
+ chk('TR-01 picker sits on top, in its own bar above the Velocity form',!!box&&box.contains(sel)&&/BC Truing/.test(panel.textContent)&&!panel.contains(sel));
+ const cpBefore=JSON.stringify(J(w,`DB.projectiles.find(x=>x.id==='${cpId}')`));
+ w.eval(`const s=document.getElementById('tu-proj');s.value='${cloneId}';s.dispatchEvent(new Event('change'));
+   document.getElementById('tu-mv').value=280;document.getElementById('tu-drag').value='g7';tuPoints=[{d:23,v:276}];tuSolve();`);
+ chk('TR-01 Apply button names the solved projectile',$(w,'tu-apply-btn').textContent==='Apply to Queen copy');
+ w.eval("tuInit()");   // leaving and reopening Truing resets the picker to the session projectile
+ chk('TR-01 picker reset to another projectile → result cleared with a hint',J(w,'tuLastResult')===null&&$(w,'tu-result').style.display==='none'&&/Projectile changed/.test($(w,'tu-proj-note').textContent));
+ w.eval(`const s=document.getElementById('tu-proj');s.value='${cloneId}';s.dispatchEvent(new Event('change'));document.getElementById('tu-mv').value=280;tuSolve();`);
+ const bc=J(w,'+tuLastResult.bc.toFixed(4)');
+ w.eval(`document.getElementById('tu-proj').value='${cpId}';tuApply();`);   // picker moved without a change event: Apply still targets the solved one
+ await wait(150);w=await open(idb);
+ chk('TR-01 the clone got the trued BC (after a restart)',J(w,`DB.projectiles.find(x=>x.id==='${cloneId}').bcg7`)===bc&&/^single·g7/.test(J(w,`DB.projectiles.find(x=>x.id==='${cloneId}').bcTrued`)),String(bc));
+ chk('TR-01 the session projectile (AEA CP) is unchanged',JSON.stringify(J(w,`DB.projectiles.find(x=>x.id==='${cpId}')`))===cpBefore);}
 
 all.forEach(x=>x.close());
 console.log(`\nRESULT: PASS ${pass} / FAIL ${fail}`);

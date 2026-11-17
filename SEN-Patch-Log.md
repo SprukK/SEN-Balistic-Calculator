@@ -7,6 +7,31 @@ Since 2026-10-22 this file lives in the repo root and is the project's single ch
 
 ---
 
+## V2.16.2 — patch — Velocity truing writes only to the projectile it was solved for (TR-01)
+
+**Problem (owner, device test T-3, 2026-11-17).** On Truing → Velocity the owner meant to true a cloned Queen, but the BC went to the AEA CP .25 ("Trued BC applied to AEA CP .25 — 33.9 gr").
+- The picker sat inside the form and was reset to the session projectile every time the Truing page opened.
+- Apply wrote to whatever the picker showed at the moment of the tap, not to the projectile the BC was solved for.
+- Older than V2.16.1 and not in the V2.16.0 reviews; new finding **TR-01**.
+
+**Fix.**
+- The projectile picker is in its own bar on top of the Velocity tool ("Projectile to true").
+- The session projectile is listed first and marked "· session", with the others under "Other projectiles" (favourites first) (owner ruling). With no session projectile, a note asks you to pick one.
+- True BC remembers the projectile it solved for. The button reads "Apply to <name>", and Apply writes only to that projectile.
+- Changing the picker after solving clears the result with "Projectile changed — tap True BC again". Reopening Truing counts, because it resets the picker to the session projectile.
+- The picker is now built with DOM calls instead of an HTML string.
+- Impacts truing is unchanged: it always trues the session projectile and names the BC in its message.
+
+**Owner test T-3 (D-01, V2.16.1):** passed on the Honor. The trued BC stayed exactly the same through several restarts and reloads.
+
+**Files.** `RTI-SEN-Ballistic-Calculator-V2.16.2.html`, `index.html` (byte-identical), `sw.js` (CACHE `sen-ballistics-v2.16.2`), `SEN-Patch-Log.md`, `tests/recoverytest.js` (+6 TR-01 checks; the D-01 truing block now passes the solved projectile), `tests/polishtest.js` (the Velocity tool now has three tagged blocks — the new projectile bar — instead of two; expectation changed on purpose), `tests/README.md`.
+
+**Verify.**
+- `recoverytest.js` PASS 44 / FAIL 0. The TR-01 block fails on V2.16.1. In it, the session is on the AEA CP; the picker opens on it, marked and first; the clone is picked and solved; Apply targets the clone even when the picker is moved without a change event. After a restart, the clone holds the trued BC and the AEA CP is byte-identical.
+- Every suite in `tests/README.md` green; `rendertest` and `typetest` in real Chromium at 412 and 780 px.
+
+---
+
 ## V2.16.1 — patch — the app always starts (review release R1: U-01, W-02, W-08, D-05 validator, D-01)
 
 **Problem (V2.16.0 reviews, all reproduced with a restart on a stored snapshot).**
